@@ -5,8 +5,6 @@ import {
   Code2,
   Database,
   ExternalLink,
-  Github,
-  Linkedin,
   Mail,
   Copy,
   Check,
@@ -18,7 +16,23 @@ import {
   Plus,
   X,
   Trash2,
+  FileText,
+  Download,
+  Settings,
 } from "lucide-react";
+
+// Icono oficial de GitHub nativo en SVG (evita errores de librerías externas)
+function GithubIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
 
 interface ProjectItem {
   id: string;
@@ -41,10 +55,15 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
     title: "Nexus Enterprise SaaS",
     badge: "Full-Stack & PostgreSQL",
     gradient: "from-indigo-600 to-violet-600",
-    description: "Plataforma SaaS B2B con PostgreSQL en pgAdmin, Prisma ORM, autenticación JWT con cookies HttpOnly, control de acceso y auditoría en tiempo real.",
+    description:
+      "Plataforma SaaS B2B con base de datos relacional PostgreSQL en pgAdmin, Prisma ORM, autenticación JWT con cookies HttpOnly seguras, control de acceso por roles y auditoría en tiempo real.",
     tech: ["Next.js", "TypeScript", "PostgreSQL", "Prisma ORM", "Tailwind CSS"],
-    features: ["Transacciones atómicas ACID", "Roles RBAC & Multi-tenant", "Sincronización bilingüe (i18n)"],
-    githubUrl: "https://github.com/TU_USUARIO/nexus-saas",
+    features: [
+      "Transacciones atómicas ACID",
+      "Roles RBAC & Multi-tenant",
+      "Protección de rutas con Middleware",
+    ],
+    githubUrl: "https://github.com/",
     demoUrl: "http://localhost:3000",
   },
   {
@@ -53,11 +72,16 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
     title: "DocuMind AI",
     badge: "IA Generativa & Multimodal",
     gradient: "from-blue-600 to-indigo-600",
-    description: "Asistente inteligente para análisis y chat con documentos PDF usando la API de Google Gemini con arquitectura de tolerancia a fallos ante saturación (503).",
+    description:
+      "Asistente inteligente para análisis y chat con documentos PDF usando la API de Google Gemini con arquitectura de tolerancia a fallos ante saturación de servidores (503).",
     tech: ["Next.js", "Google Gemini API", "TypeScript", "Tailwind CSS"],
-    features: ["Lectura multimodal de PDFs", "Fallback automático de modelos", "Exportación de reportes (.txt)"],
-    githubUrl: "https://github.com/TU_USUARIO/doc-ai-chat",
-    demoUrl: "https://doc-ai-chat.vercel.app",
+    features: [
+      "Lectura multimodal de PDFs",
+      "Fallback automático de modelos",
+      "Exportación de reportes (.txt)",
+    ],
+    githubUrl: "https://github.com/",
+    demoUrl: "https://vercel.com/",
   },
   {
     id: "coinpulse",
@@ -65,11 +89,16 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
     title: "CoinPulse Analytics",
     badge: "Fintech & Data Visualization",
     gradient: "from-cyan-600 to-blue-600",
-    description: "Dashboard financiero de criptomonedas con Recharts, simulador histórico de retorno de inversión (ROI Máquina del Tiempo) y backend proxy anti rate-limits.",
+    description:
+      "Dashboard financiero de criptomonedas con Recharts, simulador histórico de retorno de inversión (ROI Máquina del Tiempo) y backend proxy anti rate-limits.",
     tech: ["Next.js", "Recharts", "TypeScript", "CoinGecko API", "Tailwind CSS"],
-    features: ["Gráficos de series temporales", "Simulador matemático de ROI", "Caché proxy anti rate-limits"],
-    githubUrl: "https://github.com/TU_USUARIO/coinpulse-dashboard",
-    demoUrl: "https://coinpulse-dashboard.vercel.app",
+    features: [
+      "Gráficos de series temporales",
+      "Simulador matemático de ROI",
+      "Caché proxy anti rate-limits",
+    ],
+    githubUrl: "https://github.com/",
+    demoUrl: "https://vercel.com/",
   },
   {
     id: "taskflow",
@@ -77,20 +106,31 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
     title: "TaskFlow Kanban",
     badge: "Productividad & Drag & Drop",
     gradient: "from-purple-600 to-indigo-600",
-    description: "Tablero Kanban inspirado en Linear con Drag & Drop nativo en HTML5 a 60 FPS, seguimiento de subtareas con barras de progreso y filtros por prioridad.",
+    description:
+      "Tablero Kanban inspirado en Linear con Drag & Drop nativo en HTML5 a 60 FPS, seguimiento de subtareas con barras de progreso dinámicas y filtros por prioridad.",
     tech: ["React", "HTML5 Drag & Drop", "TypeScript", "Tailwind CSS"],
-    features: ["Drag & Drop sin librerías pesadas", "Barra de progreso de subtareas", "Filtros en tiempo real"],
-    githubUrl: "https://github.com/TU_USUARIO/taskflow-kanban",
+    features: [
+      "Drag & Drop sin librerías pesadas",
+      "Barra de progreso de subtareas",
+      "Filtros en tiempo real",
+    ],
+    githubUrl: "https://github.com/",
     demoUrl: "http://localhost:3000",
   },
 ];
 
 export default function PortfolioPage() {
   const [lang, setLang] = useState<"es" | "en">("es");
-  const [copied, setCopied] = useState(false);
   const [filter, setFilter] = useState<"all" | "fullstack" | "ai">("all");
   const [projects, setProjects] = useState<ProjectItem[]>(DEFAULT_PROJECTS);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Estados de modales
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [isCvModalOpen, setIsCvModalOpen] = useState(false);
+
+  // Enlace del CV (Guardado en navegador o archivo local)
+  const [cvUrl, setCvUrl] = useState("/cv.pdf");
+  const [tempCvUrl, setTempCvUrl] = useState("");
 
   // Form State para subir proyectos nuevos
   const [title, setTitle] = useState("");
@@ -101,22 +141,26 @@ export default function PortfolioPage() {
   const [githubUrl, setGithubUrl] = useState("");
   const [demoUrl, setDemoUrl] = useState("");
 
-  const myEmail = "david.dev@ejemplo.com"; // <-- Cámbialo por tu correo real
-
   useEffect(() => {
-    const saved = localStorage.getItem("david_portfolio_projects");
-    if (saved) {
+    const savedProjects = localStorage.getItem("angel_portfolio_projects");
+    if (savedProjects) {
       try {
-        setProjects(JSON.parse(saved));
+        setProjects(JSON.parse(savedProjects));
       } catch (e) {
         console.error(e);
       }
+    }
+
+    const savedCv = localStorage.getItem("angel_cv_url");
+    if (savedCv) {
+      setCvUrl(savedCv);
+      setTempCvUrl(savedCv);
     }
   }, []);
 
   const saveProjects = (items: ProjectItem[]) => {
     setProjects(items);
-    localStorage.setItem("david_portfolio_projects", JSON.stringify(items));
+    localStorage.setItem("angel_portfolio_projects", JSON.stringify(items));
   };
 
   const handleAddProject = (e: React.FormEvent) => {
@@ -144,17 +188,20 @@ export default function PortfolioPage() {
     setTechInput("");
     setGithubUrl("");
     setDemoUrl("");
-    setIsModalOpen(false);
+    setIsProjectModalOpen(false);
   };
 
   const deleteCustomProject = (id: string) => {
     saveProjects(projects.filter((p) => p.id !== id));
   };
 
-  const copyEmailToClipboard = () => {
-    navigator.clipboard.writeText(myEmail);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleSaveCvUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (tempCvUrl.trim()) {
+      setCvUrl(tempCvUrl.trim());
+      localStorage.setItem("angel_cv_url", tempCvUrl.trim());
+    }
+    setIsCvModalOpen(false);
   };
 
   const filteredProjects = projects.filter((p) => {
@@ -171,17 +218,28 @@ export default function PortfolioPage() {
             <div className="p-2 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-xl text-white shadow-lg shadow-indigo-500/20">
               <Code2 className="w-5 h-5" />
             </div>
-            <span className="font-bold text-base tracking-tight text-white">David.dev</span>
+            <span className="font-bold text-base tracking-tight text-white">
+              Ángel David Morillo García
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* BOTÓN PARA SUBIR NUEVO TRABAJO */}
+          <div className="flex items-center gap-2.5">
+            {/* BOTÓN PARA SUBIR NUEVO PROYECTO */}
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition shadow-md shadow-emerald-600/20"
+              onClick={() => setIsProjectModalOpen(true)}
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition shadow-md shadow-indigo-600/20"
             >
               <Plus className="w-4 h-4" />
-              <span>Subir Trabajo</span>
+              <span className="hidden sm:inline">Subir Proyecto</span>
+            </button>
+
+            {/* BOTÓN CONFIGURAR CV */}
+            <button
+              onClick={() => setIsCvModalOpen(true)}
+              title="Configurar enlace de CV"
+              className="p-1.5 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl text-slate-300 hover:text-white transition"
+            >
+              <Settings className="w-4 h-4" />
             </button>
 
             {/* SELECTOR IDIOMA */}
@@ -209,34 +267,46 @@ export default function PortfolioPage() {
       <section className="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center space-y-6">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/40 border border-emerald-800/50 text-emerald-400 text-xs font-medium">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          Disponible para nuevas oportunidades laborales
+          {lang === "es"
+            ? "Disponible para oportunidades de desarrollo"
+            : "Available for engineering opportunities"}
         </div>
 
-        <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white max-w-3xl mx-auto leading-tight">
-          Hola, soy <span className="bg-gradient-to-r from-indigo-400 via-violet-300 to-cyan-400 bg-clip-text text-transparent">David</span>,{" "}
-          <span className="block">Desarrollador Full-Stack</span>
+        <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white max-w-4xl mx-auto leading-tight">
+          <span className="bg-gradient-to-r from-indigo-400 via-violet-300 to-cyan-400 bg-clip-text text-transparent">
+            Ángel David Morillo García
+          </span>
+          <span className="block text-2xl sm:text-4xl text-slate-300 font-bold mt-2">
+            {lang === "es" ? "Desarrollador Full-Stack" : "Full-Stack Software Developer"}
+          </span>
         </h1>
 
         <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          Construyo aplicaciones web modernas, rápidas y escalables con Next.js, TypeScript, PostgreSQL e Inteligencia Artificial.
+          {lang === "es"
+            ? "Especializado en la creación de aplicaciones web completas, bases de datos relacionales en PostgreSQL, arquitecturas modernas en Next.js, TypeScript e Inteligencia Artificial."
+            : "Specialized in full-stack web applications, PostgreSQL relational databases, modern Next.js architecture, TypeScript, and AI integrations."}
         </p>
 
+        {/* ACCIONES DEL HERO */}
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <a
             href="#proyectos"
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-5 py-3 rounded-xl transition shadow-lg shadow-indigo-600/25"
           >
-            <span>Ver Proyectos</span>
+            <span>{lang === "es" ? "Ver Proyectos" : "View Projects"}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </a>
 
-          <button
-            onClick={copyEmailToClipboard}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-medium px-4 py-3 rounded-xl transition"
+          {/* BOTÓN DESCARGAR / VER CV */}
+          <a
+            href={cvUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-white text-xs font-semibold px-5 py-3 rounded-xl transition"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            <span>{copied ? "¡Correo copiado!" : "Copiar correo"}</span>
-          </button>
+            <FileText className="w-4 h-4 text-indigo-400" />
+            <span>{lang === "es" ? "Descargar / Ver CV" : "Download / View CV"}</span>
+          </a>
         </div>
       </section>
 
@@ -244,9 +314,13 @@ export default function PortfolioPage() {
       <section id="proyectos" className="max-w-6xl mx-auto px-6 py-16 space-y-10 border-t border-slate-900">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Proyectos Destacados</h2>
+            <h2 className="text-2xl font-bold text-white tracking-tight">
+              {lang === "es" ? "Proyectos Desarrollados" : "Featured Projects"}
+            </h2>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Software real con bases de datos relacionales, IA y APIs.
+              {lang === "es"
+                ? "Software funcional con bases de datos relacionales, IA y APIs."
+                : "Functional software featuring relational databases, AI, and APIs."}
             </p>
           </div>
 
@@ -285,7 +359,13 @@ export default function PortfolioPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className={`p-2.5 rounded-xl bg-gradient-to-tr ${p.gradient} text-white shadow-md`}>
-                    {p.category === "fullstack" ? <Database className="w-5 h-5" /> : p.category === "ai" ? <Bot className="w-5 h-5" /> : <Code2 className="w-5 h-5" />}
+                    {p.category === "fullstack" ? (
+                      <Database className="w-5 h-5" />
+                    ) : p.category === "ai" ? (
+                      <Bot className="w-5 h-5" />
+                    ) : (
+                      <Code2 className="w-5 h-5" />
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-indigo-300 border border-slate-700">
@@ -341,7 +421,7 @@ export default function PortfolioPage() {
                   rel="noreferrer"
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition"
                 >
-                  <Github className="w-4 h-4" />
+                  <GithubIcon className="w-4 h-4" />
                   <span>Código</span>
                 </a>
                 <a
@@ -359,18 +439,18 @@ export default function PortfolioPage() {
         </div>
       </section>
 
-      {/* 4. MODAL: SUBIR NUEVO TRABAJO */}
-      {isModalOpen && (
+      {/* 4. MODAL: SUBIR NUEVO PROYECTO */}
+      {isProjectModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">
             <button
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => setIsProjectModalOpen(false)}
               className="absolute right-4 top-4 text-slate-400 hover:text-white"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="font-bold text-lg text-white mb-4">Subir Nuevo Proyecto al Portafolio</h3>
+            <h3 className="font-bold text-lg text-white mb-4">Agregar Nuevo Proyecto</h3>
 
             <form onSubmit={handleAddProject} className="space-y-4 text-xs">
               <div>
@@ -415,7 +495,7 @@ export default function PortfolioPage() {
                 <textarea
                   rows={2}
                   required
-                  placeholder="Explica qué hace la app y qué problema resuelve..."
+                  placeholder="Explica qué hace la aplicación y qué tecnologías usaste..."
                   value={desc}
                   onChange={(e) => setDesc(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-indigo-500"
@@ -459,16 +539,16 @@ export default function PortfolioPage() {
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsProjectModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition"
                 >
-                  Publicar en Portafolio
+                  Guardar Proyecto
                 </button>
               </div>
             </form>
@@ -476,9 +556,57 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      {/* 5. FOOTER */}
+      {/* 5. MODAL: CONFIGURAR ENLACE DE CV */}
+      {isCvModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+            <button
+              onClick={() => setIsCvModalOpen(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="font-bold text-lg text-white mb-2">Configurar tu Curriculum (CV)</h3>
+            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+              Puedes pegar un enlace directo a tu CV (por ejemplo de Google Drive, Dropbox o LinkedIn), o colocar tu archivo llamado <code className="text-indigo-400">cv.pdf</code> dentro de la carpeta <code className="text-indigo-400">public/</code> de este proyecto.
+            </p>
+
+            <form onSubmit={handleSaveCvUrl} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Enlace o Ruta del CV</label>
+                <input
+                  type="text"
+                  placeholder="https://drive.google.com/... o /cv.pdf"
+                  value={tempCvUrl}
+                  onChange={(e) => setTempCvUrl(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsCvModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition"
+                >
+                  Guardar Enlace de CV
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. FOOTER */}
       <footer className="border-t border-slate-900 py-12 text-center text-xs text-slate-600">
-        <p>David.dev &middot; Portafolio de Desarrollador Full-Stack</p>
+        <p>Ángel David Morillo García &middot; Desarrollador Full-Stack</p>
       </footer>
     </div>
   );
