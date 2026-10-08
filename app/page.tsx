@@ -1,69 +1,485 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import {
+  Code2,
+  Database,
+  ExternalLink,
+  Github,
+  Linkedin,
+  Mail,
+  Copy,
+  Check,
+  ArrowRight,
+  Activity,
+  Bot,
+  Kanban,
+  CheckCircle2,
+  Plus,
+  X,
+  Trash2,
+} from "lucide-react";
+
+interface ProjectItem {
+  id: string;
+  category: "fullstack" | "ai" | "frontend";
+  title: string;
+  badge: string;
+  gradient: string;
+  description: string;
+  tech: string[];
+  features: string[];
+  githubUrl: string;
+  demoUrl: string;
+  isCustom?: boolean;
+}
+
+const DEFAULT_PROJECTS: ProjectItem[] = [
+  {
+    id: "nexus",
+    category: "fullstack",
+    title: "Nexus Enterprise SaaS",
+    badge: "Full-Stack & PostgreSQL",
+    gradient: "from-indigo-600 to-violet-600",
+    description: "Plataforma SaaS B2B con PostgreSQL en pgAdmin, Prisma ORM, autenticación JWT con cookies HttpOnly, control de acceso y auditoría en tiempo real.",
+    tech: ["Next.js", "TypeScript", "PostgreSQL", "Prisma ORM", "Tailwind CSS"],
+    features: ["Transacciones atómicas ACID", "Roles RBAC & Multi-tenant", "Sincronización bilingüe (i18n)"],
+    githubUrl: "https://github.com/TU_USUARIO/nexus-saas",
+    demoUrl: "http://localhost:3000",
+  },
+  {
+    id: "documind",
+    category: "ai",
+    title: "DocuMind AI",
+    badge: "IA Generativa & Multimodal",
+    gradient: "from-blue-600 to-indigo-600",
+    description: "Asistente inteligente para análisis y chat con documentos PDF usando la API de Google Gemini con arquitectura de tolerancia a fallos ante saturación (503).",
+    tech: ["Next.js", "Google Gemini API", "TypeScript", "Tailwind CSS"],
+    features: ["Lectura multimodal de PDFs", "Fallback automático de modelos", "Exportación de reportes (.txt)"],
+    githubUrl: "https://github.com/TU_USUARIO/doc-ai-chat",
+    demoUrl: "https://doc-ai-chat.vercel.app",
+  },
+  {
+    id: "coinpulse",
+    category: "ai",
+    title: "CoinPulse Analytics",
+    badge: "Fintech & Data Visualization",
+    gradient: "from-cyan-600 to-blue-600",
+    description: "Dashboard financiero de criptomonedas con Recharts, simulador histórico de retorno de inversión (ROI Máquina del Tiempo) y backend proxy anti rate-limits.",
+    tech: ["Next.js", "Recharts", "TypeScript", "CoinGecko API", "Tailwind CSS"],
+    features: ["Gráficos de series temporales", "Simulador matemático de ROI", "Caché proxy anti rate-limits"],
+    githubUrl: "https://github.com/TU_USUARIO/coinpulse-dashboard",
+    demoUrl: "https://coinpulse-dashboard.vercel.app",
+  },
+  {
+    id: "taskflow",
+    category: "fullstack",
+    title: "TaskFlow Kanban",
+    badge: "Productividad & Drag & Drop",
+    gradient: "from-purple-600 to-indigo-600",
+    description: "Tablero Kanban inspirado en Linear con Drag & Drop nativo en HTML5 a 60 FPS, seguimiento de subtareas con barras de progreso y filtros por prioridad.",
+    tech: ["React", "HTML5 Drag & Drop", "TypeScript", "Tailwind CSS"],
+    features: ["Drag & Drop sin librerías pesadas", "Barra de progreso de subtareas", "Filtros en tiempo real"],
+    githubUrl: "https://github.com/TU_USUARIO/taskflow-kanban",
+    demoUrl: "http://localhost:3000",
+  },
+];
+
+export default function PortfolioPage() {
+  const [lang, setLang] = useState<"es" | "en">("es");
+  const [copied, setCopied] = useState(false);
+  const [filter, setFilter] = useState<"all" | "fullstack" | "ai">("all");
+  const [projects, setProjects] = useState<ProjectItem[]>(DEFAULT_PROJECTS);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Form State para subir proyectos nuevos
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [badge, setBadge] = useState("");
+  const [category, setCategory] = useState<"fullstack" | "ai" | "frontend">("fullstack");
+  const [techInput, setTechInput] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [demoUrl, setDemoUrl] = useState("");
+
+  const myEmail = "david.dev@ejemplo.com"; // <-- Cámbialo por tu correo real
+
+  useEffect(() => {
+    const saved = localStorage.getItem("david_portfolio_projects");
+    if (saved) {
+      try {
+        setProjects(JSON.parse(saved));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
+  const saveProjects = (items: ProjectItem[]) => {
+    setProjects(items);
+    localStorage.setItem("david_portfolio_projects", JSON.stringify(items));
+  };
+
+  const handleAddProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !desc.trim()) return;
+
+    const newProject: ProjectItem = {
+      id: `custom-${Date.now()}`,
+      title: title.trim(),
+      description: desc.trim(),
+      badge: badge.trim() || "Web App",
+      category,
+      gradient: "from-emerald-600 to-teal-600",
+      tech: techInput ? techInput.split(",").map((t) => t.trim()) : ["React", "TypeScript"],
+      features: ["Diseño responsive", "Arquitectura moderna"],
+      githubUrl: githubUrl.trim() || "https://github.com/",
+      demoUrl: demoUrl.trim() || "https://vercel.com/",
+      isCustom: true,
+    };
+
+    saveProjects([newProject, ...projects]);
+    setTitle("");
+    setDesc("");
+    setBadge("");
+    setTechInput("");
+    setGithubUrl("");
+    setDemoUrl("");
+    setIsModalOpen(false);
+  };
+
+  const deleteCustomProject = (id: string) => {
+    saveProjects(projects.filter((p) => p.id !== id));
+  };
+
+  const copyEmailToClipboard = () => {
+    navigator.clipboard.writeText(myEmail);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const filteredProjects = projects.filter((p) => {
+    if (filter === "all") return true;
+    return p.category === filter;
+  });
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased selection:bg-indigo-500/20 selection:text-indigo-300">
+      {/* 1. NAVBAR */}
+      <header className="border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+              <Code2 className="w-5 h-5" />
+            </div>
+            <span className="font-bold text-base tracking-tight text-white">David.dev</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* BOTÓN PARA SUBIR NUEVO TRABAJO */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition shadow-md shadow-emerald-600/20"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              <Plus className="w-4 h-4" />
+              <span>Subir Trabajo</span>
+            </button>
+
+            {/* SELECTOR IDIOMA */}
+            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs">
+              <button
+                onClick={() => setLang("es")}
+                className={`px-2 py-0.5 rounded-lg font-medium transition ${lang === "es" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"
+                  }`}
+              >
+                🇪🇸 ES
+              </button>
+              <button
+                onClick={() => setLang("en")}
+                className={`px-2 py-0.5 rounded-lg font-medium transition ${lang === "en" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"
+                  }`}
+              >
+                🇺🇸 EN
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* 2. HERO */}
+      <section className="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center space-y-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/40 border border-emerald-800/50 text-emerald-400 text-xs font-medium">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          Disponible para nuevas oportunidades laborales
+        </div>
+
+        <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white max-w-3xl mx-auto leading-tight">
+          Hola, soy <span className="bg-gradient-to-r from-indigo-400 via-violet-300 to-cyan-400 bg-clip-text text-transparent">David</span>,{" "}
+          <span className="block">Desarrollador Full-Stack</span>
+        </h1>
+
+        <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
+          Construyo aplicaciones web modernas, rápidas y escalables con Next.js, TypeScript, PostgreSQL e Inteligencia Artificial.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <a
+            href="#proyectos"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-5 py-3 rounded-xl transition shadow-lg shadow-indigo-600/25"
+          >
+            <span>Ver Proyectos</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </a>
+
+          <button
+            onClick={copyEmailToClipboard}
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-medium px-4 py-3 rounded-xl transition"
+          >
+            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            <span>{copied ? "¡Correo copiado!" : "Copiar correo"}</span>
+          </button>
+        </div>
+      </section>
+
+      {/* 3. PROYECTOS */}
+      <section id="proyectos" className="max-w-6xl mx-auto px-6 py-16 space-y-10 border-t border-slate-900">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-white tracking-tight">Proyectos Destacados</h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              Software real con bases de datos relacionales, IA y APIs.
+            </p>
+          </div>
+
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs">
+            <button
+              onClick={() => setFilter("all")}
+              className={`px-3 py-1.5 rounded-lg font-medium transition ${filter === "all" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"
+                }`}
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Todos ({projects.length})
+            </button>
+            <button
+              onClick={() => setFilter("fullstack")}
+              className={`px-3 py-1.5 rounded-lg font-medium transition ${filter === "fullstack" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"
+                }`}
+            >
+              Full-Stack & DB
+            </button>
+            <button
+              onClick={() => setFilter("ai")}
+              className={`px-3 py-1.5 rounded-lg font-medium transition ${filter === "ai" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"
+                }`}
+            >
+              IA & Analítica
+            </button>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Grid de Proyectos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filteredProjects.map((p) => (
+            <div
+              key={p.id}
+              className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between hover:border-slate-700 transition-all shadow-xl group relative overflow-hidden"
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className={`p-2.5 rounded-xl bg-gradient-to-tr ${p.gradient} text-white shadow-md`}>
+                    {p.category === "fullstack" ? <Database className="w-5 h-5" /> : p.category === "ai" ? <Bot className="w-5 h-5" /> : <Code2 className="w-5 h-5" />}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-indigo-300 border border-slate-700">
+                      {p.badge}
+                    </span>
+                    {p.isCustom && (
+                      <button
+                        onClick={() => deleteCustomProject(p.id)}
+                        className="text-slate-500 hover:text-rose-400 p-1"
+                        title="Eliminar proyecto"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold text-white group-hover:text-indigo-300 transition">
+                    {p.title}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">{p.description}</p>
+                </div>
+
+                {/* Características destacadas */}
+                <div className="space-y-1.5 pt-2">
+                  {p.features.map((feat, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs text-slate-300">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Etiquetas de Tecnología */}
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  {p.tech.map((tItem, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800 text-[10px] text-slate-400 font-mono"
+                    >
+                      {tItem}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botones de enlace */}
+              <div className="flex items-center gap-3 pt-6 mt-6 border-t border-slate-800/80">
+                <a
+                  href={p.githubUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition"
+                >
+                  <Github className="w-4 h-4" />
+                  <span>Código</span>
+                </a>
+                <a
+                  href={p.demoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition shadow-md shadow-indigo-600/20"
+                >
+                  <span>Ver Demo</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          ))}
         </div>
-      </main>
+      </section>
+
+      {/* 4. MODAL: SUBIR NUEVO TRABAJO */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="font-bold text-lg text-white mb-4">Subir Nuevo Proyecto al Portafolio</h3>
+
+            <form onSubmit={handleAddProject} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Título del Proyecto *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: E-Commerce Store Pro"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Categoría</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="fullstack">Full-Stack & DB</option>
+                    <option value="ai">IA & Analítica</option>
+                    <option value="frontend">Frontend</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Etiqueta Badge</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Full-Stack / Stripe"
+                    value={badge}
+                    onChange={(e) => setBadge(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Descripción *</label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="Explica qué hace la app y qué problema resuelve..."
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Tecnologías (separadas por comas)</label>
+                <input
+                  type="text"
+                  placeholder="Next.js, TypeScript, PostgreSQL, Tailwind"
+                  value={techInput}
+                  onChange={(e) => setTechInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Enlace a GitHub</label>
+                  <input
+                    type="url"
+                    placeholder="https://github.com/tu-usuario/repo"
+                    value={githubUrl}
+                    onChange={(e) => setGithubUrl(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Enlace de la Demo en Vivo</label>
+                  <input
+                    type="url"
+                    placeholder="https://tu-app.vercel.app"
+                    value={demoUrl}
+                    onChange={(e) => setDemoUrl(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition"
+                >
+                  Publicar en Portafolio
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. FOOTER */}
+      <footer className="border-t border-slate-900 py-12 text-center text-xs text-slate-600">
+        <p>David.dev &middot; Portafolio de Desarrollador Full-Stack</p>
+      </footer>
     </div>
   );
 }
