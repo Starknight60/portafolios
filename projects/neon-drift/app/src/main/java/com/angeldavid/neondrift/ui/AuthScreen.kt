@@ -8,9 +8,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,10 +35,10 @@ fun AuthScreen(
     onUserLoggedIn: (UserAccount) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    var isRegisterMode by remember { mutableStateOf(false) }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var infoMessage by remember { mutableStateOf<String?>(null) }
     var existingUsers by remember { mutableStateOf<List<String>>(emptyList()) }
     var isPostgresOnline by remember { mutableStateOf(false) }
     var showHostDialog by remember { mutableStateOf(false) }
@@ -69,273 +71,301 @@ fun AuthScreen(
     ) {
         Card(
             modifier = Modifier
-                .width(580.dp)
-                .padding(14.dp)
+                .fillMaxWidth(0.92f)
+                .fillMaxHeight(0.92f)
                 .border(1.5.dp, Color(0xFF00F0FF).copy(alpha = 0.6f), RoundedCornerShape(20.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0A0F1D).copy(alpha = 0.95f)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0A0F1D).copy(alpha = 0.96f)),
             shape = RoundedCornerShape(20.dp)
         ) {
-            Column(
+            Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxSize()
+                    .padding(18.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                // Título Cyberpunk
-                Text(
-                    text = "NEON DRIFT",
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 26.sp,
-                    color = Color(0xFF00F0FF),
-                    letterSpacing = 2.sp
-                )
-                Text(
-                    text = "CYBER CIRCUIT • POSTGRESQL & CLOUD RACING",
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    color = Color(0xFFFF007F)
-                )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Estado de conexión a PostgreSQL
-                Surface(
-                    modifier = Modifier.clickable { showHostDialog = true },
-                    color = if (isPostgresOnline) Color(0xFF00FF66).copy(alpha = 0.15f) else Color(0xFFFFD700).copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(20.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (isPostgresOnline) Color(0xFF00FF66) else Color(0xFFFFD700)
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = if (isPostgresOnline) "🟢" else "🟡", fontSize = 10.sp)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (isPostgresOnline) "POSTGRESQL 17 CONECTADO (neon_drift_db)" else "POSTGRESQL LOCAL/OFFLINE • TOCAR PARA IP",
-                            color = if (isPostgresOnline) Color(0xFF00FF66) else Color(0xFFFFD700),
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Selector de pestañas: Iniciar Sesión / Registrar
-                Row(
+                // COLUMNA IZQUIERDA: LOGO, BASE DE DATOS Y PILOTOS GUARDADOS
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF131B2E), RoundedCornerShape(12.dp))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                if (!isRegisterMode) Color(0xFF00F0FF) else Color.Transparent,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .clickable {
-                                isRegisterMode = false
-                                errorMessage = null
-                            }
-                            .padding(vertical = 7.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Column {
                         Text(
-                            text = "INICIAR SESIÓN",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = if (!isRegisterMode) Color(0xFF03030C) else Color(0xFF94A3B8)
+                            text = "NEON DRIFT",
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 28.sp,
+                            color = Color(0xFF00F0FF),
+                            letterSpacing = 2.sp
                         )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                if (isRegisterMode) Color(0xFFFF007F) else Color.Transparent,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .clickable {
-                                isRegisterMode = true
-                                errorMessage = null
-                            }
-                            .padding(vertical = 7.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
                         Text(
-                            text = "NUEVO PILOTO",
+                            text = "CYBER CIRCUIT • POSTGRESQL RACING",
+                            fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = if (isRegisterMode) Color.White else Color(0xFF94A3B8)
+                            fontSize = 11.sp,
+                            color = Color(0xFFFF007F)
                         )
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                // Pilotos guardados en PostgreSQL / Local
-                if (existingUsers.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                        // Estado de conexión PostgreSQL
+                        Surface(
+                            modifier = Modifier.clickable { showHostDialog = true },
+                            color = if (isPostgresOnline) Color(0xFF00FF66).copy(alpha = 0.15f) else Color(0xFFFFD700).copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isPostgresOnline) Color(0xFF00FF66) else Color(0xFFFFD700)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = if (isPostgresOnline) "🟢" else "🟡", fontSize = 11.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text(
+                                        text = if (isPostgresOnline) "POSTGRESQL CONECTADO" else "MODO LOCAL OFFLINE",
+                                        color = if (isPostgresOnline) Color(0xFF00FF66) else Color(0xFFFFD700),
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                    Text(
+                                        text = if (isPostgresOnline) "neon_drift_db @ ${repository.postgresHelper.host}:5000" else "Tocar para configurar IP",
+                                        color = Color(0xFF94A3B8),
+                                        fontSize = 9.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Lista de Pilotos Registrados
                         Text(
-                            text = "PILOTOS EN BD:",
+                            text = "PILOTOS EN BASE DE DATOS:",
                             fontSize = 10.5.sp,
                             color = Color(0xFF64748B),
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             items(existingUsers) { name ->
+                                val isSelected = (username == name)
                                 Surface(
                                     modifier = Modifier.clickable {
                                         username = name
                                         password = if (name == "David") "1234" else ""
+                                        errorMessage = null
                                     },
-                                    color = if (username == name) Color(0xFF00F0FF).copy(alpha = 0.25f) else Color(0xFF1E293B),
+                                    color = if (isSelected) Color(0xFF00F0FF).copy(alpha = 0.25f) else Color(0xFF1E293B),
                                     shape = CircleShape,
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (username == name) Color(0xFF00F0FF) else Color(0xFF334155))
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isSelected) Color(0xFF00F0FF) else Color(0xFF334155)
+                                    )
                                 ) {
                                     Text(
                                         text = name,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                         fontSize = 11.sp,
-                                        color = if (username == name) Color(0xFF00F0FF) else Color(0xFFCBD5E1),
+                                        color = if (isSelected) Color(0xFF00F0FF) else Color(0xFFCBD5E1),
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
                             }
                         }
                     }
+
+                    // Botón de Acceso Rápido como David
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                val user = repository.login("David", "1234")
+                                if (user != null) {
+                                    onUserLoggedIn(user)
+                                } else {
+                                    val newUser = repository.register("David", "1234")
+                                    if (newUser != null) onUserLoggedIn(newUser)
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFF00FF66))
+                    ) {
+                        Text(
+                            text = "⚡ ACCESO RÁPIDO: PILOTO DAVID",
+                            color = Color(0xFF00FF66),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+
+                // COLUMNA DERECHA: FORMULARIO Y BOTONES SEPARADOS
+                Column(
+                    modifier = Modifier
+                        .weight(1.2f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = "ACCESO & REGISTRO DE CUENTA",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = 1.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Campo Nombre de Piloto
+                        OutlinedTextField(
+                            value = username,
+                            onValueChange = {
+                                username = it
+                                errorMessage = null
+                            },
+                            label = { Text("Nombre de Piloto / Usuario", color = Color(0xFF94A3B8), fontSize = 11.sp) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF00F0FF),
+                                unfocusedBorderColor = Color(0xFF334155)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Campo Contraseña
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = {
+                                password = it
+                                errorMessage = null
+                            },
+                            label = { Text("Contraseña / PIN", color = Color(0xFF94A3B8), fontSize = 11.sp) },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFFFF007F),
+                                unfocusedBorderColor = Color(0xFF334155)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (errorMessage != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = errorMessage ?: "",
+                                color = Color(0xFFFF1744),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        if (infoMessage != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = infoMessage ?: "",
+                                color = Color(0xFF00FF66),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(10.dp))
-                }
 
-                // Campos de entrada
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text("Nombre de Piloto / Usuario", color = Color(0xFF94A3B8), fontSize = 12.sp) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF00F0FF),
-                        unfocusedBorderColor = Color(0xFF334155)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Contraseña / PIN", color = Color(0xFF94A3B8), fontSize = 12.sp) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFFFF007F),
-                        unfocusedBorderColor = Color(0xFF334155)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (errorMessage != null) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = errorMessage ?: "",
-                        color = Color(0xFFFF1744),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Botón Principal de Acción
-                Button(
-                    onClick = {
-                        if (username.isBlank() || password.isBlank()) {
-                            errorMessage = "Ingresa usuario y contraseña"
-                            return@Button
-                        }
-                        scope.launch {
-                            if (isRegisterMode) {
-                                val user = repository.register(username, password)
-                                if (user != null) {
-                                    onUserLoggedIn(user)
-                                } else {
-                                    errorMessage = "Ese piloto ya existe en la base de datos"
+                    // LOS DOS BOTONES CLAROS Y VISIBLES
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // BOTÓN 1: INICIAR SESIÓN
+                        Button(
+                            onClick = {
+                                if (username.isBlank() || password.isBlank()) {
+                                    errorMessage = "Ingresa usuario y contraseña"
+                                    return@Button
                                 }
-                            } else {
-                                val user = repository.login(username, password)
-                                if (user != null) {
-                                    onUserLoggedIn(user)
-                                } else {
-                                    errorMessage = "Credenciales incorrectas"
+                                scope.launch {
+                                    val user = repository.login(username, password)
+                                    if (user != null) {
+                                        onUserLoggedIn(user)
+                                    } else {
+                                        errorMessage = "Piloto o clave incorrecta"
+                                    }
                                 }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00F0FF))
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "🔑 INICIAR SESIÓN",
+                                    color = Color(0xFF03030C),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.5.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
                             }
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isRegisterMode) Color(0xFFFF007F) else Color(0xFF00F0FF)
-                    )
-                ) {
-                    Text(
-                        text = if (isRegisterMode) "CREAR CUENTA EN POSTGRESQL" else "ENTRAR AL CIRCUITO",
-                        fontWeight = FontWeight.Black,
-                        fontSize = 12.sp,
-                        color = if (isRegisterMode) Color.White else Color(0xFF03030C),
-                        letterSpacing = 1.sp
-                    )
-                }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Botón de Acceso Rápido como David
-                OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            val user = repository.login("David", "1234")
-                            if (user != null) {
-                                onUserLoggedIn(user)
-                            } else {
-                                val newUser = repository.register("David", "1234")
-                                if (newUser != null) onUserLoggedIn(newUser)
+                        // BOTÓN 2: CREAR NUEVO PILOTO
+                        Button(
+                            onClick = {
+                                if (username.isBlank() || password.isBlank()) {
+                                    errorMessage = "Ingresa usuario y clave para registrar"
+                                    return@Button
+                                }
+                                scope.launch {
+                                    val user = repository.register(username, password)
+                                    if (user != null) {
+                                        infoMessage = "¡Piloto creado con éxito!"
+                                        refreshUsers()
+                                        onUserLoggedIn(user)
+                                    } else {
+                                        errorMessage = "Ese piloto ya existe en la base de datos"
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF007F))
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "➕ NUEVO PILOTO",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.5.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
                             }
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(36.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00FF66).copy(alpha = 0.8f))
-                ) {
-                    Text(
-                        text = "⚡ ENTRADA RÁPIDA: PILOTO DAVID (POSTGRESQL)",
-                        color = Color(0xFF00FF66),
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    }
                 }
             }
         }
@@ -347,7 +377,7 @@ fun AuthScreen(
             onDismissRequest = { showHostDialog = false },
             title = {
                 Text(
-                    text = "Configuración PostgreSQL",
+                    text = "Configuración Servidor PostgreSQL",
                     color = Color(0xFF00F0FF),
                     fontWeight = FontWeight.Black
                 )
@@ -355,7 +385,7 @@ fun AuthScreen(
             text = {
                 Column {
                     Text(
-                        text = "Host / IP del servidor PostgreSQL (Puerto 5432 / DB: neon_drift_db):",
+                        text = "IP del Servidor (neon_drift_db en PostgreSQL 17 / Puerto 5000):",
                         fontSize = 12.sp,
                         color = Color(0xFFCBD5E1)
                     )
@@ -363,7 +393,7 @@ fun AuthScreen(
                     OutlinedTextField(
                         value = postgresHostInput,
                         onValueChange = { postgresHostInput = it },
-                        label = { Text("IP Host (10.0.2.2 = Emulador PC)") },
+                        label = { Text("IP Host (10.0.2.2 para Emulador)") },
                         singleLine = true
                     )
                 }
@@ -378,12 +408,12 @@ fun AuthScreen(
                         }
                     }
                 ) {
-                    Text("PROBAR & GUARDAR")
+                    Text("PROBAR & CONECTAR")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showHostDialog = false }) {
-                    Text("CANCELAR")
+                    Text("CERRAR")
                 }
             }
         )
