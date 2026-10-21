@@ -1,0 +1,89 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String             @id @default(cuid())
+  email        String             @unique
+  password     String
+  name         String
+  role         String             @default("ANALYST")
+  company      String?
+  avatarColor  String             @default("#F59E0B")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  watchlists   Watchlist[]
+  simulations  MarginSimulation[]
+}
+
+model Restaurant {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  category        String
+  city            String   @default("Caracas & Internacional")
+  physicalAddress String
+  logoColor       String
+  logoIcon        String
+  avgMarkupPct    Float    @default(0)
+  dishes          Dish[]
+  createdAt       DateTime @default(now())
+}
+
+model Dish {
+  id               String          @id @default(cuid())
+  restaurantId     String
+  restaurant       Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name             String
+  category         String
+  description      String
+  physicalPrice    Float
+  pedidosYaPrice   Float
+  uberEatsPrice    Float
+  yummyPrice       Float
+  phantomMarkupPct Float
+  badge            String?
+  foodCostEst      Float           @default(0)
+  isSurgeActive    Boolean         @default(false)
+  watchItems       WatchlistItem[]
+  createdAt        DateTime        @default(now())
+}
+
+model Watchlist {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  notes     String?
+  items     WatchlistItem[]
+  createdAt DateTime        @default(now())
+}
+
+model WatchlistItem {
+  id          String    @id @default(cuid())
+  watchlistId String
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  dishId      String
+  dish        Dish      @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  userNote    String?
+  createdAt   DateTime  @default(now())
+}
+
+model MarginSimulation {
+  id                       String   @id @default(cuid())
+  userId                   String
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dishName                 String
+  physicalPrice            Float
+  foodCost                 Float
+  appCommissionPct         Float
+  packagingCost            Float
+  recommendedDeliveryPrice Float
+  netMarginPct             Float
+  createdAt                DateTime @default(now())
+}
