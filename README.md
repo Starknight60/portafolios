@@ -25,6 +25,7 @@ Todos los proyectos residen con su código fuente completo en la carpeta [`/proj
 | 12 | **Galaxy Striker** | Videojuegos Móviles Nativos Android | Kotlin, Jetpack Compose, Canvas 60 FPS, Audio Sintetizado, APK | [`/projects/galaxy-striker`](./projects/galaxy-striker) |
 | 13 | **Neon Drift: Cyber Circuit** | Videojuegos Móviles Nativos Android | Kotlin, Jetpack Compose, Física Arcade de Drift, Canvas 60 FPS, APK | [`/projects/neon-drift`](./projects/neon-drift) |
 | 14 | **AdRadar Enterprise** | Inteligencia Competitiva B2B & Publicidad | Next.js 16, PostgreSQL 17, Prisma 6, Recharts | [🌐 Demo en Vivo (Vercel)](https://ad-radar-eta.vercel.app/) • [`/projects/ad-radar`](./projects/ad-radar) |
+| 15 | **MenuPulse Enterprise** | FoodTech Intelligence & Elasticidad de Precios | Next.js 16, Neon PostgreSQL 17, Prisma 6, Recharts, Bcrypt | [`/projects/menupulse`](./projects/menupulse) |
 
 ---
 

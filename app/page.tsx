@@ -50,6 +50,40 @@ interface ProjectItem {
 
 const DEFAULT_PROJECTS: ProjectItem[] = [
   {
+    id: "menupulse",
+    category: "fullstack",
+    title: "MenuPulse Enterprise",
+    badge: "FoodTech & Elasticidad de Precios",
+    gradient: "from-amber-500 via-rose-500 to-orange-600",
+    description:
+      "Plataforma B2B de inteligencia de precios y márgenes gastronómicos. Audita en tiempo real la brecha oculta entre el menú físico y las apps de delivery (PedidosYa, UberEats, Yummy), sobreprecios fantasma, simulador de food cost y base de datos Neon PostgreSQL.",
+    tech: ["Next.js 16", "PostgreSQL 17 (Neon)", "Prisma ORM", "Recharts", "JWT / Bcrypt"],
+    features: [
+      "Radar de sobreprecio fantasma (Phantom Markup)",
+      "Simulador algorítmico de margen y food cost",
+      "Duelos Head-to-Head (KFC vs Arturo's, McDonald's vs BK)",
+    ],
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/menupulse",
+    demoUrl: "http://localhost:3005",
+  },
+  {
+    id: "adradar",
+    category: "fullstack",
+    title: "AdRadar Enterprise",
+    badge: "Inteligencia Competitiva & Ads",
+    gradient: "from-cyan-500 via-indigo-600 to-blue-600",
+    description:
+      "Plataforma SaaS de espionaje comercial de anuncios publicitarios para cadenas líderes. Duelos de cupones y promociones, swipe files privados y base de datos serverless en Neon PostgreSQL.",
+    tech: ["Next.js 16", "PostgreSQL 17 (Neon)", "Prisma ORM", "Recharts", "Tailwind CSS"],
+    features: [
+      "Radar de pautas y campañas activas en vivo",
+      "Duelos comerciales (KFC vs Arturo's, PedidosYa vs Yummy)",
+      "Autenticación segura con cookies HttpOnly y bcrypt",
+    ],
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/ad-radar",
+    demoUrl: "https://ad-radar-eta.vercel.app/",
+  },
+  {
     id: "promptforge",
     category: "ai",
     title: "PromptForge Hub",
