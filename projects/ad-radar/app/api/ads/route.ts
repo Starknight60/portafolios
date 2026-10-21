@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { getCurrentUser } from "@/lib/auth";
 
 const ALLOWED_PLATFORMS = ["INSTAGRAM", "TIKTOK", "FACEBOOK", "GOOGLE_ADS", "YOUTUBE", "LINKEDIN"];
 const ALLOWED_OFFER_TYPES = ["COMBO", "DISCOUNT", "TWO_FOR_ONE", "FREE_DELIVERY", "NEW_LAUNCH", "BUNDLE"];
@@ -110,9 +111,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Empresa no encontrada" }, { status: 404 });
     }
 
+    const currentUser = await getCurrentUser();
+
     const newAd = await prisma.ad.create({
       data: {
         companyId,
+        userId: currentUser?.id || null,
         headline: cleanHeadline,
         bodyText: cleanBodyText,
         callToAction: String(callToAction).slice(0, 30),

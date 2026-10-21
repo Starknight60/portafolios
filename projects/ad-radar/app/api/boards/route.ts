@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const currentUser = await getCurrentUser();
+
+    // Si hay usuario logueado, traemos tableros del usuario + tableros globales
+    const where: any = currentUser
+      ? {
+          OR: [{ userId: currentUser.id }, { userId: null }],
+        }
+      : {};
+
     const boards = await prisma.board.findMany({
+      where,
       include: {
+        user: {
+          select: { name: true, company: true, avatarColor: true },
+        },
         items: {
           include: {
             ad: {
@@ -37,6 +51,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Demasiadas acciones. Por favor espera." }, { status: 429 });
     }
 
+    const currentUser = await getCurrentUser();
     const body = await request.json();
     const { action, title, description, colorTag, boardId, adId, userNote } = body;
 
@@ -51,6 +66,7 @@ export async function POST(request: NextRequest) {
           title: title.trim().slice(0, 100),
           description: description ? String(description).trim().slice(0, 300) : null,
           colorTag: colorTag ? String(colorTag).slice(0, 20) : "#6366f1",
+          userId: currentUser?.id || null,
         },
       });
       return NextResponse.json({ board: newBoard }, { status: 201 });
@@ -58,14 +74,40 @@ export async function POST(request: NextRequest) {
 
     // Acción 2: Guardar anuncio en tablero
     if (action === "save_ad") {
-      if (!boardId || typeof boardId !== "string" || !adId || typeof adId !== "string") {
-        return NextResponse.json({ error: "boardId y adId requeridos" }, { status: 400 });
+      let targetBoardId = boardId;
+
+      // Si no se proporcionó boardId o si el usuario quiere guardar en su tablero personal
+      if (!targetBoardId) {
+        if (currentUser) {
+          // Buscar tablero del usuario o crear uno
+          let userBoard = await prisma.board.findFirst({
+            where: { userId: currentUser.id },
+          });
+          if (!userBoard) {
+            userBoard = await prisma.board.create({
+              data: {
+                title: `Swipe File de ${currentUser.name.split(" ")[0]}`,
+                description: "Colección privada de ideas publicitarias",
+                userId: currentUser.id,
+              },
+            });
+          }
+          targetBoardId = userBoard.id;
+        } else {
+          // Fallback a primer tablero
+          const firstBoard = await prisma.board.findFirst();
+          if (firstBoard) targetBoardId = firstBoard.id;
+        }
+      }
+
+      if (!targetBoardId || !adId || typeof adId !== "string") {
+        return NextResponse.json({ error: "Parámetros requeridos inválidos" }, { status: 400 });
       }
 
       const item = await prisma.boardItem.upsert({
         where: {
           boardId_adId: {
-            boardId,
+            boardId: targetBoardId,
             adId,
           },
         },
@@ -73,7 +115,7 @@ export async function POST(request: NextRequest) {
           userNote: userNote ? String(userNote).trim().slice(0, 500) : undefined,
         },
         create: {
-          boardId,
+          boardId: targetBoardId,
           adId,
           userNote: userNote ? String(userNote).trim().slice(0, 500) : null,
         },

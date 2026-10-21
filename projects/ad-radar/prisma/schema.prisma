@@ -7,7 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 1. Empresas y Marcas Competidoras
+// 1. Usuarios Registrados y Autenticación
+model User {
+  id          String      @id @default(cuid())
+  name        String
+  email       String      @unique
+  password    String      // Hashed con bcrypt
+  role        String      @default("ANALYST") // ANALYST, MANAGER, ADMIN
+  company     String?     // Organización / Agencia / Marca
+  avatarColor String      @default("#00D2EF")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  boards      Board[]
+  reportedAds Ad[]
+}
+
+// 2. Empresas y Marcas Competidoras
 model Company {
   id              String           @id @default(cuid())
   name            String
@@ -25,11 +40,13 @@ model Company {
   competitorB     CompetitorPair[] @relation("CompanyB")
 }
 
-// 2. Anuncios y Campañas Publicitarias Registradas
+// 3. Anuncios y Campañas Publicitarias Registradas
 model Ad {
   id              String       @id @default(cuid())
   companyId       String
   company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   headline        String
   bodyText        String       @db.Text
   callToAction    String       @default("ORDER_NOW") // ORDER_NOW, GET_OFFER, INSTALL_APP, LEARN_MORE
@@ -46,7 +63,7 @@ model Ad {
   savedInBoards   BoardItem[]
 }
 
-// 3. Pares de Competidores para Comparación Head-to-Head (ej. KFC vs Arturo's)
+// 4. Pares de Competidores para Comparación Head-to-Head (ej. KFC vs Arturo's)
 model CompetitorPair {
   id          String   @id @default(cuid())
   companyAId  String
@@ -60,17 +77,19 @@ model CompetitorPair {
   @@unique([companyAId, companyBId])
 }
 
-// 4. Tableros de Inspiración / Moodboards de Campañas (Swipe File)
+// 5. Tableros de Inspiración / Moodboards de Campañas (Swipe File)
 model Board {
   id          String      @id @default(cuid())
   title       String
   description String?
   colorTag    String      @default("#6366f1")
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime    @default(now())
   items       BoardItem[]
 }
 
-// 5. Elementos guardados dentro de un Tablero
+// 6. Elementos guardados dentro de un Tablero
 model BoardItem {
   id        String   @id @default(cuid())
   boardId   String

@@ -34,6 +34,13 @@ import {
   ArrowRight,
   ShieldCheck,
   X,
+  User,
+  LogIn,
+  LogOut,
+  Lock,
+  Mail,
+  Building2,
+  KeyRound,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -43,6 +50,15 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
+
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  company: string | null;
+  avatarColor: string;
+}
 
 interface Company {
   id: string;
@@ -81,6 +97,11 @@ interface Board {
   title: string;
   description: string | null;
   colorTag: string;
+  user?: {
+    name: string;
+    company: string | null;
+    avatarColor: string;
+  } | null;
   items: {
     id: string;
     ad: Ad;
@@ -133,7 +154,7 @@ function getSafeUrl(url: string | null): string {
       return parsed.toString();
     }
   } catch {
-    // fallback
+    // fallback seguro
   }
   return "#";
 }
@@ -144,6 +165,17 @@ export default function AdRadarApp() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Autenticación de Usuario
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "register">("register");
+  const [authName, setAuthName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authCompany, setAuthCompany] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Filtros
   const [selectedIndustry, setSelectedIndustry] = useState("all");
@@ -177,6 +209,23 @@ export default function AdRadarApp() {
     setTimeout(() => {
       setToastMessage((prev) => (prev === msg ? null : prev));
     }, 3500);
+  }
+
+  // Verificar sesión activa al montar
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  async function checkSession() {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+      if (data.user) {
+        setCurrentUser(data.user);
+      }
+    } catch (err) {
+      console.error("Error al verificar sesión:", err);
+    }
   }
 
   // Carga inicial de datos
@@ -225,7 +274,7 @@ export default function AdRadarApp() {
     }
   }
 
-  // Ejecutar comparativa cuando cambian compareA o compareB
+  // Comparador
   useEffect(() => {
     if (compareA && compareB && compareA !== compareB) {
       handleRunCompare(compareA, compareB);
@@ -257,20 +306,29 @@ export default function AdRadarApp() {
   }
 
   async function handleSaveAdToBoard(adId: string) {
-    if (boards.length === 0) return;
+    if (!currentUser && boards.length === 0) {
+      setAuthMode("register");
+      setAuthModalOpen(true);
+      showToast("🔐 Crea una cuenta o inicia sesión para guardar en tu Swipe File");
+      return;
+    }
+
     try {
+      const targetBoard = boards[0];
       await fetch("/api/boards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "save_ad",
-          boardId: boards[0].id,
+          boardId: targetBoard ? targetBoard.id : undefined,
           adId,
-          userNote: "Guardado para análisis de campaña competitiva",
+          userNote: currentUser
+            ? `Guardado por ${currentUser.name} (${currentUser.company || "Analista"})`
+            : "Guardado para análisis de campaña competitiva",
         }),
       });
       fetchData();
-      showToast("⭐ Anuncio guardado exitosamente en tu Swipe File!");
+      showToast("⭐ ¡Anuncio guardado exitosamente en tu Swipe File!");
     } catch (err) {
       console.error(err);
       showToast("Error al guardar en el tablero");
@@ -311,12 +369,66 @@ export default function AdRadarApp() {
       setNewAdBody("");
       setNewAdBadge("");
       fetchData();
-      showToast("🚀 ¡Anuncio registrado en la base de datos PostgreSQL!");
+      showToast("🚀 ¡Anuncio indexado con éxito en PostgreSQL!");
       setTimeout(() => setFormSuccess(false), 3500);
     } catch (err) {
       console.error(err);
       showToast("Error al guardar anuncio en PostgreSQL");
     }
+  }
+
+  // Manejadores de Autenticación
+  async function handleAuthSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthLoading(true);
+
+    try {
+      const endpoint = authMode === "register" ? "/api/auth/register" : "/api/auth/login";
+      const payload = authMode === "register"
+        ? { name: authName, email: authEmail, password: authPassword, company: authCompany }
+        : { email: authEmail, password: authPassword };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data.error || "Ocurrió un error en la autenticación");
+        return;
+      }
+
+      setCurrentUser(data.user);
+      setAuthModalOpen(false);
+      setAuthPassword("");
+      showToast(`✨ ¡Bienvenido/a, ${data.user.name}! Sesión iniciada con éxito.`);
+      fetchData();
+    } catch (err) {
+      setAuthError("Error de conexión al servidor");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setCurrentUser(null);
+      showToast("Has cerrado sesión exitosamente");
+      fetchData();
+    } catch (err) {
+      console.error("Error al cerrar sesión:", err);
+    }
+  }
+
+  function handleQuickDemoLogin(email: string) {
+    setAuthEmail(email);
+    setAuthPassword("123456");
+    setAuthMode("login");
+    setAuthError(null);
   }
 
   const selectedCompanyForPreview = companies.find((c) => c.id === newAdCompanyId) || companies[0];
@@ -332,6 +444,195 @@ export default function AdRadarApp() {
           <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white ml-2">
             <X className="w-3.5 h-3.5" />
           </button>
+        </div>
+      )}
+
+      {/* MODAL DE AUTENTICACIÓN / REGISTRO / LOGIN */}
+      {authModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-3xl bg-[#0A0E1A] border border-slate-800 p-6 md:p-8 space-y-6 shadow-2xl relative">
+
+            {/* Botón Cerrar */}
+            <button
+              onClick={() => setAuthModalOpen(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Cabecera del Modal */}
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 p-0.5 mx-auto shadow-lg shadow-indigo-500/30">
+                <div className="w-full h-full bg-[#070A13] rounded-[14px] flex items-center justify-center">
+                  <Lock className="w-6 h-6 text-cyan-400" />
+                </div>
+              </div>
+              <h3 className="text-xl font-black text-white tracking-tight">
+                {authMode === "register" ? "Crear Cuenta de Analista" : "Iniciar Sesión"}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {authMode === "register"
+                  ? "Acceso seguro a tableros privados, swipe files y auditoría en PostgreSQL."
+                  : "Ingresa tus credenciales para acceder a tu entorno seguro."}
+              </p>
+            </div>
+
+            {/* Selector de Pestañas Registro / Login */}
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800">
+              <button
+                type="button"
+                onClick={() => { setAuthMode("register"); setAuthError(null); }}
+                className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                  authMode === "register"
+                    ? "bg-cyan-500 text-slate-950 shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Crear Cuenta
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode("login"); setAuthError(null); }}
+                className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                  authMode === "login"
+                    ? "bg-cyan-500 text-slate-950 shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Iniciar Sesión
+              </button>
+            </div>
+
+            {/* Alerta de Error */}
+            {authError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            {/* Formulario */}
+            <form onSubmit={handleAuthSubmit} className="space-y-3.5">
+              {authMode === "register" && (
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Nombre Completo *
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="text"
+                      value={authName}
+                      onChange={(e) => setAuthName(e.target.value)}
+                      required
+                      placeholder="ej: Carlos Silva"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Correo Electrónico *
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="email"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    required
+                    placeholder="tu@empresa.com"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Contraseña * (mínimo 6 caracteres)
+                </label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="password"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    placeholder="••••••••"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {authMode === "register" && (
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Empresa / Marca u Organización
+                  </label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="text"
+                      value={authCompany}
+                      onChange={(e) => setAuthCompany(e.target.value)}
+                      placeholder="ej: KFC Marketing, Arturo's Agency, Independiente"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-extrabold text-xs uppercase tracking-wider hover:opacity-95 transition-all shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 mt-2"
+              >
+                {authLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : authMode === "register" ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Crear Cuenta Segura</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-4 h-4" />
+                    <span>Entrar al Sistema</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Botones de Acceso Rápido con Cuentas Demo */}
+            <div className="pt-3 border-t border-slate-800/80 space-y-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block text-center">
+                ⚡ O prueba al instante con una cuenta demo:
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("david@adradar.io")}
+                  className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-left transition-all group"
+                >
+                  <span className="text-[11px] font-bold text-white block group-hover:text-cyan-400">David Morillo</span>
+                  <span className="text-[10px] text-slate-500 block font-mono">david@adradar.io</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("analista@kfc.com")}
+                  className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500/50 text-left transition-all group"
+                >
+                  <span className="text-[11px] font-bold text-white block group-hover:text-rose-400">Analista KFC</span>
+                  <span className="text-[10px] text-slate-500 block font-mono">analista@kfc.com</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
       )}
 
@@ -361,9 +662,22 @@ export default function AdRadarApp() {
             </div>
 
             {/* Status en móvil */}
-            <div className="md:hidden flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-bold text-emerald-400">PostgreSQL</span>
+            <div className="md:hidden flex items-center gap-2">
+              {currentUser ? (
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-black text-xs text-slate-950 font-bold"
+                  style={{ backgroundColor: currentUser.avatarColor || "#00D2EF" }}
+                >
+                  {currentUser.name.slice(0, 2).toUpperCase()}
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setAuthMode("login"); setAuthModalOpen(true); }}
+                  className="px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-bold text-xs"
+                >
+                  Entrar
+                </button>
+              )}
             </div>
           </div>
 
@@ -433,11 +747,59 @@ export default function AdRadarApp() {
             </button>
           </nav>
 
-          {/* Badge de PostgreSQL Activo */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <Database className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-xs font-bold text-emerald-300">PostgreSQL 17 Conectado</span>
+          {/* Área de Usuario & Conexión DB */}
+          <div className="hidden md:flex items-center gap-3">
+            {/* Status de PostgreSQL */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <Database className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-xs font-bold text-emerald-300">PostgreSQL 17</span>
+            </div>
+
+            {/* Estado de Autenticación */}
+            {currentUser ? (
+              <div className="flex items-center gap-2.5 pl-3 border-l border-slate-800">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-slate-950 shadow-md"
+                  style={{ backgroundColor: currentUser.avatarColor || "#00D2EF" }}
+                >
+                  {currentUser.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-white">{currentUser.name}</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                      {currentUser.role}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 block">{currentUser.company || "Analista"}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition-colors ml-1"
+                  title="Cerrar Sesión"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 pl-3 border-l border-slate-800">
+                <button
+                  onClick={() => { setAuthMode("login"); setAuthModalOpen(true); }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all flex items-center gap-1.5"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  Iniciar Sesión
+                </button>
+                <button
+                  onClick={() => { setAuthMode("register"); setAuthModalOpen(true); }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-cyan-500 to-indigo-600 hover:opacity-90 text-white shadow-md shadow-cyan-500/20 transition-all flex items-center gap-1.5"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Crear Cuenta
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
@@ -450,7 +812,7 @@ export default function AdRadarApp() {
         {activeTab === "radar" && (
           <div className="space-y-6">
 
-            {/* HERO BANNER CORPORATIVO CON AMBIENT GLOW */}
+            {/* HERO BANNER CORPORATIVO */}
             <div className="relative p-6 md:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-[#0B1021] to-[#0A0D1B] border border-slate-800/80 shadow-2xl overflow-hidden">
               <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
               <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -776,7 +1138,7 @@ export default function AdRadarApp() {
           </div>
         )}
 
-        {/* 2. VISTA: COMPARADOR HEAD-TO-HEAD (KFC vs ARTURO'S, etc.) */}
+        {/* 2. VISTA: COMPARADOR HEAD-TO-HEAD */}
         {activeTab === "compare" && (
           <div className="space-y-6">
 
@@ -811,7 +1173,7 @@ export default function AdRadarApp() {
                 </div>
               </div>
 
-              {/* Selectores de Marcas Personalizadas */}
+              {/* Selectores de Marcas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
                 <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
                   <label className="text-xs font-bold text-cyan-400 block mb-2 flex items-center gap-1.5">
@@ -1020,12 +1382,25 @@ export default function AdRadarApp() {
                 </span>
                 <h2 className="text-2xl md:text-3xl font-black text-white mt-1">Tableros de Ideas Guardadas</h2>
                 <p className="text-xs md:text-sm text-slate-400 mt-1">
-                  Colecciona los mejores ganchos publicitarios, ángulos y copys para inspirar tus próximas campañas.
+                  {currentUser
+                    ? `Colección privada de ${currentUser.name} (${currentUser.company || "Analista de Inteligencia"}).`
+                    : "Colecciona los mejores ganchos publicitarios, ángulos y copys para inspirar tus próximas campañas."}
                 </p>
               </div>
-              <span className="px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold">
-                {boards[0]?.items?.length || 0} Ideas Guardadas
-              </span>
+
+              <div className="flex items-center gap-3">
+                {!currentUser && (
+                  <button
+                    onClick={() => { setAuthMode("register"); setAuthModalOpen(true); }}
+                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-xs shadow-md"
+                  >
+                    Crear mi Swipe File Privado
+                  </button>
+                )}
+                <span className="px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold">
+                  {boards[0]?.items?.length || 0} Ideas Guardadas
+                </span>
+              </div>
             </div>
 
             {boards.length === 0 || boards[0]?.items?.length === 0 ? (
@@ -1048,7 +1423,14 @@ export default function AdRadarApp() {
                   <div key={b.id} className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-lg font-black text-white">{b.title}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-black text-white">{b.title}</h3>
+                          {b.user && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 font-bold border border-indigo-500/30">
+                              👤 {b.user.name}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-400">{b.description}</p>
                       </div>
                     </div>
@@ -1085,7 +1467,7 @@ export default function AdRadarApp() {
           </div>
         )}
 
-        {/* 4. VISTA: REGISTRAR NUEVO ANUNCIO DE COMPETENCIA */}
+        {/* 4. VISTA: REGISTRAR NUEVO ANUNCIO */}
         {activeTab === "new_ad" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 
@@ -1098,7 +1480,9 @@ export default function AdRadarApp() {
                 </span>
                 <h2 className="text-2xl font-black text-white mt-1">Registrar Anuncio de Competidor</h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  Agrega nuevos anuncios detectados en redes para nutrir el repositorio competitivo.
+                  {currentUser
+                    ? `Publicando como: ${currentUser.name} (${currentUser.company || "Analista de Inteligencia"})`
+                    : "Agrega nuevos anuncios detectados en redes para nutrir el repositorio competitivo."}
                 </p>
               </div>
 
@@ -1219,7 +1603,7 @@ export default function AdRadarApp() {
               </form>
             </div>
 
-            {/* Vista Previa en Vivo (Live Preview) */}
+            {/* Vista Previa en Vivo */}
             <div className="space-y-4">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                 👁️ Vista Previa en Tiempo Real
@@ -1278,7 +1662,7 @@ export default function AdRadarApp() {
           </div>
         )}
 
-        {/* 5. VISTA: GUÍA DE DESPLIEGUE EN PRODUCCIÓN (VERCEL & CLOUD POSTGRESQL) */}
+        {/* 5. VISTA: GUÍA DE DESPLIEGUE EN PRODUCCIÓN */}
         {activeTab === "deployment" && (
           <div className="space-y-6">
 
@@ -1286,13 +1670,22 @@ export default function AdRadarApp() {
             <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-emerald-950/50 via-[#0B1021] to-indigo-950/40 border border-emerald-500/30 shadow-2xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 mb-3">
                 <Cloud className="w-3.5 h-3.5" />
-                Guía de Producción & URL Pública en Internet
+                Despliegue Activo en Producción
               </div>
               <h2 className="text-2xl md:text-3xl font-black text-white">
-                Cómo poner AdRadar en Producción con tu Propia URL Pública
+                AdRadar está Activo en Internet (24/7)
               </h2>
               <p className="text-xs md:text-sm text-slate-300 mt-2 max-w-3xl leading-relaxed">
-                Aprende cómo desplegar este software empresarial para que cualquier usuario o cliente pueda acceder desde su celular o laptop a través de un enlace público mundial (ej. <code className="text-cyan-400 bg-slate-950 px-2 py-0.5 rounded font-mono">https://adradar.vercel.app</code>) sin depender de tu computadora local.
+                Tu proyecto cuenta con su propia URL permanente:{" "}
+                <a
+                  href="https://ad-radar-eta.vercel.app/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-cyan-400 underline font-mono font-bold"
+                >
+                  https://ad-radar-eta.vercel.app/
+                </a>
+                . Corre sobre servidores Edge mundiales de Vercel y base de datos relacional serverless en Neon.
               </p>
             </div>
 
@@ -1306,12 +1699,12 @@ export default function AdRadarApp() {
                 </div>
                 <h3 className="font-bold text-white text-base">PostgreSQL en la Nube (Neon.tech)</h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Para que la base de datos funcione 24/7 sin tu laptop encendida, creas una base de datos PostgreSQL gratuita en <strong>Neon.tech</strong>.
+                  Base de datos relacional con SSL activo, auto-escalado a cero para optimizar recursos y conexión segura TLS.
                 </p>
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 text-[11px] text-slate-300 space-y-1.5">
-                  <p>1. Entra a <a href="https://neon.tech" target="_blank" rel="noreferrer" className="text-cyan-400 underline font-semibold">neon.tech</a></p>
-                  <p>2. Crea un proyecto gratuito <code>adradar-db</code></p>
-                  <p>3. Copia tu cadena de conexión SSL.</p>
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 text-[11px] text-emerald-400 font-bold space-y-1">
+                  <p>✓ Conectado a Neon Serverless</p>
+                  <p>✓ Tablas sincronizadas con Prisma 6</p>
+                  <p>✓ 12 marcas y campañas indexadas</p>
                 </div>
               </div>
 
@@ -1320,68 +1713,32 @@ export default function AdRadarApp() {
                 <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-black text-base">
                   2
                 </div>
-                <h3 className="font-bold text-white text-base">Código en GitHub (Ya realizado)</h3>
+                <h3 className="font-bold text-white text-base">Repositorio GitHub con CI/CD</h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  El código fuente de AdRadar ya está sincronizado y versionado en tu repositorio central de GitHub:
+                  Cada vez que se realiza un commit en la rama <code>main</code>, Vercel detecta los cambios y actualiza la web automáticamente sin interrupciones.
                 </p>
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 text-[11px] text-slate-300 space-y-1.5 font-mono">
-                  <p className="text-emerald-400 font-bold">git push origin main</p>
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 text-[11px] text-cyan-400 font-mono space-y-1">
+                  <p>git push origin main</p>
                   <p className="text-slate-400">repo: Starknight60/portafolios</p>
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Cada vez que subes cambios a GitHub, la nube los actualiza de inmediato.
-                </p>
               </div>
 
-              {/* Paso 3: Despliegue en Vercel */}
+              {/* Paso 3: Vercel */}
               <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800/80 space-y-4 shadow-xl">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-black text-base">
                   3
                 </div>
-                <h3 className="font-bold text-white text-base">Despliegue en Vercel (1 Clic)</h3>
+                <h3 className="font-bold text-white text-base">Vercel Edge Global</h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Entras a <a href="https://vercel.com" target="_blank" rel="noreferrer" className="text-emerald-400 underline font-semibold">vercel.com</a> y conectas tu repositorio con GitHub.
+                  Entrega de contenido a través de una red CDN con más de 300 puntos de presencia globales y certificado HTTPS automático.
                 </p>
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 text-[11px] text-slate-300 space-y-1.5">
-                  <p>1. Clic en <strong>"Add New Project"</strong></p>
-                  <p>2. Agrega la variable <code>DATABASE_URL</code> de Neon</p>
-                  <p>3. Clic en <strong>"Deploy"</strong></p>
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 text-[11px] text-emerald-400 font-bold space-y-1">
+                  <p>✓ Dominio: ad-radar-eta.vercel.app</p>
+                  <p>✓ Cabeceras de seguridad activas</p>
+                  <p>✓ Sistema de autenticación JWT</p>
                 </div>
-                <p className="text-[11px] text-emerald-400 font-semibold">
-                  ¡En 60 segundos obtendrás tu enlace público mundial con HTTPS!
-                </p>
               </div>
 
-            </div>
-
-            {/* Arquitectura de Producción para Crecimiento */}
-            <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800/80 space-y-4 shadow-xl">
-              <h3 className="font-black text-white text-sm uppercase tracking-wider">
-                ¿Qué hace que este entorno de producción soporte miles de empresas en simultáneo?
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80">
-                  <Globe className="w-5 h-5 text-cyan-400 mb-2" />
-                  <h4 className="font-bold text-xs text-white">Edge Caching & Global CDN</h4>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                    Vercel almacena y entrega la web desde más de 300 centros de datos mundiales. Carga en milisegundos desde cualquier país.
-                  </p>
-                </div>
-                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80">
-                  <Zap className="w-5 h-5 text-amber-400 mb-2" />
-                  <h4 className="font-bold text-xs text-white">Auto-Escalado Serverless</h4>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                    Las API Routes se ejecutan en microcontenedores efímeros. Si entran 10 personas o 50,000 personas, se multiplica automáticamente.
-                  </p>
-                </div>
-                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80">
-                  <Database className="w-5 h-5 text-emerald-400 mb-2" />
-                  <h4 className="font-bold text-xs text-white">Pool de Conexiones PostgreSQL</h4>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                    Prisma ORM y Neon usan multiplexación para gestionar miles de consultas simultáneas sin saturar la memoria del servidor.
-                  </p>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -1396,11 +1753,11 @@ export default function AdRadarApp() {
           <div className="flex items-center gap-4 text-slate-400 text-[11px]">
             <span>Next.js 16 (App Router)</span>
             <span>•</span>
-            <span>PostgreSQL 17</span>
+            <span>PostgreSQL 17 (Neon)</span>
             <span>•</span>
             <span>Prisma ORM 6</span>
             <span>•</span>
-            <span>Tailwind CSS</span>
+            <span>Bcrypt + JWT Auth</span>
           </div>
         </div>
       </footer>

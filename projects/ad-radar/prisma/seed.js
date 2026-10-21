@@ -439,11 +439,41 @@ async function main() {
   });
 
   // 4. TABLERO DE INSPIRACIÓN DE EJEMPLO (Swipe File)
+  const bcrypt = require('bcryptjs');
+  const hashedPassword = await bcrypt.hash('123456', 10);
+
+  const demoUser = await prisma.user.upsert({
+    where: { email: 'david@adradar.io' },
+    update: {},
+    create: {
+      name: 'Ángel David Morillo',
+      email: 'david@adradar.io',
+      password: hashedPassword,
+      role: 'ADMIN',
+      company: 'AdRadar Intelligence Team',
+      avatarColor: '#00D2EF',
+    },
+  });
+
+  const kfcUser = await prisma.user.upsert({
+    where: { email: 'analista@kfc.com' },
+    update: {},
+    create: {
+      name: 'Analista de Crecimiento',
+      email: 'analista@kfc.com',
+      password: hashedPassword,
+      role: 'ANALYST',
+      company: 'KFC Marketing Group',
+      avatarColor: '#B91C1C',
+    },
+  });
+
   const board = await prisma.board.create({
     data: {
       title: 'Estrategias de Combos de Comida Rápida (Q4)',
       description: 'Análisis de precios de Arturo\'s y KFC para definir nuestra próxima campaña de temporada.',
       colorTag: '#F59E0B',
+      userId: demoUser.id,
     },
   });
 
