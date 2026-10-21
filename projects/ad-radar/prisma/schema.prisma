@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Empresas y Marcas Competidoras
+model Company {
+  id              String           @id @default(cuid())
+  name            String
+  slug            String           @unique
+  industry        String           // food, tech, gaming, pharmacy, delivery, mobility
+  tagline         String?
+  logoColor       String           @default("#6366f1")
+  logoIcon        String           @default("Utensils") // Lucide icon identifier
+  website         String?
+  country         String           @default("Global / LATAM")
+  activeAdsCount  Int              @default(0)
+  createdAt       DateTime         @default(now())
+  ads             Ad[]
+  competitorA     CompetitorPair[] @relation("CompanyA")
+  competitorB     CompetitorPair[] @relation("CompanyB")
+}
+
+// 2. Anuncios y Campañas Publicitarias Registradas
+model Ad {
+  id              String       @id @default(cuid())
+  companyId       String
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  headline        String
+  bodyText        String       @db.Text
+  callToAction    String       @default("ORDER_NOW") // ORDER_NOW, GET_OFFER, INSTALL_APP, LEARN_MORE
+  platform        String       @default("INSTAGRAM") // INSTAGRAM, TIKTOK, FACEBOOK, GOOGLE_ADS
+  format          String       @default("VERTICAL_REEL") // VERTICAL_REEL, BANNER_SQUARE, CAROUSEL
+  offerType       String       @default("DISCOUNT") // DISCOUNT, TWO_FOR_ONE, FREE_DELIVERY, COMBO, NEW_LAUNCH
+  offerBadge      String?      // ej. "50% OFF", "2x1", "Envío Gratis", "Combo $5.99"
+  accentGradient  String       @default("from-amber-500 to-red-600")
+  estimatedReach  Int          @default(45000)
+  daysActive      Int          @default(7)
+  isActive        Boolean      @default(true)
+  targetAudience  String       @default("Público General • 18-35 años")
+  createdAt       DateTime     @default(now())
+  savedInBoards   BoardItem[]
+}
+
+// 3. Pares de Competidores para Comparación Head-to-Head (ej. KFC vs Arturo's)
+model CompetitorPair {
+  id          String   @id @default(cuid())
+  companyAId  String
+  companyBId  String
+  companyA    Company  @relation("CompanyA", fields: [companyAId], references: [id], onDelete: Cascade)
+  companyB    Company  @relation("CompanyB", fields: [companyBId], references: [id], onDelete: Cascade)
+  industry    String
+  insightNote String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@unique([companyAId, companyBId])
+}
+
+// 4. Tableros de Inspiración / Moodboards de Campañas (Swipe File)
+model Board {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  colorTag    String      @default("#6366f1")
+  createdAt   DateTime    @default(now())
+  items       BoardItem[]
+}
+
+// 5. Elementos guardados dentro de un Tablero
+model BoardItem {
+  id        String   @id @default(cuid())
+  boardId   String
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  adId      String
+  ad        Ad       @relation(fields: [adId], references: [id], onDelete: Cascade)
+  userNote  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@unique([boardId, adId])
+}

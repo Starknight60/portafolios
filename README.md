@@ -24,6 +24,7 @@ Todos los proyectos residen con su código fuente completo en la carpeta [`/proj
 | 11 | **Web Games Engine** | Frontend Interactivo | JavaScript, CSS3 Animations, HTML5 | [`/projects/juegos`](./projects/juegos) |
 | 12 | **Galaxy Striker** | Videojuegos Móviles Nativos Android | Kotlin, Jetpack Compose, Canvas 60 FPS, Audio Sintetizado, APK | [`/projects/galaxy-striker`](./projects/galaxy-striker) |
 | 13 | **Neon Drift: Cyber Circuit** | Videojuegos Móviles Nativos Android | Kotlin, Jetpack Compose, Física Arcade de Drift, Canvas 60 FPS, APK | [`/projects/neon-drift`](./projects/neon-drift) |
+| 14 | **AdRadar Enterprise** | Inteligencia Competitiva B2B & Publicidad | Next.js 16, PostgreSQL 17, Prisma 6, Recharts | [`/projects/ad-radar`](./projects/ad-radar) |
 
 ---
 
