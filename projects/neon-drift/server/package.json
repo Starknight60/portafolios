@@ -1,0 +1,14 @@
+{
+  "name": "neon-drift-postgres-server",
+  "version": "1.0.0",
+  "description": "PostgreSQL REST Backend API para el videojuego Neon Drift: Cyber Circuit",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "pg": "^8.13.1"
+  }
+}

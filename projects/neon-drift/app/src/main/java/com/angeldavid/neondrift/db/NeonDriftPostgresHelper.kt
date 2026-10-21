@@ -2,305 +2,247 @@
 
 package com.angeldavid.neondrift.db
 
-import com.angeldavid.neondrift.data.CatalogData
 import com.angeldavid.neondrift.model.UserAccount
 import com.angeldavid.neondrift.model.UserCarState
-import java.security.MessageDigest
-import java.sql.Connection
-import java.sql.DriverManager
-import java.sql.PreparedStatement
-import java.sql.ResultSet
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
 
 class NeonDriftPostgresHelper(
     var host: String = "10.0.2.2",
-    var port: Int = 5432,
-    var databaseName: String = "neon_drift_db",
-    var user: String = "postgres",
-    var pass: String = "12345"
+    var port: Int = 5000
 ) {
 
-    init {
-        try {
-            Class.forName("org.postgresql.Driver")
-        } catch (_: Exception) {}
+    private val baseUrl: String
+        get() = "http://$host:$port/api"
+
+    private fun postJson(endpoint: String, jsonBody: JSONObject): JSONObject? {
+        var conn: HttpURLConnection? = null
+        return try {
+            val url = URL("$baseUrl$endpoint")
+            conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 2500
+                readTimeout = 2500
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Accept", "application/json")
+            }
+            OutputStreamWriter(conn.outputStream, "UTF-8").use { writer ->
+                writer.write(jsonBody.toString())
+                writer.flush()
+            }
+            if (conn.responseCode in 200..299) {
+                val response = conn.inputStream.bufferedReader().use(BufferedReader::readText)
+                JSONObject(response)
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        } finally {
+            conn?.disconnect()
+        }
     }
 
-    private val jdbcUrl: String
-        get() = "jdbc:postgresql://$host:$port/$databaseName?connectTimeout=4&socketTimeout=4"
-
-    fun getConnection(): Connection {
-        return DriverManager.getConnection(jdbcUrl, user, pass)
+    private fun getJson(endpoint: String): JSONObject? {
+        var conn: HttpURLConnection? = null
+        return try {
+            val url = URL("$baseUrl$endpoint")
+            conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 2000
+                readTimeout = 2000
+                setRequestProperty("Accept", "application/json")
+            }
+            if (conn.responseCode in 200..299) {
+                val response = conn.inputStream.bufferedReader().use(BufferedReader::readText)
+                JSONObject(response)
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        } finally {
+            conn?.disconnect()
+        }
     }
 
     fun testConnection(): Boolean {
         return try {
-            getConnection().use { conn ->
-                conn.isValid(3)
-            }
+            val res = getJson("/health")
+            res?.optString("status") == "ok"
         } catch (_: Exception) {
             false
         }
     }
 
-    private fun hashPassword(password: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hashBytes = digest.digest(password.toByteArray(Charsets.UTF_8))
-        return hashBytes.joinToString("") { "%02x".format(it) }
-    }
-
     fun registerUser(username: String, passText: String): Long {
-        val sql = "INSERT INTO users (username, password_hash, coins, selected_car_id, created_at) VALUES (?, ?, ?, ?, ?) RETURNING id"
-        getConnection().use { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setString(1, username.trim())
-                stmt.setString(2, hashPassword(passText))
-                stmt.setInt(3, 1500)
-                stmt.setString(4, "cyber_phantom")
-                stmt.setLong(5, System.currentTimeMillis())
-                val rs = stmt.executeQuery()
-                if (rs.next()) {
-                    val newId = rs.getLong(1)
-                    initializeUserVehicles(conn, newId)
-                    return newId
-                }
+        return try {
+            val body = JSONObject().apply {
+                put("username", username.trim())
+                put("password", passText)
             }
-        }
-        return -1L
-    }
-
-    private fun initializeUserVehicles(conn: Connection, userId: Long) {
-        val sql = """
-            INSERT INTO user_cars (user_id, car_id, is_unlocked, speed_lvl, accel_lvl, handling_lvl, nitro_lvl, body_color, underglow_color)
-            VALUES (?, ?, ?, 1, 1, 1, 1, ?, ?)
-            ON CONFLICT (user_id, car_id) DO NOTHING
-        """.trimIndent()
-
-        conn.prepareStatement(sql).use { stmt ->
-            for (carDef in CatalogData.CAR_CATALOG) {
-                val isUnlocked = (carDef.price == 0)
-                stmt.setLong(1, userId)
-                stmt.setString(2, carDef.id)
-                stmt.setBoolean(3, isUnlocked)
-                stmt.setLong(4, carDef.defaultBodyColor)
-                stmt.setLong(5, carDef.defaultUnderglowColor)
-                stmt.addBatch()
-            }
-            stmt.executeBatch()
+            val res = postJson("/auth/register", body)
+            val userObj = res?.optJSONObject("user")
+            userObj?.optLong("id") ?: -1L
+        } catch (_: Exception) {
+            -1L
         }
     }
 
     fun authenticateUser(username: String, passText: String): UserAccount? {
-        val hash = hashPassword(passText)
-        val sql = "SELECT id, username, coins, selected_car_id FROM users WHERE username = ? AND password_hash = ?"
-        getConnection().use { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setString(1, username.trim())
-                stmt.setString(2, hash)
-                val rs = stmt.executeQuery()
-                if (rs.next()) {
-                    return UserAccount(
-                        id = rs.getLong("id"),
-                        username = rs.getString("username"),
-                        coins = rs.getInt("coins"),
-                        selectedCarId = rs.getString("selected_car_id")
-                    )
-                }
+        return try {
+            val body = JSONObject().apply {
+                put("username", username.trim())
+                put("password", passText)
             }
+            val res = postJson("/auth/login", body)
+            val u = res?.optJSONObject("user") ?: return null
+            UserAccount(
+                id = u.optLong("id"),
+                username = u.optString("username"),
+                coins = u.optInt("coins"),
+                selectedCarId = u.optString("selected_car_id", "cyber_phantom")
+            )
+        } catch (_: Exception) {
+            null
         }
-        return null
     }
 
     fun getUserById(userId: Long): UserAccount? {
-        val sql = "SELECT id, username, coins, selected_car_id FROM users WHERE id = ?"
-        getConnection().use { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setLong(1, userId)
-                val rs = stmt.executeQuery()
-                if (rs.next()) {
-                    return UserAccount(
-                        id = rs.getLong("id"),
-                        username = rs.getString("username"),
-                        coins = rs.getInt("coins"),
-                        selectedCarId = rs.getString("selected_car_id")
-                    )
-                }
-            }
+        return try {
+            val res = getJson("/users/$userId")
+            val u = res?.optJSONObject("user") ?: return null
+            UserAccount(
+                id = u.optLong("id"),
+                username = u.optString("username"),
+                coins = u.optInt("coins"),
+                selectedCarId = u.optString("selected_car_id", "cyber_phantom")
+            )
+        } catch (_: Exception) {
+            null
         }
-        return null
     }
 
     fun getAllUsernames(): List<String> {
         val list = mutableListOf<String>()
-        val sql = "SELECT username FROM users ORDER BY username ASC"
-        getConnection().use { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                val rs = stmt.executeQuery()
-                while (rs.next()) {
-                    list.add(rs.getString("username"))
-                }
+        try {
+            val res = getJson("/users")
+            val arr = res?.optJSONArray("usernames") ?: return list
+            for (i in 0 until arr.length()) {
+                list.add(arr.getString(i))
             }
-        }
+        } catch (_: Exception) {}
         return list
     }
 
     fun getUserCarStates(userId: Long): List<UserCarState> {
         val list = mutableListOf<UserCarState>()
-        val sql = """
-            SELECT car_id, is_unlocked, speed_lvl, accel_lvl, handling_lvl, nitro_lvl, body_color, underglow_color
-            FROM user_cars WHERE user_id = ?
-        """.trimIndent()
-        getConnection().use { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setLong(1, userId)
-                val rs = stmt.executeQuery()
-                while (rs.next()) {
-                    list.add(
-                        UserCarState(
-                            carId = rs.getString("car_id"),
-                            isUnlocked = rs.getBoolean("is_unlocked"),
-                            speedLevel = rs.getInt("speed_lvl"),
-                            accelLevel = rs.getInt("accel_lvl"),
-                            handlingLevel = rs.getInt("handling_lvl"),
-                            nitroLevel = rs.getInt("nitro_lvl"),
-                            bodyColor = rs.getLong("body_color"),
-                            underglowColor = rs.getLong("underglow_color")
-                        )
+        try {
+            val res = getJson("/cars/$userId")
+            val arr = res?.optJSONArray("cars") ?: return list
+            for (i in 0 until arr.length()) {
+                val c = arr.getJSONObject(i)
+                list.add(
+                    UserCarState(
+                        carId = c.getString("car_id"),
+                        isUnlocked = c.optBoolean("is_unlocked", false),
+                        speedLevel = c.optInt("speed_lvl", 1),
+                        accelLevel = c.optInt("accel_lvl", 1),
+                        handlingLevel = c.optInt("handling_lvl", 1),
+                        nitroLevel = c.optInt("nitro_lvl", 1),
+                        bodyColor = c.optLong("body_color", 0xFF00F0FFL),
+                        underglowColor = c.optLong("underglow_color", 0xFF00F0FFL)
                     )
-                }
+                )
             }
-        }
+        } catch (_: Exception) {}
         return list
     }
 
     fun addCoins(userId: Long, delta: Int): Int {
-        val sql = "UPDATE users SET coins = GREATEST(0, coins + ?) WHERE id = ? RETURNING coins"
-        getConnection().use { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setInt(1, delta)
-                stmt.setLong(2, userId)
-                val rs = stmt.executeQuery()
-                if (rs.next()) {
-                    return rs.getInt(1)
-                }
+        return try {
+            val body = JSONObject().apply {
+                put("userId", userId)
+                put("delta", delta)
             }
+            val res = postJson("/coins", body)
+            res?.optInt("coins") ?: 0
+        } catch (_: Exception) {
+            0
         }
-        return getUserById(userId)?.coins ?: 0
     }
 
     fun setSelectedCar(userId: Long, carId: String) {
-        val sql = "UPDATE users SET selected_car_id = ? WHERE id = ?"
-        getConnection().use { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setString(1, carId)
-                stmt.setLong(2, userId)
-                stmt.executeUpdate()
+        try {
+            val body = JSONObject().apply {
+                put("userId", userId)
+                put("carId", carId)
             }
-        }
+            postJson("/cars/select", body)
+        } catch (_: Exception) {}
     }
 
     fun unlockCar(userId: Long, carId: String, cost: Int): Boolean {
-        val user = getUserById(userId) ?: return false
-        if (user.coins < cost) return false
-
-        getConnection().use { conn ->
-            conn.autoCommit = false
-            try {
-                // Descontar monedas
-                val deductSql = "UPDATE users SET coins = coins - ? WHERE id = ?"
-                conn.prepareStatement(deductSql).use { stmt ->
-                    stmt.setInt(1, cost)
-                    stmt.setLong(2, userId)
-                    stmt.executeUpdate()
-                }
-                // Desbloquear coche
-                val unlockSql = "UPDATE user_cars SET is_unlocked = true WHERE user_id = ? AND car_id = ?"
-                conn.prepareStatement(unlockSql).use { stmt ->
-                    stmt.setLong(1, userId)
-                    stmt.setString(2, carId)
-                    stmt.executeUpdate()
-                }
-                conn.commit()
-                return true
-            } catch (e: Exception) {
-                conn.rollback()
-                throw e
-            } finally {
-                conn.autoCommit = true
+        return try {
+            val body = JSONObject().apply {
+                put("userId", userId)
+                put("carId", carId)
+                put("cost", cost)
             }
+            val res = postJson("/cars/unlock", body)
+            res?.optBoolean("success", false) ?: false
+        } catch (_: Exception) {
+            false
         }
     }
 
     fun upgradeCarStat(userId: Long, carId: String, statCol: String, newLevel: Int, cost: Int): Boolean {
-        val user = getUserById(userId) ?: return false
-        if (user.coins < cost) return false
-
-        val validCol = when (statCol) {
-            "speed" -> "speed_lvl"
-            "accel" -> "accel_lvl"
-            "handling" -> "handling_lvl"
-            "nitro" -> "nitro_lvl"
-            else -> return false
-        }
-
-        getConnection().use { conn ->
-            conn.autoCommit = false
-            try {
-                val deductSql = "UPDATE users SET coins = coins - ? WHERE id = ?"
-                conn.prepareStatement(deductSql).use { stmt ->
-                    stmt.setInt(1, cost)
-                    stmt.setLong(2, userId)
-                    stmt.executeUpdate()
-                }
-
-                val updateSql = "UPDATE user_cars SET $validCol = ? WHERE user_id = ? AND car_id = ?"
-                conn.prepareStatement(updateSql).use { stmt ->
-                    stmt.setInt(1, newLevel)
-                    stmt.setLong(2, userId)
-                    stmt.setString(3, carId)
-                    stmt.executeUpdate()
-                }
-                conn.commit()
-                return true
-            } catch (e: Exception) {
-                conn.rollback()
-                throw e
-            } finally {
-                conn.autoCommit = true
+        return try {
+            val body = JSONObject().apply {
+                put("userId", userId)
+                put("carId", carId)
+                put("statType", statCol)
+                put("newLevel", newLevel)
+                put("cost", cost)
             }
+            val res = postJson("/cars/upgrade", body)
+            res?.optBoolean("success", false) ?: false
+        } catch (_: Exception) {
+            false
         }
     }
 
     fun updateCarColors(userId: Long, carId: String, bodyColor: Long, underglowColor: Long) {
-        val sql = "UPDATE user_cars SET body_color = ?, underglow_color = ? WHERE user_id = ? AND car_id = ?"
-        getConnection().use { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setLong(1, bodyColor)
-                stmt.setLong(2, underglowColor)
-                stmt.setLong(3, userId)
-                stmt.setString(4, carId)
-                stmt.executeUpdate()
+        try {
+            val body = JSONObject().apply {
+                put("userId", userId)
+                put("carId", carId)
+                put("bodyColor", bodyColor)
+                put("underglowColor", underglowColor)
             }
-        }
+            postJson("/cars/colors", body)
+        } catch (_: Exception) {}
     }
 
     fun getTrackProgress(userId: Long, trackId: String): NeonDriftDbHelper.TrackProgressRecord {
-        val sql = "SELECT best_time_sec, best_score, m1_done, m2_done, m3_done FROM track_progress WHERE user_id = ? AND track_id = ?"
-        getConnection().use { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setLong(1, userId)
-                stmt.setString(2, trackId)
-                val rs = stmt.executeQuery()
-                if (rs.next()) {
-                    return NeonDriftDbHelper.TrackProgressRecord(
-                        bestTimeSec = rs.getFloat("best_time_sec"),
-                        bestScore = rs.getInt("best_score"),
-                        m1Done = rs.getBoolean("m1_done"),
-                        m2Done = rs.getBoolean("m2_done"),
-                        m3Done = rs.getBoolean("m3_done")
-                    )
-                }
+        try {
+            val res = getJson("/tracks/$userId/$trackId")
+            if (res != null) {
+                return NeonDriftDbHelper.TrackProgressRecord(
+                    bestTimeSec = res.optDouble("best_time_sec", 999.0).toFloat(),
+                    bestScore = res.optInt("best_score", 0),
+                    m1Done = res.optBoolean("m1_done", false),
+                    m2Done = res.optBoolean("m2_done", false),
+                    m3Done = res.optBoolean("m3_done", false)
+                )
             }
-        }
+        } catch (_: Exception) {}
         return NeonDriftDbHelper.TrackProgressRecord(999f, 0, false, false, false)
     }
 
@@ -313,35 +255,17 @@ class NeonDriftPostgresHelper(
         m2Completed: Boolean,
         m3Completed: Boolean
     ) {
-        val current = getTrackProgress(userId, trackId)
-        val newBestTime = if (timeSec < current.bestTimeSec) timeSec else current.bestTimeSec
-        val newBestScore = if (score > current.bestScore) score else current.bestScore
-        val newM1 = m1Completed || current.m1Done
-        val newM2 = m2Completed || current.m2Done
-        val newM3 = m3Completed || current.m3Done
-
-        val sql = """
-            INSERT INTO track_progress (user_id, track_id, best_time_sec, best_score, m1_done, m2_done, m3_done)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT (user_id, track_id) DO UPDATE SET
-                best_time_sec = EXCLUDED.best_time_sec,
-                best_score = EXCLUDED.best_score,
-                m1_done = EXCLUDED.m1_done,
-                m2_done = EXCLUDED.m2_done,
-                m3_done = EXCLUDED.m3_done
-        """.trimIndent()
-
-        getConnection().use { conn ->
-            conn.prepareStatement(sql).use { stmt ->
-                stmt.setLong(1, userId)
-                stmt.setString(2, trackId)
-                stmt.setFloat(3, newBestTime)
-                stmt.setInt(4, newBestScore)
-                stmt.setBoolean(5, newM1)
-                stmt.setBoolean(6, newM2)
-                stmt.setBoolean(7, newM3)
-                stmt.executeUpdate()
+        try {
+            val body = JSONObject().apply {
+                put("userId", userId)
+                put("trackId", trackId)
+                put("timeSec", timeSec)
+                put("score", score)
+                put("m1", m1Completed)
+                put("m2", m2Completed)
+                put("m3", m3Completed)
             }
-        }
+            postJson("/tracks/race-result", body)
+        } catch (_: Exception) {}
     }
 }
