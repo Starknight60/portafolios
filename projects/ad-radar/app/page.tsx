@@ -41,6 +41,8 @@ import {
   Mail,
   Building2,
   KeyRound,
+  Eye,
+  CheckCircle,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -160,22 +162,24 @@ function getSafeUrl(url: string | null): string {
 }
 
 export default function AdRadarApp() {
-  const [activeTab, setActiveTab] = useState<"radar" | "compare" | "boards" | "new_ad" | "deployment">("radar");
-  const [ads, setAds] = useState<Ad[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [boards, setBoards] = useState<Board[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Autenticación de Usuario
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "register">("register");
+
+  // Formulario de Auth (Login / Register)
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authName, setAuthName] = useState("");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authCompany, setAuthCompany] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Navegación dentro del Dashboard (una vez logueado)
+  const [activeTab, setActiveTab] = useState<"radar" | "compare" | "boards" | "new_ad" | "deployment">("radar");
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Filtros
   const [selectedIndustry, setSelectedIndustry] = useState("all");
@@ -211,7 +215,7 @@ export default function AdRadarApp() {
     }, 3500);
   }
 
-  // Verificar sesión activa al montar
+  // 1. Verificar sesión activa al inicio
   useEffect(() => {
     checkSession();
   }, []);
@@ -225,13 +229,17 @@ export default function AdRadarApp() {
       }
     } catch (err) {
       console.error("Error al verificar sesión:", err);
+    } finally {
+      setSessionChecked(true);
     }
   }
 
-  // Carga inicial de datos
+  // 2. Cargar datos del dashboard cuando el usuario está logueado
   useEffect(() => {
-    fetchData();
-  }, [selectedIndustry, selectedCompany, selectedPlatform, selectedOfferType, searchQuery]);
+    if (currentUser) {
+      fetchData();
+    }
+  }, [currentUser, selectedIndustry, selectedCompany, selectedPlatform, selectedOfferType, searchQuery]);
 
   async function fetchData() {
     setLoading(true);
@@ -276,10 +284,10 @@ export default function AdRadarApp() {
 
   // Comparador
   useEffect(() => {
-    if (compareA && compareB && compareA !== compareB) {
+    if (currentUser && compareA && compareB && compareA !== compareB) {
       handleRunCompare(compareA, compareB);
     }
-  }, [compareA, compareB]);
+  }, [currentUser, compareA, compareB]);
 
   async function handleRunCompare(idA: string, idB: string) {
     setCompareLoading(true);
@@ -306,13 +314,6 @@ export default function AdRadarApp() {
   }
 
   async function handleSaveAdToBoard(adId: string) {
-    if (!currentUser && boards.length === 0) {
-      setAuthMode("register");
-      setAuthModalOpen(true);
-      showToast("🔐 Crea una cuenta o inicia sesión para guardar en tu Swipe File");
-      return;
-    }
-
     try {
       const targetBoard = boards[0];
       await fetch("/api/boards", {
@@ -322,9 +323,7 @@ export default function AdRadarApp() {
           action: "save_ad",
           boardId: targetBoard ? targetBoard.id : undefined,
           adId,
-          userNote: currentUser
-            ? `Guardado por ${currentUser.name} (${currentUser.company || "Analista"})`
-            : "Guardado para análisis de campaña competitiva",
+          userNote: `Guardado por ${currentUser?.name || "Analista"} (${currentUser?.company || "AdRadar"})`,
         }),
       });
       fetchData();
@@ -402,10 +401,8 @@ export default function AdRadarApp() {
       }
 
       setCurrentUser(data.user);
-      setAuthModalOpen(false);
       setAuthPassword("");
-      showToast(`✨ ¡Bienvenido/a, ${data.user.name}! Sesión iniciada con éxito.`);
-      fetchData();
+      showToast(`✨ ¡Bienvenido, ${data.user.name}! Acceso concedido.`);
     } catch (err) {
       setAuthError("Error de conexión al servidor");
     } finally {
@@ -418,104 +415,229 @@ export default function AdRadarApp() {
       await fetch("/api/auth/logout", { method: "POST" });
       setCurrentUser(null);
       showToast("Has cerrado sesión exitosamente");
-      fetchData();
     } catch (err) {
       console.error("Error al cerrar sesión:", err);
     }
   }
 
-  function handleQuickDemoLogin(email: string) {
-    setAuthEmail(email);
-    setAuthPassword("123456");
-    setAuthMode("login");
+  async function handleDirectDemoLogin(email: string) {
+    setAuthLoading(true);
     setAuthError(null);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: "123456" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data.error || "Error al entrar con cuenta demo");
+        return;
+      }
+      setCurrentUser(data.user);
+      showToast(`✨ Acceso demo concedido como: ${data.user.name}`);
+    } catch {
+      setAuthError("Error de conexión");
+    } finally {
+      setAuthLoading(false);
+    }
   }
 
   const selectedCompanyForPreview = companies.find((c) => c.id === newAdCompanyId) || companies[0];
 
-  return (
-    <div className="min-h-screen flex flex-col bg-[#070A13] text-slate-100 selection:bg-indigo-500 selection:text-white">
-
-      {/* TOAST FLOTANTE */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/95 border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 backdrop-blur-xl text-white text-xs font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-          <span>{toastMessage}</span>
-          <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white ml-2">
-            <X className="w-3.5 h-3.5" />
-          </button>
+  // Pantalla de carga mientras verifica cookie de sesión
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen bg-[#070A13] flex flex-col items-center justify-center p-4">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 p-0.5 animate-pulse mb-4 shadow-xl shadow-cyan-500/20">
+          <div className="w-full h-full bg-[#070A13] rounded-[14px] flex items-center justify-center">
+            <Radar className="w-6 h-6 text-cyan-400" />
+          </div>
         </div>
-      )}
+        <p className="text-xs font-bold text-slate-400 tracking-wider uppercase">Cargando AdRadar Enterprise...</p>
+      </div>
+    );
+  }
 
-      {/* MODAL DE AUTENTICACIÓN / REGISTRO / LOGIN */}
-      {authModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl bg-[#0A0E1A] border border-slate-800 p-6 md:p-8 space-y-6 shadow-2xl relative">
+  // =========================================================================
+  // VISTA 1: PORTAL FORMAL DE LOGIN Y REGISTRO (GATEKEEPER)
+  // Si el usuario no ha iniciado sesión, la aplicación muestra este portal
+  // =========================================================================
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-12 bg-[#070A13] text-slate-100 selection:bg-indigo-500 selection:text-white">
 
-            {/* Botón Cerrar */}
-            <button
-              onClick={() => setAuthModalOpen(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+        {/* TOAST FLOTANTE */}
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/95 border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 backdrop-blur-xl text-white text-xs font-semibold">
+            <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
 
-            {/* Cabecera del Modal */}
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 p-0.5 mx-auto shadow-lg shadow-indigo-500/30">
-                <div className="w-full h-full bg-[#070A13] rounded-[14px] flex items-center justify-center">
-                  <Lock className="w-6 h-6 text-cyan-400" />
-                </div>
+        {/* COLUMNA IZQUIERDA: EXPLICACIÓN CORPORATIVA DE LA PLATAFORMA */}
+        <div className="lg:col-span-7 p-6 sm:p-10 md:p-16 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-800/80 bg-gradient-to-br from-slate-950 via-[#0A0E1A] to-[#070A13] relative overflow-hidden">
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Logo Superior */}
+          <div className="relative z-10 flex items-center gap-3 mb-8">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-cyan-500 to-blue-500 p-0.5 shadow-lg shadow-indigo-500/25">
+              <div className="w-full h-full bg-[#070A13] rounded-[14px] flex items-center justify-center">
+                <Radar className="w-6 h-6 text-cyan-400" />
               </div>
-              <h3 className="text-xl font-black text-white tracking-tight">
-                {authMode === "register" ? "Crear Cuenta de Analista" : "Iniciar Sesión"}
-              </h3>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-2xl tracking-tight text-white">
+                  Ad<span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">Radar</span>
+                </span>
+                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 rounded-md tracking-wider">
+                  ENTERPRISE
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-medium">Plataforma de Inteligencia Competitiva de Anuncios</p>
+            </div>
+          </div>
+
+          {/* Título & Explicación Formal de la Plataforma */}
+          <div className="relative z-10 space-y-6 my-auto py-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+              Portal Corporativo Seguro • PostgreSQL 17
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
+              Monitorea qué anuncios, promociones y ofertas está lanzando tu competencia.
+            </h1>
+
+            <p className="text-sm md:text-base text-slate-300 leading-relaxed max-w-2xl font-normal">
+              <strong>AdRadar</strong> es una plataforma SaaS de espionaje comercial e inteligencia publicitaria. Permite a directores de marketing y agencias investigar en tiempo real las campañas activas de sus rivales para tomar ideas, anticipar descuentos y optimizar sus propios anuncios.
+            </p>
+
+            {/* Tarjetas de Casos de Uso Emblemáticos */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2">
+              <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 shadow-md">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-2.5">
+                  <Utensils className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-white mb-1">KFC vs Arturo's</h4>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Compara baldes de pollo, combos de fin de semana y promociones 2x1 en comida rápida.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 shadow-md">
+                <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-2.5">
+                  <Bike className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-white mb-1">PedidosYa vs Yummy</h4>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Rastrea cupones de envío gratis, descuentos agresivos por app y alianzas de delivery.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 shadow-md">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-2.5">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-white mb-1">Apple vs Samsung</h4>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Analiza copys de lanzamientos, ganchos de cámaras y ofertas de tecnología y gadgets.
+                </p>
+              </div>
+            </div>
+
+            {/* Checklist de Capacidades */}
+            <div className="grid grid-cols-2 gap-2.5 pt-3 text-xs text-slate-300">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Radar de 6 sectores industriales</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Comparador Head-to-Head con gráficos</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Swipe File privado de ideas</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Base de datos persistente en PostgreSQL</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Izquierdo */}
+          <div className="relative z-10 pt-6 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
+            <span>© 2026 AdRadar Enterprise</span>
+            <span>Desarrollado por Ángel David Morillo</span>
+          </div>
+        </div>
+
+        {/* COLUMNA DERECHA: FORMULARIO FORMAL DE LOGIN Y REGISTRO */}
+        <div className="lg:col-span-5 p-6 sm:p-10 md:p-12 flex flex-col justify-center bg-[#070A13] relative">
+          <div className="w-full max-w-md mx-auto space-y-6">
+
+            {/* Cabecera del Formulario */}
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-white tracking-tight">
+                {authMode === "login" ? "Acceso a la Plataforma" : "Crear Cuenta de Analista"}
+              </h2>
               <p className="text-xs text-slate-400">
-                {authMode === "register"
-                  ? "Acceso seguro a tableros privados, swipe files y auditoría en PostgreSQL."
-                  : "Ingresa tus credenciales para acceder a tu entorno seguro."}
+                {authMode === "login"
+                  ? "Ingresa tus credenciales de analista o utiliza una cuenta demo para explorar."
+                  : "Regístrate para habilitar tu propio Swipe File y guardar anuncios de rivales."}
               </p>
             </div>
 
-            {/* Selector de Pestañas Registro / Login */}
-            <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800">
-              <button
-                type="button"
-                onClick={() => { setAuthMode("register"); setAuthError(null); }}
-                className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                  authMode === "register"
-                    ? "bg-cyan-500 text-slate-950 shadow-sm"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Crear Cuenta
-              </button>
+            {/* Selector de Pestañas Formal */}
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-slate-900 border border-slate-800">
               <button
                 type="button"
                 onClick={() => { setAuthMode("login"); setAuthError(null); }}
-                className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                className={`py-2.5 text-xs font-bold rounded-xl transition-all ${
                   authMode === "login"
-                    ? "bg-cyan-500 text-slate-950 shadow-sm"
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                Iniciar Sesión
+                <span className="flex items-center justify-center gap-1.5">
+                  <LogIn className="w-3.5 h-3.5" />
+                  Iniciar Sesión
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setAuthMode("register"); setAuthError(null); }}
+                className={`py-2.5 text-xs font-bold rounded-xl transition-all ${
+                  authMode === "register"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <span className="flex items-center justify-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Crear Cuenta
+                </span>
               </button>
             </div>
 
-            {/* Alerta de Error */}
+            {/* Mensaje de Error */}
             {authError && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium flex items-center gap-2">
+              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2.5">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{authError}</span>
               </div>
             )}
 
             {/* Formulario */}
-            <form onSubmit={handleAuthSubmit} className="space-y-3.5">
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
               {authMode === "register" && (
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
                     Nombre Completo *
                   </label>
                   <div className="relative">
@@ -533,7 +655,7 @@ export default function AdRadarApp() {
               )}
 
               <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
                   Correo Electrónico *
                 </label>
                 <div className="relative">
@@ -550,8 +672,8 @@ export default function AdRadarApp() {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Contraseña * (mínimo 6 caracteres)
+                <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                  Contraseña *
                 </label>
                 <div className="relative">
                   <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -569,7 +691,7 @@ export default function AdRadarApp() {
 
               {authMode === "register" && (
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
                     Empresa / Marca u Organización
                   </label>
                   <div className="relative">
@@ -578,7 +700,7 @@ export default function AdRadarApp() {
                       type="text"
                       value={authCompany}
                       onChange={(e) => setAuthCompany(e.target.value)}
-                      placeholder="ej: KFC Marketing, Arturo's Agency, Independiente"
+                      placeholder="ej: KFC Marketing, Arturo's Agency, Freelance"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                     />
                   </div>
@@ -588,51 +710,82 @@ export default function AdRadarApp() {
               <button
                 type="submit"
                 disabled={authLoading}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-extrabold text-xs uppercase tracking-wider hover:opacity-95 transition-all shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 mt-2"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-extrabold text-xs uppercase tracking-wider hover:opacity-95 transition-all shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2"
               >
                 {authLoading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : authMode === "register" ? (
-                  <>
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Crear Cuenta Segura</span>
-                  </>
-                ) : (
+                ) : authMode === "login" ? (
                   <>
                     <LogIn className="w-4 h-4" />
                     <span>Entrar al Sistema</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Crear Cuenta Segura</span>
                   </>
                 )}
               </button>
             </form>
 
-            {/* Botones de Acceso Rápido con Cuentas Demo */}
-            <div className="pt-3 border-t border-slate-800/80 space-y-2">
+            {/* SECCIÓN DE ACCESO RÁPIDO CON 1 CLIC (CUENTAS DEMO) */}
+            <div className="pt-5 border-t border-slate-800/80 space-y-3">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block text-center">
-                ⚡ O prueba al instante con una cuenta demo:
+                ⚡ O entra al instante con 1 clic usando una cuenta demo:
               </span>
-              <div className="grid grid-cols-2 gap-2">
+
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
-                  onClick={() => handleQuickDemoLogin("david@adradar.io")}
-                  className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-left transition-all group"
+                  onClick={() => handleDirectDemoLogin("david@adradar.io")}
+                  disabled={authLoading}
+                  className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-cyan-500/60 hover:bg-slate-800/50 text-left transition-all duration-200 group shadow-sm"
                 >
-                  <span className="text-[11px] font-bold text-white block group-hover:text-cyan-400">David Morillo</span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 group-hover:animate-ping" />
+                    <span className="text-xs font-bold text-white group-hover:text-cyan-400">David Morillo</span>
+                  </div>
                   <span className="text-[10px] text-slate-500 block font-mono">david@adradar.io</span>
+                  <span className="text-[9px] text-cyan-400/90 font-bold mt-1 block">Rol: ADMIN</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleQuickDemoLogin("analista@kfc.com")}
-                  className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500/50 text-left transition-all group"
+                  onClick={() => handleDirectDemoLogin("analista@kfc.com")}
+                  disabled={authLoading}
+                  className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-rose-500/60 hover:bg-slate-800/50 text-left transition-all duration-200 group shadow-sm"
                 >
-                  <span className="text-[11px] font-bold text-white block group-hover:text-rose-400">Analista KFC</span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-rose-400 group-hover:animate-ping" />
+                    <span className="text-xs font-bold text-white group-hover:text-rose-400">Analista KFC</span>
+                  </div>
                   <span className="text-[10px] text-slate-500 block font-mono">analista@kfc.com</span>
+                  <span className="text-[9px] text-rose-400/90 font-bold mt-1 block">Rol: GROWTH</span>
                 </button>
               </div>
             </div>
 
           </div>
+        </div>
+
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VISTA 2: DASHBOARD COMPLETO (SOLO ACCESIBLE CON SESIÓN INICIADA)
+  // =========================================================================
+  return (
+    <div className="min-h-screen flex flex-col bg-[#070A13] text-slate-100 selection:bg-indigo-500 selection:text-white">
+
+      {/* TOAST FLOTANTE */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/95 border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 backdrop-blur-xl text-white text-xs font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+          <span>{toastMessage}</span>
+          <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white ml-2">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -663,21 +816,19 @@ export default function AdRadarApp() {
 
             {/* Status en móvil */}
             <div className="md:hidden flex items-center gap-2">
-              {currentUser ? (
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center font-black text-xs text-slate-950 font-bold"
-                  style={{ backgroundColor: currentUser.avatarColor || "#00D2EF" }}
-                >
-                  {currentUser.name.slice(0, 2).toUpperCase()}
-                </div>
-              ) : (
-                <button
-                  onClick={() => { setAuthMode("login"); setAuthModalOpen(true); }}
-                  className="px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-bold text-xs"
-                >
-                  Entrar
-                </button>
-              )}
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center font-black text-xs text-slate-950 font-bold"
+                style={{ backgroundColor: currentUser.avatarColor || "#00D2EF" }}
+              >
+                {currentUser.name.slice(0, 2).toUpperCase()}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-rose-400"
+                title="Cerrar Sesión"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
@@ -756,50 +907,31 @@ export default function AdRadarApp() {
               <span className="text-xs font-bold text-emerald-300">PostgreSQL 17</span>
             </div>
 
-            {/* Estado de Autenticación */}
-            {currentUser ? (
-              <div className="flex items-center gap-2.5 pl-3 border-l border-slate-800">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-slate-950 shadow-md"
-                  style={{ backgroundColor: currentUser.avatarColor || "#00D2EF" }}
-                >
-                  {currentUser.name.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="text-left">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-white">{currentUser.name}</span>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
-                      {currentUser.role}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 block">{currentUser.company || "Analista"}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition-colors ml-1"
-                  title="Cerrar Sesión"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+            {/* Perfil del Usuario Conectado */}
+            <div className="flex items-center gap-2.5 pl-3 border-l border-slate-800">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-slate-950 shadow-md"
+                style={{ backgroundColor: currentUser.avatarColor || "#00D2EF" }}
+              >
+                {currentUser.name.slice(0, 2).toUpperCase()}
               </div>
-            ) : (
-              <div className="flex items-center gap-2 pl-3 border-l border-slate-800">
-                <button
-                  onClick={() => { setAuthMode("login"); setAuthModalOpen(true); }}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all flex items-center gap-1.5"
-                >
-                  <LogIn className="w-3.5 h-3.5" />
-                  Iniciar Sesión
-                </button>
-                <button
-                  onClick={() => { setAuthMode("register"); setAuthModalOpen(true); }}
-                  className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-cyan-500 to-indigo-600 hover:opacity-90 text-white shadow-md shadow-cyan-500/20 transition-all flex items-center gap-1.5"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Crear Cuenta
-                </button>
+              <div className="text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-white">{currentUser.name}</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                    {currentUser.role}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 block">{currentUser.company || "Analista"}</span>
               </div>
-            )}
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition-colors ml-1"
+                title="Cerrar Sesión y Volver al Login"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
         </div>
@@ -1022,7 +1154,7 @@ export default function AdRadarApp() {
                     key={ad.id}
                     className="flex flex-col rounded-3xl bg-slate-900/90 border border-slate-800/80 hover:border-indigo-500/40 transition-all duration-300 overflow-hidden group shadow-xl hover:shadow-2xl hover:shadow-indigo-500/10"
                   >
-                    {/* Header de la Tarjeta: Marca, Monograma y País */}
+                    {/* Header de la Tarjeta */}
                     <div className="p-4 flex items-center justify-between border-b border-slate-800/70 bg-slate-950/60">
                       <div className="flex items-center gap-3">
                         <div
@@ -1040,7 +1172,6 @@ export default function AdRadarApp() {
                         </div>
                       </div>
 
-                      {/* Badge de Oferta */}
                       {ad.offerBadge && (
                         <span className="px-2.5 py-1 text-[11px] font-black rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm">
                           {ad.offerBadge}
@@ -1048,7 +1179,7 @@ export default function AdRadarApp() {
                       )}
                     </div>
 
-                    {/* Arte Visual del Anuncio (Simulación Creativa con Gradiente de Campaña) */}
+                    {/* Arte Visual del Anuncio */}
                     <div className={`h-44 bg-gradient-to-br ${ad.accentGradient} p-5 flex flex-col justify-between relative overflow-hidden`}>
                       <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
@@ -1069,7 +1200,7 @@ export default function AdRadarApp() {
                       </div>
                     </div>
 
-                    {/* Cuerpo del Copy Publicitario */}
+                    {/* Copy Publicitario */}
                     <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -1098,7 +1229,7 @@ export default function AdRadarApp() {
                         </p>
                       </div>
 
-                      {/* Métricas estimadas de Audiencia */}
+                      {/* Métricas estimadas */}
                       <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
                         <span className="flex items-center gap-1.5 font-medium">
                           <Users className="w-3.5 h-3.5 text-cyan-400" />
@@ -1382,25 +1513,13 @@ export default function AdRadarApp() {
                 </span>
                 <h2 className="text-2xl md:text-3xl font-black text-white mt-1">Tableros de Ideas Guardadas</h2>
                 <p className="text-xs md:text-sm text-slate-400 mt-1">
-                  {currentUser
-                    ? `Colección privada de ${currentUser.name} (${currentUser.company || "Analista de Inteligencia"}).`
-                    : "Colecciona los mejores ganchos publicitarios, ángulos y copys para inspirar tus próximas campañas."}
+                  Colección privada de <strong className="text-amber-300">{currentUser.name}</strong> ({currentUser.company || "Analista de Inteligencia"}).
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                {!currentUser && (
-                  <button
-                    onClick={() => { setAuthMode("register"); setAuthModalOpen(true); }}
-                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-xs shadow-md"
-                  >
-                    Crear mi Swipe File Privado
-                  </button>
-                )}
-                <span className="px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold">
-                  {boards[0]?.items?.length || 0} Ideas Guardadas
-                </span>
-              </div>
+              <span className="px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold">
+                {boards[0]?.items?.length || 0} Ideas Guardadas
+              </span>
             </div>
 
             {boards.length === 0 || boards[0]?.items?.length === 0 ? (
@@ -1480,9 +1599,7 @@ export default function AdRadarApp() {
                 </span>
                 <h2 className="text-2xl font-black text-white mt-1">Registrar Anuncio de Competidor</h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  {currentUser
-                    ? `Publicando como: ${currentUser.name} (${currentUser.company || "Analista de Inteligencia"})`
-                    : "Agrega nuevos anuncios detectados en redes para nutrir el repositorio competitivo."}
+                  Publicando como: <strong className="text-white">{currentUser.name}</strong> ({currentUser.company || "Analista de Inteligencia"})
                 </p>
               </div>
 
