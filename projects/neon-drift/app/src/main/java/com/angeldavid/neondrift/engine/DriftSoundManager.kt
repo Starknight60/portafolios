@@ -50,6 +50,19 @@ class DriftSoundManager(private val context: Context) {
         }
     }
 
+    fun playVictoryFanfare() {
+        vibrate(120)
+        scope.launch {
+            playChime(listOf(523.25f, 659.25f, 783.99f, 1046.50f), noteMs = 110)
+        }
+    }
+
+    fun playCheerChime() {
+        scope.launch {
+            playToneSweep(startFreq = 440f, endFreq = 880f, durationMs = 180)
+        }
+    }
+
     fun playBarrierScrape() {
         vibrate(70)
         scope.launch {
