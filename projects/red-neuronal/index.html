@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepLearning Sandbox - Red Neuronal 2D desde Cero</title>
+
+    <!-- Fuente Google: Inter para un look moderno -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ==========================================
+       SISTEMA DE DISEÑO FUTURISTA Y NEÓN
+       ========================================== */
+        :root {
+            --bg-deep: #080b11;
+            --bg-card: rgba(17, 22, 37, 0.7);
+            --border-light: rgba(255, 255, 255, 0.06);
+
+            --color-red: #ef4444;
+            --color-blue: #3b82f6;
+            --color-violet: #8b5cf6;
+
+            --glow-violet: 0 0 20px rgba(139, 92, 246, 0.4);
+            --text-pure: #ffffff;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-pure);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Fondo animado sutil */
+        .glow-bg {
+            position: fixed;
+            top: -10%;
+            right: 10%;
+            width: 400px;
+            height: 400px;
+            background: var(--color-violet);
+            filter: blur(150px);
+            opacity: 0.15;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* CONTENEDOR EN REJILLA */
+        .main-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                justify-items: center;
+            }
+        }
+
+        /* ÁREA DEL LIENZO */
+        .canvas-container {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        canvas {
+            display: block;
+            background-color: #0b0f19;
+            border-radius: 10px;
+            cursor: crosshair;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        /* PANEL DE CONTROL DERECHO */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            height: 100%;
+        }
+
+        .panel-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 20px;
+        }
+
+        .panel-section:last-child {
+            border: none;
+            padding-bottom: 0;
+        }
+
+        h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #c084fc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Selector de Clase de Puntos */
+        .class-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .selector-btn {
+            padding: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-pure);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .selector-btn.red-active {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--color-red);
+            color: #fca5a5;
+        }
+
+        .selector-btn.blue-active {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--color-blue);
+            color: #93c5fd;
+        }
+
+        /* Ajuste de Parámetros (Sliders y Selects) */
+        .parameter-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .parameter-group label {
+            color: var(--text-muted);
+        }
+
+        select,
+        input[type="range"] {
+            background: #0d111d;
+            border: 1px solid var(--border-light);
+            color: var(--text-pure);
+            padding: 6px 12px;
+            border-radius: 6px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        /* Botones de Acción */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: white;
+            grid-column: span 2;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow-violet);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-light);
+            color: var(--text-pure);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* Panel de Estadísticas */
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px dashed var(--border-light);
+        }
+
+        .metric-card {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-card .title {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-card .value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #a78bfa;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glow-bg"></div>
+
+    <div class="app-container">
+        <header>
+            <h1>DeepLearning Sandbox</h1>
+            <p>Red Neuronal Artificial de 3 Capas Programada desde Cero</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- PANEL IZQUIERDO: LIENZO -->
+            <section class="canvas-container">
+                <canvas id="canvas-nn" width="500" height="500"></canvas>
+            </section>
+
+            <!-- PANEL DERECHO: CONTROLES -->
+            <aside class="control-panel">
+                <!-- 1. SELECCIÓN DE CLASE -->
+                <div class="panel-section">
+                    <h2>1. Colocar Puntos</h2>
+                    <div class="class-selector">
+                        <button id="btn-class-red" class="selector-btn red-active">
+                            🔴 Clase 0 (Rojo)
+                        </button>
+                        <button id="btn-class-blue" class="selector-btn">
+                            🔵 Clase 1 (Azul)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. CONFIGURACIÓN DE RED (HIPERPARÁMETROS) -->
+                <div class="panel-section">
+                    <h2>2. Hiperparámetros</h2>
+
+                    <div class="parameter-group">
+                        <label for="select-neurons">Neuronas Ocultas:</label>
+                        <select id="select-neurons">
+                            <option value="4">4 Neuronas</option>
+                            <option value="8" selected>8 Neuronas (Recomendado)</option>
+                            <option value="16">16 Neuronas (Complejo)</option>
+                            <option value="32">32 Neuronas (Lento)</option>
+                        </select>
+                    </div>
+
+                    <div class="parameter-group">
+                        <label for="select-lr">Tasa de Aprendizaje (LR):</label>
+                        <select id="select-lr">
+                            <option value="0.01">0.01 (Lento)</option>
+                            <option value="0.05">0.05</option>
+                            <option value="0.1" selected>0.1 (Equilibrado)</option>
+                            <option value="0.3">0.3 (Rápido)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 3. ACCIONES DE CONTROL -->
+                <div class="panel-section">
+                    <h2>3. Simulación</h2>
+                    <div class="action-grid">
+                        <button id="btn-train" class="btn btn-primary">
+                            ⚡ Entrenar Red Neuronal
+                        </button>
+                        <button id="btn-pattern" class="btn btn-secondary">
+                            🌀 Patrón Especial (XOR)
+                        </button>
+                        <button id="btn-clear" class="btn btn-danger">
+                            🗑️ Limpiar Lienzo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. MÉTRICAS EN VIVO -->
+                <div class="panel-section">
+                    <h2>4. Métricas de Entrenamiento</h2>
+                    <div class="metrics">
+                        <div class="metric-card">
+                            <span class="title">Épocas de Entrenamiento</span>
+                            <span id="metric-epochs" class="value">0</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="title">Error Promedio (Loss)</span>
+                            <span id="metric-loss" class="value">0.0000</span>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+    </div>
+
+    <!-- Enlazamos nuestro script de lógica e interacción -->
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>

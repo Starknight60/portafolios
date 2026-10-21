@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Proyectos o Clientes B2B
+model Project {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  budgetLimitUsd Float     @default(50.0) // Límite de presupuesto mensual en USD
+  createdAt      DateTime  @default(now())
+  prompts        Prompt[]
+}
+
+// Prompts dentro de un proyecto
+model Prompt {
+  id          String          @id @default(cuid())
+  name        String
+  category    String          @default("customer_support") // customer_support, extraction, summarization, coding
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  versions    PromptVersion[]
+}
+
+// Control de versiones tipo Git para cada Prompt
+model PromptVersion {
+  id            String         @id @default(cuid())
+  versionNumber Int            // v1, v2, v3...
+  systemPrompt  String         @db.Text
+  userTemplate  String         @db.Text
+  modelTarget   String         // "gpt-4o", "gemini-1.5-flash", "claude-3-5-sonnet"
+  temperature   Float          @default(0.7)
+  diffSummary   String?        // Mensaje de commit: "Optimización de tokens y formato JSON estricto"
+  promptId      String
+  prompt        Prompt         @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  executionLogs ExecutionLog[]
+}
+
+// Métricas de ejecución real y consumo de tokens en dólares
+model ExecutionLog {
+  id              String        @id @default(cuid())
+  inputTokens     Int
+  outputTokens    Int
+  totalCostUsd    Float         // Costo exacto en USD calculado por token
+  latencyMs       Int           // Tiempo de respuesta en milisegundos
+  status          String        @default("success")
+  userVariables   String?       @db.Text
+  aiOutput        String?       @db.Text
+  promptVersionId String
+  promptVersion   PromptVersion @relation(fields: [promptVersionId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+}

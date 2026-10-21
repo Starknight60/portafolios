@@ -1,0 +1,313 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Quicksand', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body {
+    background-color: #f0f4f8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 480px;
+    height: 100vh;
+    max-height: 850px;
+    background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+    position: relative;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    padding: 24px;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.screen.active {
+    display: flex;
+}
+
+.game-title {
+    font-family: 'Fredoka one', cursive;
+    font-size: 3rem;
+    color: #ffffff;
+    font-weight: 700;
+    margin-bottom: 30xp;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 40px;
+    text-align: center;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #ffffff;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    margin-bottom: 50px;
+}
+
+.menu-btn {
+    display: flex;
+    align-items: center;
+    padding: 20px 24px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    box-shadow: 0 8px 0px rgba(0, 0, 0, 0.15);
+    position: relative;
+    top: 0;
+}
+
+.menu-btn:active {
+    top: 6px;
+    box-shadow: 0 2px 0px rgba(0, 0, 0, 0.15);
+}
+
+.btn-icon {
+    font-size: 2.5rem;
+    margin-right: 15px;
+}
+
+.btn-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.btn-numbers {
+    background-color: #ff7675;
+    border-bottom: 6px solid #d63031;
+}
+
+.btn-letters {
+    background-color: #55efc4;
+    border-bottom: 6px solid #00b894;
+}
+
+.btn-ai {
+    background-color: #a29bfe;
+    border-bottom: 6px solid #6c5ce7;
+}
+
+.back-btn {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.game-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    width: 100%;
+    gap: 30px;
+}
+
+.instruction-box h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.6rem;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.target-bubble {
+    width: 150px;
+    height: 150px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+    font-weight: bold;
+    color: #2d3436;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    border: 8px solid #ffeaa7;
+    animation: bounce 2s infinite alternate;
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%;
+}
+
+.option-btn {
+    background-color: white;
+    border: none;
+    border-radius: 20px;
+    height: 100px;
+    font-size: 3rem;
+    font-weight: bold;
+    color: #2d3436;
+    box-shadow: 0 8px 0px #dfe6e9, 0 10px 15px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: all 0.1s;
+    position: relative;
+    top: 0;
+}
+
+.option-btn:active {
+    top: 6px;
+    box-shadow: 0 2px 0px #dfe6e9;
+}
+
+.chat-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.chat-header {
+    background-color: #a29bfe;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: white;
+}
+
+.mascot-avatar {
+    font-size: 2.2rem;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px;
+    border-radius: 50%;
+}
+
+.chat-header h3 {
+    font-family: 'Fredoka One', cursive;
+}
+
+.status-online {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background-color: #f9f9fb;
+}
+
+.message {
+    max-width: 80%;
+    padding: 14px 18px;
+    border-radius: 20px;
+    font-size: 1.1rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.message.robot {
+    background-color: #e8dbfc;
+    color: #4a154b;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.message.user {
+    background-color: #ffeaa7;
+    color: #d63031;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-input-area {
+    padding: 15px;
+    background-color: white;
+    display: flex;
+    gap: 10px;
+    border-top: 2px solid #f1f2f6;
+}
+
+.chat-input-area input {
+    flex-grow: 1;
+    border: 2px solid #dfe6e9;
+    border-radius: 15px;
+    padding: 12px 16px;
+    font-size: 1.1rem;
+    outline: none;
+}
+
+.chat-input-area input:focus {
+    border-color: #a29bfe;
+}
+
+.chat-input-area button {
+    background-color: #a29bfe;
+    color: white;
+    border: none;
+    border-radius: 15px;
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-10px);
+    }
+}

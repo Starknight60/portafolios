@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width" , initial-scale="1.0" , maximum-scale="1.0" , user-scalable="no">
+    <title>Game Kids</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="game-container">
+        <section id="menu-screen" class="screen active">
+            <h1 class="game-title">✨ ¡A Jugar! ✨</h1>
+            <p class="subtitle">Toca un botón para comenzar</p>
+
+            <div class="menu-buttons">
+                <button class="menu-btn btn-numbers" onclick="switchScreen('game-screen', 'numbers')">
+                    <span class="btn-icon">🔢</span>
+                    <span class="btn-text">Números</span>
+                </button>
+
+                <button class="menu-btn btn-letters" onclick="switchScreen('game-screen', 'letters')">
+                    <span class="btn-icon">🔤</span>
+                    <span class="btn-text">Letras</span>
+                </button>
+
+                <button class="menu-btn btn-ai" onclick="switchScreen('chat-screen')">
+                    <span class="btn-icon">🤖</span>
+                    <span class="btn-text">Amigo IA</span>
+                </button>
+            </div>
+        </section>
+
+        <section id="game-screen" class="screen">
+            <button class="back-btn" onclick="switchScreen('menu-screen')">⬅ Atrás</button>
+
+            <div class="game-area">
+                <div class="instruction-box">
+                    <h2 id="game-instruction">Toca el numero...</h2>
+                </div>
+
+                <div id="target-display" class="target-bubble">?</div>
+                <div id="options-container" class="options-grid">
+
+                </div>
+            </div>
+        </section>
+
+        <section id="chat-screen" class="screen">
+            <button class="back-btn" onclick="switchScreen('menu-screen')">⬅ Atrás</button>
+
+            <div class="chat-container">
+                <div class="chat-header">
+                    <span class="mascot-avatar">🤖</span>
+                    <div>
+                        <h3>Tobi, tu amigo Robot</h3>
+                        <span class="status-online">🟢 Conectado</span>
+                    </div>
+                </div>
+                <div id="chat-messages" class="chat-messages">
+                    <div class="message robot">
+                        ¡Hola! Soy Tobi. 🤖 ¿Cómo te llamas? ¡Podemos hablar de animales, colores o lo que quieras!
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="user-input" placeholder="Escribe aquí..." autofocus>
+                    <button id="send-btn" onclick="sendMessage()">➔</button>
+                </div>
+            </div>
+        </section>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>

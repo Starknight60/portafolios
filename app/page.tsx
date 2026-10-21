@@ -50,6 +50,23 @@ interface ProjectItem {
 
 const DEFAULT_PROJECTS: ProjectItem[] = [
   {
+    id: "promptforge",
+    category: "ai",
+    title: "PromptForge Hub",
+    badge: "ModelOps CI/CD & PostgreSQL",
+    gradient: "from-purple-600 via-indigo-600 to-pink-600",
+    description:
+      "Plataforma empresarial de ModelOps para control de versiones de prompts tipo Git, playground de pruebas A/B en tiempo real, auditoría de tokens y optimización de costos en USD con PostgreSQL y Prisma ORM.",
+    tech: ["Next.js", "PostgreSQL", "Prisma ORM", "Recharts", "TypeScript"],
+    features: [
+      "Versionado & Diffs visuales tipo Git",
+      "Benchmark A/B con inferencia paralela",
+      "Motor de costos en USD & umbral de presupuesto",
+    ],
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/promptforge-hub",
+    demoUrl: "http://localhost:3000",
+  },
+  {
     id: "nexus",
     category: "fullstack",
     title: "Nexus Enterprise SaaS",
@@ -63,7 +80,7 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
       "Roles RBAC & Multi-tenant",
       "Protección de rutas con Middleware",
     ],
-    githubUrl: "https://github.com/",
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/nexus-saas",
     demoUrl: "http://localhost:3000",
   },
   {
@@ -80,7 +97,7 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
       "Fallback automático de modelos",
       "Exportación de reportes (.txt)",
     ],
-    githubUrl: "https://github.com/",
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/doc-ai-chat",
     demoUrl: "https://vercel.com/",
   },
   {
@@ -97,7 +114,7 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
       "Simulador matemático de ROI",
       "Caché proxy anti rate-limits",
     ],
-    githubUrl: "https://github.com/",
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/coinpulse-dashboard",
     demoUrl: "https://vercel.com/",
   },
   {
@@ -114,8 +131,59 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
       "Barra de progreso de subtareas",
       "Filtros en tiempo real",
     ],
-    githubUrl: "https://github.com/",
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/taskflow-kanban",
     demoUrl: "http://localhost:3000",
+  },
+  {
+    id: "opsguard",
+    category: "fullstack",
+    title: "OpsGuard Enterprise SRE",
+    badge: "SRE & Incident Response",
+    gradient: "from-rose-600 via-orange-600 to-amber-600",
+    description:
+      "Centro de comando de operaciones y respuesta a incidentes de infraestructura crítica (SRE) con telemetría en tiempo real, niveles de severidad P1/P2/P3 y métricas Recharts.",
+    tech: ["Next.js", "Recharts", "TypeScript", "Tailwind CSS"],
+    features: [
+      "Monitoreo de servicios y estado SRE",
+      "Triaje de incidentes críticos P1/P2/P3",
+      "Gráficos de latencia y throughput",
+    ],
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/opsguard-enterprise",
+    demoUrl: "http://localhost:3000",
+  },
+  {
+    id: "telegram_ai",
+    category: "ai",
+    title: "Telegram AI Assistant",
+    badge: "Bot Automatizado & Gemini API",
+    gradient: "from-sky-500 to-blue-600",
+    description:
+      "Bot de mensajería inteligente desplegado en Telegram conectado con la API de Google Gemini para procesamiento de lenguaje natural y resolución de consultas automatizadas.",
+    tech: ["Python", "Telegram Bot API", "Google Gemini API"],
+    features: [
+      "Procesamiento de lenguaje natural",
+      "Manejo asíncrono de mensajes",
+      "Integración directa de modelos LLM",
+    ],
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/telegram-bot",
+    demoUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/telegram-bot",
+  },
+  {
+    id: "neural_net",
+    category: "ai",
+    title: "NeuralNet JS from Scratch",
+    badge: "Machine Learning Puro",
+    gradient: "from-emerald-600 to-teal-600",
+    description:
+      "Implementación de red neuronal multicapa construida desde cero en JavaScript sin librerías externas de ML, implementando forward propagation, backpropagation y descenso de gradiente.",
+    tech: ["JavaScript Puro", "Álgebra Lineal", "HTML5 Canvas"],
+    features: [
+      "Backpropagation y cálculo de derivadas",
+      "Funciones de activación Sigmoid/ReLU",
+      "Visualización de entrenamiento en tiempo real",
+    ],
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/red-neuronal",
+    demoUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/red-neuronal",
   },
 ];
 
