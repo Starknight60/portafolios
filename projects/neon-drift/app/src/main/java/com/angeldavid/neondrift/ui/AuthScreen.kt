@@ -38,9 +38,19 @@ fun AuthScreen(
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var existingUsers by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isPostgresOnline by remember { mutableStateOf(false) }
+    var showHostDialog by remember { mutableStateOf(false) }
+    var postgresHostInput by remember { mutableStateOf(repository.postgresHelper.host) }
+
+    fun refreshUsers() {
+        scope.launch {
+            isPostgresOnline = repository.checkPostgresConnection()
+            existingUsers = repository.getAvailableUsernames()
+        }
+    }
 
     LaunchedEffect(Unit) {
-        existingUsers = repository.getAvailableUsernames()
+        refreshUsers()
     }
 
     Box(
@@ -59,8 +69,8 @@ fun AuthScreen(
     ) {
         Card(
             modifier = Modifier
-                .width(560.dp)
-                .padding(16.dp)
+                .width(580.dp)
+                .padding(14.dp)
                 .border(1.5.dp, Color(0xFF00F0FF).copy(alpha = 0.6f), RoundedCornerShape(20.dp)),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0A0F1D).copy(alpha = 0.95f)),
             shape = RoundedCornerShape(20.dp)
@@ -68,7 +78,7 @@ fun AuthScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Título Cyberpunk
@@ -76,19 +86,46 @@ fun AuthScreen(
                     text = "NEON DRIFT",
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Black,
-                    fontSize = 28.sp,
+                    fontSize = 26.sp,
                     color = Color(0xFF00F0FF),
                     letterSpacing = 2.sp
                 )
                 Text(
-                    text = "CYBER CIRCUIT • REGISTRO DE PILOTOS",
+                    text = "CYBER CIRCUIT • POSTGRESQL & CLOUD RACING",
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = Color(0xFFFF007F)
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Estado de conexión a PostgreSQL
+                Surface(
+                    modifier = Modifier.clickable { showHostDialog = true },
+                    color = if (isPostgresOnline) Color(0xFF00FF66).copy(alpha = 0.15f) else Color(0xFFFFD700).copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(20.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (isPostgresOnline) Color(0xFF00FF66) else Color(0xFFFFD700)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = if (isPostgresOnline) "🟢" else "🟡", fontSize = 10.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isPostgresOnline) "POSTGRESQL 17 CONECTADO (neon_drift_db)" else "POSTGRESQL LOCAL/OFFLINE • TOCAR PARA IP",
+                            color = if (isPostgresOnline) Color(0xFF00FF66) else Color(0xFFFFD700),
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Selector de pestañas: Iniciar Sesión / Registrar
                 Row(
@@ -109,7 +146,7 @@ fun AuthScreen(
                                 isRegisterMode = false
                                 errorMessage = null
                             }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 7.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -131,7 +168,7 @@ fun AuthScreen(
                                 isRegisterMode = true
                                 errorMessage = null
                             }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 7.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -143,9 +180,9 @@ fun AuthScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Cuentas guardadas en SQLite (acceso directo)
+                // Pilotos guardados en PostgreSQL / Local
                 if (existingUsers.isNotEmpty()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -153,7 +190,7 @@ fun AuthScreen(
                     ) {
                         Text(
                             text = "PILOTOS EN BD:",
-                            fontSize = 11.sp,
+                            fontSize = 10.5.sp,
                             color = Color(0xFF64748B),
                             fontWeight = FontWeight.Bold
                         )
@@ -173,7 +210,7 @@ fun AuthScreen(
                                 ) {
                                     Text(
                                         text = name,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                                         fontSize = 11.sp,
                                         color = if (username == name) Color(0xFF00F0FF) else Color(0xFFCBD5E1),
                                         fontWeight = FontWeight.SemiBold
@@ -182,14 +219,14 @@ fun AuthScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
 
                 // Campos de entrada
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text("Nombre de Piloto / Usuario", color = Color(0xFF94A3B8)) },
+                    label = { Text("Nombre de Piloto / Usuario", color = Color(0xFF94A3B8), fontSize = 12.sp) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
@@ -200,12 +237,12 @@ fun AuthScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Contraseña / PIN", color = Color(0xFF94A3B8)) },
+                    label = { Text("Contraseña / PIN", color = Color(0xFF94A3B8), fontSize = 12.sp) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -219,16 +256,16 @@ fun AuthScreen(
                 )
 
                 if (errorMessage != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = errorMessage ?: "",
                         color = Color(0xFFFF1744),
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Botón Principal de Acción
                 Button(
@@ -257,22 +294,22 @@ fun AuthScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
+                        .height(44.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isRegisterMode) Color(0xFFFF007F) else Color(0xFF00F0FF)
                     )
                 ) {
                     Text(
-                        text = if (isRegisterMode) "CREAR CUENTA & ENTRAR AL GARAJE" else "ENTRAR AL CIRCUITO",
+                        text = if (isRegisterMode) "CREAR CUENTA EN POSTGRESQL" else "ENTRAR AL CIRCUITO",
                         fontWeight = FontWeight.Black,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         color = if (isRegisterMode) Color.White else Color(0xFF03030C),
                         letterSpacing = 1.sp
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Botón de Acceso Rápido como David
                 OutlinedButton(
@@ -289,18 +326,66 @@ fun AuthScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(38.dp),
+                        .height(36.dp),
                     shape = RoundedCornerShape(10.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00FF66).copy(alpha = 0.8f))
                 ) {
                     Text(
-                        text = "⚡ JUGAR RÁPIDO COMO PILOTO DAVID (1,500 MONEDAS)",
+                        text = "⚡ ENTRADA RÁPIDA: PILOTO DAVID (POSTGRESQL)",
                         color = Color(0xFF00FF66),
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
+    }
+
+    // Modal para Configurar IP del Servidor PostgreSQL
+    if (showHostDialog) {
+        AlertDialog(
+            onDismissRequest = { showHostDialog = false },
+            title = {
+                Text(
+                    text = "Configuración PostgreSQL",
+                    color = Color(0xFF00F0FF),
+                    fontWeight = FontWeight.Black
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Host / IP del servidor PostgreSQL (Puerto 5432 / DB: neon_drift_db):",
+                        fontSize = 12.sp,
+                        color = Color(0xFFCBD5E1)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = postgresHostInput,
+                        onValueChange = { postgresHostInput = it },
+                        label = { Text("IP Host (10.0.2.2 = Emulador PC)") },
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            repository.setPostgresHost(postgresHostInput)
+                            refreshUsers()
+                            showHostDialog = false
+                        }
+                    }
+                ) {
+                    Text("PROBAR & GUARDAR")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHostDialog = false }) {
+                    Text("CANCELAR")
+                }
+            }
+        )
     }
 }

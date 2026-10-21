@@ -5,6 +5,7 @@ package com.angeldavid.neondrift.data
 import android.content.Context
 import androidx.compose.ui.graphics.Color
 import com.angeldavid.neondrift.db.NeonDriftDbHelper
+import com.angeldavid.neondrift.db.NeonDriftPostgresHelper
 import com.angeldavid.neondrift.model.Car
 import com.angeldavid.neondrift.model.CarDefinition
 import com.angeldavid.neondrift.model.UserAccount
@@ -14,37 +15,106 @@ import kotlinx.coroutines.withContext
 
 class NeonDriftRepository(context: Context) {
 
-    private val dbHelper = NeonDriftDbHelper(context)
+    private val localDb = NeonDriftDbHelper(context)
+    val postgresHelper = NeonDriftPostgresHelper()
+
+    var isPostgresActive: Boolean = false
+        private set
+
+    suspend fun checkPostgresConnection(): Boolean = withContext(Dispatchers.IO) {
+        val ok = postgresHelper.testConnection()
+        isPostgresActive = ok
+        ok
+    }
+
+    suspend fun setPostgresHost(host: String) = withContext(Dispatchers.IO) {
+        postgresHelper.host = host.trim()
+        checkPostgresConnection()
+    }
 
     suspend fun register(username: String, pass: String): UserAccount? = withContext(Dispatchers.IO) {
-        val id = dbHelper.registerUser(username, pass)
-        if (id != -1L) {
-            dbHelper.getUserById(id)
-        } else null
+        if (checkPostgresConnection()) {
+            try {
+                val pgId = postgresHelper.registerUser(username, pass)
+                if (pgId != -1L) {
+                    val user = postgresHelper.getUserById(pgId)
+                    // Sincronizar en local
+                    localDb.registerUser(username, pass)
+                    return@withContext user
+                }
+            } catch (_: Exception) {}
+        }
+        // Fallback local SQLite
+        val id = localDb.registerUser(username, pass)
+        if (id != -1L) localDb.getUserById(id) else null
     }
 
     suspend fun login(username: String, pass: String): UserAccount? = withContext(Dispatchers.IO) {
-        dbHelper.authenticateUser(username, pass)
+        if (checkPostgresConnection()) {
+            try {
+                val user = postgresHelper.authenticateUser(username, pass)
+                if (user != null) {
+                    // Sincronizar usuario en local
+                    localDb.registerUser(user.username, pass)
+                    localDb.addCoins(user.id, user.coins - (localDb.getUserById(user.id)?.coins ?: 0))
+                    return@withContext user
+                }
+            } catch (_: Exception) {}
+        }
+        // Fallback local SQLite
+        localDb.authenticateUser(username, pass)
     }
 
     suspend fun getUser(userId: Long): UserAccount? = withContext(Dispatchers.IO) {
-        dbHelper.getUserById(userId)
+        if (isPostgresActive) {
+            try {
+                val user = postgresHelper.getUserById(userId)
+                if (user != null) return@withContext user
+            } catch (_: Exception) {}
+        }
+        localDb.getUserById(userId)
     }
 
     suspend fun getAvailableUsernames(): List<String> = withContext(Dispatchers.IO) {
-        dbHelper.getAllUsernames()
+        if (checkPostgresConnection()) {
+            try {
+                val pgList = postgresHelper.getAllUsernames()
+                if (pgList.isNotEmpty()) return@withContext pgList
+            } catch (_: Exception) {}
+        }
+        localDb.getAllUsernames()
     }
 
     suspend fun getUserCars(userId: Long): List<UserCarState> = withContext(Dispatchers.IO) {
-        dbHelper.getUserCarStates(userId)
+        if (isPostgresActive) {
+            try {
+                val pgCars = postgresHelper.getUserCarStates(userId)
+                if (pgCars.isNotEmpty()) return@withContext pgCars
+            } catch (_: Exception) {}
+        }
+        localDb.getUserCarStates(userId)
     }
 
     suspend fun selectCar(userId: Long, carId: String) = withContext(Dispatchers.IO) {
-        dbHelper.setSelectedCar(userId, carId)
+        if (isPostgresActive) {
+            try {
+                postgresHelper.setSelectedCar(userId, carId)
+            } catch (_: Exception) {}
+        }
+        localDb.setSelectedCar(userId, carId)
     }
 
     suspend fun unlockCar(userId: Long, carDef: CarDefinition): Boolean = withContext(Dispatchers.IO) {
-        dbHelper.unlockCar(userId, carDef.id, carDef.price)
+        if (isPostgresActive) {
+            try {
+                val ok = postgresHelper.unlockCar(userId, carDef.id, carDef.price)
+                if (ok) {
+                    localDb.unlockCar(userId, carDef.id, carDef.price)
+                    return@withContext true
+                }
+            } catch (_: Exception) {}
+        }
+        localDb.unlockCar(userId, carDef.id, carDef.price)
     }
 
     suspend fun upgradeStat(
@@ -56,6 +126,24 @@ class NeonDriftRepository(context: Context) {
         if (currentLevel >= 5) return@withContext false
         val nextLevel = currentLevel + 1
         val cost = CatalogData.getUpgradeCost(nextLevel)
+
+        if (isPostgresActive) {
+            try {
+                val ok = postgresHelper.upgradeCarStat(userId, carId, statType, nextLevel, cost)
+                if (ok) {
+                    val col = when (statType) {
+                        "speed" -> NeonDriftDbHelper.COL_SPEED_LVL
+                        "accel" -> NeonDriftDbHelper.COL_ACCEL_LVL
+                        "handling" -> NeonDriftDbHelper.COL_HANDLING_LVL
+                        "nitro" -> NeonDriftDbHelper.COL_NITRO_LVL
+                        else -> return@withContext false
+                    }
+                    localDb.upgradeCarStat(userId, carId, col, nextLevel, cost)
+                    return@withContext true
+                }
+            } catch (_: Exception) {}
+        }
+
         val col = when (statType) {
             "speed" -> NeonDriftDbHelper.COL_SPEED_LVL
             "accel" -> NeonDriftDbHelper.COL_ACCEL_LVL
@@ -63,7 +151,7 @@ class NeonDriftRepository(context: Context) {
             "nitro" -> NeonDriftDbHelper.COL_NITRO_LVL
             else -> return@withContext false
         }
-        dbHelper.upgradeCarStat(userId, carId, col, nextLevel, cost)
+        localDb.upgradeCarStat(userId, carId, col, nextLevel, cost)
     }
 
     suspend fun updateColors(
@@ -72,16 +160,33 @@ class NeonDriftRepository(context: Context) {
         bodyColor: Long,
         underglowColor: Long
     ) = withContext(Dispatchers.IO) {
-        dbHelper.updateCarColors(userId, carId, bodyColor, underglowColor)
+        if (isPostgresActive) {
+            try {
+                postgresHelper.updateCarColors(userId, carId, bodyColor, underglowColor)
+            } catch (_: Exception) {}
+        }
+        localDb.updateCarColors(userId, carId, bodyColor, underglowColor)
     }
 
     suspend fun addCoins(userId: Long, amount: Int): Int = withContext(Dispatchers.IO) {
-        dbHelper.addCoins(userId, amount)
+        if (isPostgresActive) {
+            try {
+                val newCoins = postgresHelper.addCoins(userId, amount)
+                localDb.addCoins(userId, amount)
+                return@withContext newCoins
+            } catch (_: Exception) {}
+        }
+        localDb.addCoins(userId, amount)
     }
 
     suspend fun getTrackProgress(userId: Long, trackId: String): NeonDriftDbHelper.TrackProgressRecord =
         withContext(Dispatchers.IO) {
-            dbHelper.getTrackProgress(userId, trackId)
+            if (isPostgresActive) {
+                try {
+                    return@withContext postgresHelper.getTrackProgress(userId, trackId)
+                } catch (_: Exception) {}
+            }
+            localDb.getTrackProgress(userId, trackId)
         }
 
     suspend fun saveRace(
@@ -93,25 +198,19 @@ class NeonDriftRepository(context: Context) {
         m2Done: Boolean,
         m3Done: Boolean
     ) = withContext(Dispatchers.IO) {
-        dbHelper.saveTrackRaceResult(userId, trackId, timeSec, score, m1Done, m2Done, m3Done)
+        if (isPostgresActive) {
+            try {
+                postgresHelper.saveTrackRaceResult(userId, trackId, timeSec, score, m1Done, m2Done, m3Done)
+            } catch (_: Exception) {}
+        }
+        localDb.saveTrackRaceResult(userId, trackId, timeSec, score, m1Done, m2Done, m3Done)
     }
 
-    /**
-     * Construye y calcula las físicas del coche del jugador en base al modelo base + niveles de mejoras guardados en la BD.
-     */
     fun buildPlayerCar(carDef: CarDefinition, carState: UserCarState): Car {
-        // Base Speed: p.ej. 185 km/h -> cada nivel agrega +12 km/h
         val totalSpeedKmh = carDef.baseSpeedKmh + (carState.speedLevel - 1) * 12f
-        // Convertir km/h a píxeles/segundo del motor (1 km/h aprox = 1.95 px/s)
         val maxSpeedPx = totalSpeedKmh * 1.95f
-
-        // Acceleration: base * (1.0 + (level - 1) * 0.14)
         val accelPx = 220f * carDef.baseAccel * (1.0f + (carState.accelLevel - 1) * 0.14f)
-
-        // Handling: turn speed base * (1.0 + (level - 1) * 0.12)
         val turnSpeedRad = 2.8f * carDef.baseHandling * (1.0f + (carState.handlingLevel - 1) * 0.12f)
-
-        // Normal and drift friction
         val driftFriction = 0.965f + (carState.handlingLevel - 1) * 0.003f
 
         return Car(
