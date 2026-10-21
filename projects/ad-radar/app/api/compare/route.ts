@@ -7,17 +7,17 @@ export async function GET(request: NextRequest) {
     const companyAId = searchParams.get("companyA");
     const companyBId = searchParams.get("companyB");
 
-    if (!companyAId || !companyBId) {
-      return NextResponse.json({ error: "Debes seleccionar dos empresas para comparar" }, { status: 400 });
+    if (!companyAId || !companyBId || typeof companyAId !== "string" || typeof companyBId !== "string") {
+      return NextResponse.json({ error: "Debes seleccionar dos empresas válidas para comparar" }, { status: 400 });
     }
 
     const [compA, compB] = await Promise.all([
       prisma.company.findUnique({
-        where: { id: companyAId },
+        where: { id: companyAId.slice(0, 50) },
         include: { ads: true },
       }),
       prisma.company.findUnique({
-        where: { id: companyBId },
+        where: { id: companyBId.slice(0, 50) },
         include: { ads: true },
       }),
     ]);
@@ -75,8 +75,8 @@ export async function GET(request: NextRequest) {
       },
       pairInsight: pair?.insightNote || null,
     });
-  } catch (error: any) {
-    console.error("Error comparing companies:", error);
-    return NextResponse.json({ error: error.message || "Error al generar comparativa" }, { status: 500 });
+  } catch (error) {
+    console.error("Error al generar comparativa:", error);
+    return NextResponse.json({ error: "Error al generar comparativa" }, { status: 500 });
   }
 }

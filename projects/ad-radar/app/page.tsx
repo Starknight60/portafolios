@@ -125,6 +125,19 @@ const DUEL_PRESETS = [
   { label: "🎮 PlayStation vs Xbox", slugA: "playstation", slugB: "xbox", industry: "Gaming" },
 ];
 
+function getSafeUrl(url: string | null): string {
+  if (!url) return "#";
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.toString();
+    }
+  } catch {
+    // fallback
+  }
+  return "#";
+}
+
 export default function AdRadarApp() {
   const [activeTab, setActiveTab] = useState<"radar" | "compare" | "boards" | "new_ad" | "deployment">("radar");
   const [ads, setAds] = useState<Ad[]>([]);
@@ -746,9 +759,9 @@ export default function AdRadarApp() {
                         </button>
 
                         <a
-                          href={ad.company.website || "#"}
+                          href={getSafeUrl(ad.company.website)}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noreferrer noopener"
                           className="flex items-center justify-center p-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white font-bold transition-all shadow-md shadow-cyan-500/20"
                           title="Visitar web oficial de la marca"
                         >

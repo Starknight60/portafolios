@@ -2,8 +2,6 @@
 
 > **SaaS B2B Full-Stack** para monitorizar, analizar y comparar las campañas publicitarias, ofertas agresivas y copys creativos de la competencia directa en tiempo real.
 
-🔗 **URL Pública en Producción (Vercel 24/7):** [https://ad-radar-eta.vercel.app/](https://ad-radar-eta.vercel.app/)
-
 Desarrollado por **Ángel David Morillo García** — *Full-Stack & AI Software Engineer*
 
 ---
