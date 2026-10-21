@@ -128,9 +128,8 @@ fun GalaxyGameScreen() {
                     }
                 }
         ) {
-            // Reading frameTick triggers ONLY the Draw Phase invalidation (no recomposition)
-            @Suppress("UNUSED_VARIABLE")
-            val tick = frameTick
+            // Subscribe Canvas draw phase to 60 FPS clock without recomposition
+            if (frameTick == -1L) return@Canvas
 
             if (size.width <= 0f || size.height <= 0f) return@Canvas
             engine.initDimensions(size.width, size.height)
