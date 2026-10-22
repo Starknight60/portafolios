@@ -2,12 +2,21 @@
 
 package com.angeldavid.neondrift.ui
 
+import android.content.Context
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.os.Build
+import android.view.Surface
+import android.view.WindowManager
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -25,8 +34,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.angeldavid.neondrift.data.CatalogData
@@ -49,6 +60,23 @@ fun NeonDriftScreen() {
     var currentUser by remember { mutableStateOf<UserAccount?>(null) }
     var userCars by remember { mutableStateOf<List<UserCarState>>(emptyList()) }
     var selectedTrack by remember { mutableStateOf(CatalogData.TRACKS[0]) }
+
+    val prefs = remember { context.getSharedPreferences("neon_drift_controls", Context.MODE_PRIVATE) }
+    var currentControlScheme by remember {
+        val savedName = prefs.getString("control_scheme", ControlScheme.TOUCH_BUTTONS.name)
+        mutableStateOf(try { ControlScheme.valueOf(savedName!!) } catch (_: Exception) { ControlScheme.TOUCH_BUTTONS })
+    }
+
+    fun setControlScheme(scheme: ControlScheme) {
+        currentControlScheme = scheme
+        prefs.edit().putString("control_scheme", scheme.name).apply()
+    }
+
+    fun cycleControlScheme() {
+        val all = ControlScheme.values()
+        val nextIndex = (currentControlScheme.ordinal + 1) % all.size
+        setControlScheme(all[nextIndex])
+    }
 
     fun refreshUserData() {
         val u = currentUser ?: return
@@ -125,6 +153,9 @@ fun NeonDriftScreen() {
         AppScreen.RACE_GAME, AppScreen.RACE_RESULTS -> {
             RaceCanvasScreen(
                 engine = engine,
+                controlScheme = currentControlScheme,
+                onSchemeChange = { setControlScheme(it) },
+                onCycleScheme = { cycleControlScheme() },
                 onExitToMenu = {
                     refreshUserData()
                     currentScreen = AppScreen.MAIN_HUB
@@ -158,6 +189,9 @@ fun NeonDriftScreen() {
 @Composable
 fun RaceCanvasScreen(
     engine: NeonDriftEngine,
+    controlScheme: ControlScheme,
+    onSchemeChange: (ControlScheme) -> Unit,
+    onCycleScheme: () -> Unit,
     onExitToMenu: () -> Unit,
     onGoToGarage: () -> Unit,
     onSaveRaceResults: (Int, Boolean, Boolean, Boolean) -> Unit
@@ -402,9 +436,13 @@ fun RaceCanvasScreen(
             Text(text = "✕", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
         }
 
-        // Controles Táctiles Horizontales (Ergonomía Móvil)
+        // Controles Táctiles Horizontales (Ergonomía Móvil según Esquema Seleccionado)
         if (engine.gameState == GameState.RACING) {
-            GameTouchControls(engine = engine)
+            GameTouchControls(
+                engine = engine,
+                controlScheme = controlScheme,
+                onCycleScheme = onCycleScheme
+            )
         }
 
         // Overlay de Inicio de Carrera
@@ -415,6 +453,8 @@ fun RaceCanvasScreen(
                 onToggleHardMode = { hard ->
                     engine.setupRace(engine.track, engine.car, hard)
                 },
+                controlScheme = controlScheme,
+                onSchemeChange = onSchemeChange,
                 onStart = { engine.startRace() }
             )
         }
@@ -1479,58 +1519,342 @@ private fun DrawScope.drawDriftHUD(
 }
 
 // -------------------------------------------------------------
-// CONTROLES TÁCTILES HORIZONTALES (TOUCH SCREEN)
+// CONTROLES TÁCTILES HORIZONTALES (TOUCH SCREEN MULTI-ESQUEMA)
 // -------------------------------------------------------------
 
 @Composable
-private fun GameTouchControls(engine: NeonDriftEngine) {
+private fun GameTouchControls(
+    engine: NeonDriftEngine,
+    controlScheme: ControlScheme,
+    onCycleScheme: () -> Unit
+) {
+    val context = LocalContext.current
+
+    // Listener para Giroscopio / Inclinación (Sensor TYPE_ACCELEROMETER)
+    DisposableEffect(controlScheme) {
+        if (controlScheme == ControlScheme.GYROSCOPE_TILT) {
+            val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+            val accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
+            val listener = object : SensorEventListener {
+                override fun onSensorChanged(event: SensorEvent) {
+                    val rotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        context.display?.rotation ?: Surface.ROTATION_90
+                    } else {
+                        @Suppress("DEPRECATION")
+                        (context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager)?.defaultDisplay?.rotation ?: Surface.ROTATION_90
+                    }
+                    val sign = if (rotation == Surface.ROTATION_270) 1f else -1f
+                    val rawTilt = event.values[1] * sign
+                    val deadzone = 0.35f
+                    val sensitivity = 3.8f
+
+                    val clampedTilt = if (abs(rawTilt) < deadzone) {
+                        0f
+                    } else {
+                        val directed = rawTilt - kotlin.math.sign(rawTilt) * deadzone
+                        (directed / sensitivity).coerceIn(-1f, 1f)
+                    }
+                    engine.steerInput = clampedTilt
+                }
+
+                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+            }
+
+            sensorManager?.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_GAME)
+            onDispose {
+                sensorManager?.unregisterListener(listener)
+                engine.steerInput = 0f
+            }
+        } else {
+            onDispose {
+                engine.steerInput = 0f
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // PANEL IZQUIERDO: GIRO (◄ / ►)
-        Row(
+        // BOTÓN RÁPIDO PARA CAMBIAR ESQUEMA EN VIVO (Debajo del velocímetro)
+        Surface(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 32.dp, bottom = 28.dp),
-            horizontalArrangement = Arrangement.spacedBy(18.dp)
+                .align(Alignment.TopStart)
+                .padding(start = 48.dp, top = 205.dp)
+                .clickable { onCycleScheme() },
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF0F172A).copy(alpha = 0.85f),
+            border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFF00F0FF).copy(alpha = 0.6f))
         ) {
-            TouchHoldButton(
-                text = "◄ GIRAR",
-                color = Color(0xFF00F0FF),
-                onPressState = { isDown ->
-                    engine.steerInput = if (isDown) -1f else 0f
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${controlScheme.icon} ${controlScheme.title}",
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.Monospace
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "CAMBIAR",
+                    color = Color(0xFF00F0FF),
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        // PANEL DE CONTROL SEGÚN ESQUEMA SELECCIONADO
+        when (controlScheme) {
+            ControlScheme.TOUCH_BUTTONS -> {
+                // PANEL IZQUIERDO: BOTONES CLÁSICOS (◄ / ►)
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 32.dp, bottom = 28.dp),
+                    horizontalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    TouchHoldButton(
+                        text = "◄ GIRAR",
+                        color = Color(0xFF00F0FF),
+                        onPressState = { isDown ->
+                            engine.steerInput = if (isDown) -1f else 0f
+                        }
+                    )
+                    TouchHoldButton(
+                        text = "GIRAR ►",
+                        color = Color(0xFF00F0FF),
+                        onPressState = { isDown ->
+                            engine.steerInput = if (isDown) 1f else 0f
+                        }
+                    )
                 }
+
+                // PANEL DERECHO: DERRAPE Y NITRO
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 32.dp, bottom = 28.dp),
+                    horizontalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    TouchHoldButton(
+                        text = "DERRAPE",
+                        color = Color(0xFFFF007F),
+                        isPill = true,
+                        onPressState = { isDown -> engine.driftInput = isDown }
+                    )
+                    TouchHoldButton(
+                        text = "NITRO",
+                        color = Color(0xFFFFD700),
+                        isPill = true,
+                        onPressState = { isDown -> engine.nitroInput = isDown }
+                    )
+                }
+            }
+
+            ControlScheme.VIRTUAL_JOYSTICK -> {
+                // PANEL IZQUIERDO: VOLANTE / JOYSTICK ANALÓGICO VIRTUAL
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 32.dp, bottom = 20.dp)
+                ) {
+                    VirtualJoystick(
+                        onSteerChange = { steerVal ->
+                            engine.steerInput = steerVal
+                        }
+                    )
+                }
+
+                // PANEL DERECHO: DERRAPE Y NITRO
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 32.dp, bottom = 28.dp),
+                    horizontalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    TouchHoldButton(
+                        text = "DERRAPE",
+                        color = Color(0xFFFF007F),
+                        isPill = true,
+                        onPressState = { isDown -> engine.driftInput = isDown }
+                    )
+                    TouchHoldButton(
+                        text = "NITRO",
+                        color = Color(0xFFFFD700),
+                        isPill = true,
+                        onPressState = { isDown -> engine.nitroInput = isDown }
+                    )
+                }
+            }
+
+            ControlScheme.GYROSCOPE_TILT -> {
+                // PANEL INFERIOR CENTRAL: INDICADOR HOLOGRÁFICO DE INCLINACIÓN
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 26.dp)
+                ) {
+                    TiltLevelIndicator(steerInput = engine.steerInput)
+                }
+
+                // PANEL IZQUIERDO: BOTÓN DE FRENO / DERRAPE PARA PULGAR IZQUIERDO
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 32.dp, bottom = 28.dp)
+                ) {
+                    TouchHoldButton(
+                        text = "DERRAPE",
+                        color = Color(0xFFFF007F),
+                        isPill = true,
+                        onPressState = { isDown -> engine.driftInput = isDown }
+                    )
+                }
+
+                // PANEL DERECHO: BOTÓN DE NITRO PARA PULGAR DERECHO
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 32.dp, bottom = 28.dp)
+                ) {
+                    TouchHoldButton(
+                        text = "NITRO",
+                        color = Color(0xFFFFD700),
+                        isPill = true,
+                        onPressState = { isDown -> engine.nitroInput = isDown }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VirtualJoystick(
+    modifier: Modifier = Modifier,
+    onSteerChange: (Float) -> Unit
+) {
+    var dragOffset by remember { mutableStateOf(Offset.Zero) }
+    val maxRadiusPx = with(LocalDensity.current) { 54.dp.toPx() }
+
+    Box(
+        modifier = modifier
+            .size(136.dp)
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        val newOffset = dragOffset + dragAmount
+                        val dist = hypot(newOffset.x, newOffset.y)
+                        dragOffset = if (dist > maxRadiusPx) {
+                            Offset(newOffset.x / dist * maxRadiusPx, newOffset.y / dist * maxRadiusPx)
+                        } else {
+                            newOffset
+                        }
+                        val steerVal = (dragOffset.x / maxRadiusPx).coerceIn(-1f, 1f)
+                        onSteerChange(steerVal)
+                    },
+                    onDragEnd = {
+                        dragOffset = Offset.Zero
+                        onSteerChange(0f)
+                    },
+                    onDragCancel = {
+                        dragOffset = Offset.Zero
+                        onSteerChange(0f)
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val radius = size.width / 2f - 6f
+
+            // Anillo exterior base
+            drawCircle(
+                color = Color(0xFF0F172A).copy(alpha = 0.75f),
+                radius = radius,
+                center = center
             )
-            TouchHoldButton(
-                text = "GIRAR ►",
-                color = Color(0xFF00F0FF),
-                onPressState = { isDown ->
-                    engine.steerInput = if (isDown) 1f else 0f
-                }
+            drawCircle(
+                color = Color(0xFF00F0FF).copy(alpha = 0.6f),
+                radius = radius,
+                center = center,
+                style = Stroke(width = 2.5f)
+            )
+
+            // Marcas direccionales
+            drawLine(
+                Color(0xFF00F0FF).copy(alpha = 0.35f),
+                Offset(center.x - radius * 0.85f, center.y),
+                Offset(center.x + radius * 0.85f, center.y),
+                strokeWidth = 2f
+            )
+            drawLine(
+                Color(0xFF00F0FF).copy(alpha = 0.25f),
+                Offset(center.x, center.y - radius * 0.7f),
+                Offset(center.x, center.y + radius * 0.7f),
+                strokeWidth = 1.5f
             )
         }
 
-        // PANEL DERECHO: FRENO DE MANO DERRAPE Y NITRO BOOST
-        Row(
+        // Pomo / Volante deslizable
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 32.dp, bottom = 28.dp),
-            horizontalArrangement = Arrangement.spacedBy(18.dp)
+                .offset { IntOffset(dragOffset.x.roundToInt(), dragOffset.y.roundToInt()) }
+                .size(56.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xFF00F0FF), Color(0xFF005B94))
+                    ),
+                    shape = CircleShape
+                )
+                .border(2.dp, Color.White, CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            TouchHoldButton(
-                text = "DERRAPE",
-                color = Color(0xFFFF007F),
-                isPill = true,
-                onPressState = { isDown ->
-                    engine.driftInput = isDown
-                }
+            Text(
+                text = "🕹️",
+                fontSize = 18.sp
             )
-            TouchHoldButton(
-                text = "NITRO",
-                color = Color(0xFFFFD700),
-                isPill = true,
-                onPressState = { isDown ->
-                    engine.nitroInput = isDown
-                }
+        }
+    }
+}
+
+@Composable
+private fun TiltLevelIndicator(steerInput: Float) {
+    Surface(
+        color = Color(0xFF0A0F1D).copy(alpha = 0.85f),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF00F0FF).copy(alpha = 0.65f)),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.width(190.dp).height(50.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "📲 INCLINACIÓN FÍSICA",
+                color = Color(0xFF00F0FF),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Monospace
             )
+            Spacer(modifier = Modifier.height(3.dp))
+            Canvas(modifier = Modifier.fillMaxWidth().height(14.dp)) {
+                val cy = size.height / 2f
+                val cx = size.width / 2f
+                // Eje horizontal
+                drawLine(Color(0xFF334155), Offset(0f, cy), Offset(size.width, cy), strokeWidth = 3f, cap = StrokeCap.Round)
+                // Centro cero
+                drawLine(Color.White.copy(alpha = 0.75f), Offset(cx, cy - 5f), Offset(cx, cy + 5f), strokeWidth = 2f)
+                // Marcador de inclinación
+                val markerX = (cx + steerInput * (cx - 10f)).coerceIn(8f, size.width - 8f)
+                drawCircle(Color(0xFFFF007F), radius = 6f, center = Offset(markerX, cy))
+                drawCircle(Color.White, radius = 2.5f, center = Offset(markerX, cy))
+            }
         }
     }
 }
@@ -1583,6 +1907,8 @@ fun StartRaceOverlay(
     track: TrackDefinition,
     isHardMode: Boolean,
     onToggleHardMode: (Boolean) -> Unit,
+    controlScheme: ControlScheme,
+    onSchemeChange: (ControlScheme) -> Unit,
     onStart: () -> Unit
 ) {
     val primaryColor = if (isHardMode) Color(0xFFFF5722) else Color(track.barrierPrimaryColor)
@@ -1595,7 +1921,7 @@ fun StartRaceOverlay(
     ) {
         Card(
             modifier = Modifier
-                .width(440.dp)
+                .width(460.dp)
                 .border(2.dp, primaryColor, RoundedCornerShape(20.dp)),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0A0F1D)),
             shape = RoundedCornerShape(20.dp)
@@ -1620,9 +1946,9 @@ fun StartRaceOverlay(
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Selector rápido de dificultad en el overlay
+                // Selector de Dificultad
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1675,6 +2001,61 @@ fun StartRaceOverlay(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Selector de Esquema de Controles
+                Text(
+                    text = "ESQUEMA DE CONTROLES:",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF0F172A), RoundedCornerShape(10.dp))
+                        .border(1.dp, Color(0xFF334155), RoundedCornerShape(10.dp))
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    ControlScheme.values().forEach { scheme ->
+                        val isSelected = (controlScheme == scheme)
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onSchemeChange(scheme) },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) Color(0xFF00F0FF).copy(alpha = 0.25f) else Color.Transparent,
+                            border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00F0FF)) else null
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(vertical = 6.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${scheme.icon} ${scheme.title}",
+                                    color = if (isSelected) Color(0xFF00F0FF) else Color(0xFF94A3B8),
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = controlScheme.description,
+                    color = Color(0xFF64748B),
+                    fontSize = 9.sp,
+                    maxLines = 1
+                )
 
                 Spacer(modifier = Modifier.height(14.dp))
 

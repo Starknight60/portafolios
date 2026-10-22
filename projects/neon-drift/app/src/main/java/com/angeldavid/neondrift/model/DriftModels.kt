@@ -17,6 +17,27 @@ enum class AppScreen {
 }
 
 /**
+ * Esquemas de control seleccionables por el jugador.
+ */
+enum class ControlScheme(val title: String, val icon: String, val description: String) {
+    TOUCH_BUTTONS(
+        title = "BOTONES",
+        icon = "🔘",
+        description = "Botones táctiles clásicos de giro izquierda/derecha"
+    ),
+    VIRTUAL_JOYSTICK(
+        title = "JOYSTICK",
+        icon = "🕹️",
+        description = "Volante / Joystick analógico deslizable con precisión gradual"
+    ),
+    GYROSCOPE_TILT(
+        title = "INCLINAR",
+        icon = "📲",
+        description = "Control por giroscopio e inclinación física del dispositivo"
+    )
+}
+
+/**
  * Estados de la carrera en el motor 60 FPS.
  */
 enum class GameState {
