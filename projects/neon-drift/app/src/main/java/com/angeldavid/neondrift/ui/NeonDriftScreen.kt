@@ -197,6 +197,12 @@ fun RaceCanvasScreen(
     val spoilerPath = remember { Path() }
     val flamePath = remember { Path() }
     val aiBodyPath = remember { Path() }
+    val boostPadPath = remember { Path() }
+    val chevronPath = remember { Path() }
+    val curbPath = remember { Path() }
+    val gantryPath = remember { Path() }
+    val propPath = remember { Path() }
+    val headlightPath = remember { Path() }
 
     val speedPaint = remember {
         Paint().apply {
@@ -252,6 +258,33 @@ fun RaceCanvasScreen(
             textAlign = Paint.Align.CENTER
         }
     }
+    val billboardPaint = remember {
+        Paint().apply {
+            color = android.graphics.Color.WHITE
+            textSize = 13f
+            isAntiAlias = true
+            typeface = Typeface.MONOSPACE
+            textAlign = Paint.Align.CENTER
+        }
+    }
+    val gantryPaint = remember {
+        Paint().apply {
+            color = 0xFFFFD700.toInt()
+            textSize = 17f
+            isAntiAlias = true
+            typeface = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.CENTER
+        }
+    }
+    val gridBoxPaint = remember {
+        Paint().apply {
+            color = 0xFFFFFFFF.toInt()
+            textSize = 18f
+            isAntiAlias = true
+            typeface = Typeface.MONOSPACE
+            textAlign = Paint.Align.CENTER
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -265,8 +298,8 @@ fun RaceCanvasScreen(
             val centerX = size.width / 2f
             val centerY = size.height / 2f
 
-            // 1. Rejilla Retro Synthwave en el suelo
-            drawCyberGrid(size, engine.car)
+            // 1. Rejilla Retro Synthwave en el suelo y horizonte atmosférico
+            drawCyberGrid(size, engine.car, engine.track)
 
             // 2. Cámara de persecución en 3ª persona centrada en el vehículo
             val carScreenAngleDeg = Math.toDegrees(engine.car.angle.toDouble()).toFloat()
@@ -276,13 +309,31 @@ fun RaceCanvasScreen(
                 val worldOffsetX = centerX - engine.car.x
                 val worldOffsetY = centerY - engine.car.y
 
-                // 3. Trazado del Circuito Cerrado con Barreras Neón
-                drawNeonCircuit(engine.track, worldOffsetX, worldOffsetY)
+                // 3. Objetos de Arquitectura y Escenografía fuera de la pista
+                drawSceneryObjects(engine.sceneryObjects, worldOffsetX, worldOffsetY, frameTick, billboardPaint, propPath)
 
-                // 4. Público Espectador animado en los laterales de la carretera
+                // 4. Calzada de Asfalto, Huellas de Rodadura, Líneas de Borde, Discontinuas y Parrilla de Meta
+                drawTrackSurface(engine.track, worldOffsetX, worldOffsetY, gridBoxPaint)
+
+                // 5. Pianos / Curbs Bicolores de Competición en Curvas
+                drawTrackCurbs(engine.trackCurbs, worldOffsetX, worldOffsetY, curbPath)
+
+                // 6. Chevrons / Flechas de Advertencia de Curva
+                drawTrackChevrons(engine.trackChevrons, worldOffsetX, worldOffsetY, chevronPath, frameTick)
+
+                // 7. Paneles Turbo Boost Pads en el asfalto
+                drawTrackBoostPads(engine.trackBoostPads, worldOffsetX, worldOffsetY, boostPadPath, frameTick)
+
+                // 8. Barreras Volumétricas Neón con Postes de Soporte
+                drawTrackBarriers(engine.track, worldOffsetX, worldOffsetY, frameTick)
+
+                // 9. Público Espectador animado en los laterales de la carretera
                 drawSpectators(engine.spectators, worldOffsetX, worldOffsetY)
 
-                // 5. Huellas de Neumático (Marcas de Derrape)
+                // 10. Pórticos 3D de Meta y Checkpoints
+                drawTrackGantries(engine.trackGantries, worldOffsetX, worldOffsetY, gantryPaint, gantryPath)
+
+                // 11. Huellas de Neumático (Marcas de Derrape)
                 for (i in 0 until engine.skidmarks.size) {
                     val s = engine.skidmarks[i]
                     drawLine(
@@ -294,7 +345,7 @@ fun RaceCanvasScreen(
                     )
                 }
 
-                // 6. Partículas de Humo, Chispas de Barrera y Fuego
+                // 12. Partículas de Humo, Chispas de Barrera y Fuego
                 for (i in 0 until engine.particles.size) {
                     val p = engine.particles[i]
                     val alpha = (p.life / p.maxLife).coerceIn(0f, 1f)
@@ -305,11 +356,14 @@ fun RaceCanvasScreen(
                     )
                 }
 
-                // 7. Rivales IA en Pista
-                drawAIRacers(engine.aiRacers, worldOffsetX, worldOffsetY, aiBodyPath)
+                // 13. Rivales IA en Pista (con faros delanteros en la carretera)
+                drawAIRacers(engine.aiRacers, worldOffsetX, worldOffsetY, aiBodyPath, headlightPath)
             }
 
-            // 8. Superdeportivo del Jugador (Fijo en el centro de pantalla)
+            // 14. Faros Delanteros del Coche del Jugador (proyectados sobre la carretera hacia adelante)
+            drawPlayerHeadlights(centerX, centerY, headlightPath)
+
+            // 15. Superdeportivo del Jugador (Fijo en el centro de pantalla)
             drawPlayerCar(
                 car = engine.car,
                 centerX = centerX,
@@ -380,12 +434,27 @@ fun RaceCanvasScreen(
 // PIPELINE DE RENDERIZADO GRÁFICO (60 FPS HARDWARE ACCELERATED)
 // -------------------------------------------------------------
 
-private fun DrawScope.drawCyberGrid(size: Size, car: Car) {
+private fun DrawScope.drawCyberGrid(size: Size, car: Car, track: TrackDefinition) {
     val spacing = 75f
     val offsetX = (car.x * 0.15f) % spacing
     val offsetY = (car.y * 0.15f) % spacing
 
-    val gridColor = Color(0xFF160A30).copy(alpha = 0.5f)
+    // 1. Resplandor Atmosférico en el fondo (Horizonte Neón)
+    drawRect(
+        brush = Brush.verticalGradient(
+            colors = listOf(
+                Color(track.skyColorTop),
+                Color(track.skyColorBottom).copy(alpha = 0.5f)
+            ),
+            startY = 0f,
+            endY = size.height
+        ),
+        topLeft = Offset.Zero,
+        size = size
+    )
+
+    // 2. Rejilla Retro Synthwave en el suelo
+    val gridColor = Color(track.barrierPrimaryColor).copy(alpha = 0.10f)
     var x = -offsetX
     while (x < size.width) {
         drawLine(gridColor, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
@@ -398,20 +467,231 @@ private fun DrawScope.drawCyberGrid(size: Size, car: Car) {
     }
 }
 
-private fun DrawScope.drawNeonCircuit(track: TrackDefinition, offX: Float, offY: Float) {
+private fun DrawScope.drawSceneryObjects(
+    objects: List<TrackSceneryObject>,
+    offX: Float,
+    offY: Float,
+    frameTick: Long,
+    billboardPaint: Paint,
+    propPath: Path
+) {
+    for (i in objects.indices) {
+        val obj = objects[i]
+        val sx = obj.x + offX
+        val sy = obj.y + offY
+
+        rotate(obj.rotationDeg, pivot = Offset(sx, sy)) {
+            when (obj.type) {
+                SceneryType.CYBER_SKYSCRAPER -> {
+                    // Edificio / Rascacielos Cyberpunk con Ventanas y Baliza
+                    val left = sx - obj.width / 2f
+                    val top = sy - obj.height / 2f
+                    // Fachada oscura
+                    drawRoundRect(
+                        color = obj.primaryColor,
+                        topLeft = Offset(left, top),
+                        size = Size(obj.width, obj.height),
+                        cornerRadius = CornerRadius(8f, 8f)
+                    )
+                    // Moldura de neón en tejado
+                    drawRoundRect(
+                        color = obj.secondaryColor.copy(alpha = 0.45f),
+                        topLeft = Offset(left, top),
+                        size = Size(obj.width, obj.height),
+                        cornerRadius = CornerRadius(8f, 8f),
+                        style = Stroke(width = 2f)
+                    )
+                    // Matriz de ventanas iluminadas
+                    val rows = 5
+                    val cols = 4
+                    val cellW = (obj.width - 24f) / cols
+                    val cellH = (obj.height - 28f) / rows
+                    for (r in 0 until rows) {
+                        for (c in 0 until cols) {
+                            if ((r + c + i) % 3 != 0) {
+                                val wx = left + 12f + c * cellW
+                                val wy = top + 14f + r * cellH
+                                val winColor = when ((r * 2 + c + i) % 4) {
+                                    0 -> Color(0xFF00F0FF)
+                                    1 -> Color(0xFFFF007F)
+                                    2 -> Color(0xFFFFD700)
+                                    else -> Color(0xFF00FF66)
+                                }
+                                drawRect(
+                                    color = winColor.copy(alpha = 0.75f),
+                                    topLeft = Offset(wx + 2f, wy + 2f),
+                                    size = Size(cellW - 5f, cellH - 5f)
+                                )
+                            }
+                        }
+                    }
+                    // Antena en la azotea con luz parpadeante
+                    val spireX = sx
+                    val spireY = top - 18f
+                    drawLine(Color(0xFF64748B), Offset(sx, top), Offset(spireX, spireY), strokeWidth = 2.5f)
+                    val beaconAlpha = (sin(frameTick * 0.000000007f + i) * 0.5f + 0.5f).coerceIn(0.1f, 1f)
+                    drawCircle(Color(0xFFFF1744).copy(alpha = beaconAlpha), radius = 4f, center = Offset(spireX, spireY))
+                }
+
+                SceneryType.HOLO_BILLBOARD -> {
+                    // Valla Publicitaria Holográfica Flotante
+                    val left = sx - obj.width / 2f
+                    val top = sy - obj.height / 2f
+                    // Postes de soporte
+                    drawLine(Color(0xFF334155), Offset(left + 12f, top + obj.height), Offset(left + 12f, top + obj.height + 25f), strokeWidth = 5f)
+                    drawLine(Color(0xFF334155), Offset(left + obj.width - 12f, top + obj.height), Offset(left + obj.width - 12f, top + obj.height + 25f), strokeWidth = 5f)
+                    // Pantalla oscura
+                    drawRoundRect(
+                        color = Color(0xFF030712).copy(alpha = 0.92f),
+                        topLeft = Offset(left, top),
+                        size = Size(obj.width, obj.height),
+                        cornerRadius = CornerRadius(6f, 6f)
+                    )
+                    // Borde Neón Resplandeciente
+                    drawRoundRect(
+                        color = obj.primaryColor,
+                        topLeft = Offset(left, top),
+                        size = Size(obj.width, obj.height),
+                        cornerRadius = CornerRadius(6f, 6f),
+                        style = Stroke(width = 3f)
+                    )
+                    // Línea scanline horizontal
+                    drawLine(obj.secondaryColor.copy(alpha = 0.6f), Offset(left + 8f, top + 8f), Offset(left + obj.width - 8f, top + 8f), strokeWidth = 1.5f)
+                    // Texto holográfico de marca
+                    billboardPaint.color = obj.secondaryColor.toArgb()
+                    drawContext.canvas.nativeCanvas.drawText(obj.label, sx, sy + 5f, billboardPaint)
+                }
+
+                SceneryType.LIGHT_TOWER -> {
+                    // Farola / Poste de Luz Futurista
+                    val poleTop = sy - obj.height
+                    drawLine(Color(0xFF475569), Offset(sx, sy), Offset(sx, poleTop), strokeWidth = 4f)
+                    drawCircle(obj.primaryColor, radius = 6.5f, center = Offset(sx, poleTop))
+                    drawCircle(Color.White, radius = 3.5f, center = Offset(sx, poleTop))
+                    // Halo de luz proyectado hacia el asfalto
+                    drawCircle(obj.primaryColor.copy(alpha = 0.16f), radius = 55f, center = Offset(sx, sy))
+                }
+
+                SceneryType.CANYON_CLIFF -> {
+                    // Meseta / Formación Rocosa Poligonal de Cañón
+                    val left = sx - obj.width / 2f
+                    val top = sy - obj.height / 2f
+                    propPath.rewind()
+                    propPath.moveTo(left, top + obj.height * 0.3f)
+                    propPath.lineTo(left + obj.width * 0.25f, top)
+                    propPath.lineTo(left + obj.width * 0.85f, top + obj.height * 0.15f)
+                    propPath.lineTo(left + obj.width, top + obj.height * 0.8f)
+                    propPath.lineTo(left + obj.width * 0.7f, top + obj.height)
+                    propPath.lineTo(left + obj.width * 0.1f, top + obj.height * 0.95f)
+                    propPath.close()
+
+                    drawPath(propPath, color = obj.primaryColor)
+                    drawPath(propPath, color = obj.secondaryColor.copy(alpha = 0.5f), style = Stroke(width = 2.5f))
+                    // Veta de plasma brillante
+                    drawLine(
+                        obj.secondaryColor.copy(alpha = 0.8f),
+                        Offset(left + obj.width * 0.2f, top + obj.height * 0.4f),
+                        Offset(left + obj.width * 0.8f, top + obj.height * 0.6f),
+                        strokeWidth = 3f,
+                        cap = StrokeCap.Round
+                    )
+                }
+
+                SceneryType.QUANTUM_BEACON -> {
+                    // Boya y Anillos de Resonancia Cuántica
+                    drawCircle(obj.primaryColor, radius = 28f, center = Offset(sx, sy))
+                    drawCircle(obj.secondaryColor, radius = 22f, center = Offset(sx, sy), style = Stroke(width = 3f))
+                    drawCircle(Color.White, radius = 9f, center = Offset(sx, sy))
+                    // Paneles solares laterales
+                    drawRoundRect(
+                        color = Color(0xFF0F172A),
+                        topLeft = Offset(sx - obj.width / 2f, sy - 8f),
+                        size = Size(obj.width, 16f),
+                        cornerRadius = CornerRadius(4f, 4f)
+                    )
+                    drawRoundRect(
+                        color = obj.secondaryColor,
+                        topLeft = Offset(sx - obj.width / 2f, sy - 8f),
+                        size = Size(obj.width, 16f),
+                        cornerRadius = CornerRadius(4f, 4f),
+                        style = Stroke(width = 1.5f)
+                    )
+                }
+
+                SceneryType.STADIUM_STAND -> {
+                    // Tribuna Elevada con Graderío y Pancartas
+                    val left = sx - obj.width / 2f
+                    val top = sy - obj.height / 2f
+                    drawRoundRect(
+                        color = obj.primaryColor,
+                        topLeft = Offset(left, top),
+                        size = Size(obj.width, obj.height),
+                        cornerRadius = CornerRadius(6f, 6f)
+                    )
+                    drawRoundRect(
+                        color = obj.secondaryColor.copy(alpha = 0.6f),
+                        topLeft = Offset(left, top),
+                        size = Size(obj.width, obj.height),
+                        cornerRadius = CornerRadius(6f, 6f),
+                        style = Stroke(width = 2.5f)
+                    )
+                    // Filas de público en graderío
+                    val spectatorRows = 3
+                    val cols = (obj.width / 18f).toInt()
+                    val specColors = listOf(Color(0xFF00F0FF), Color(0xFFFF007F), Color(0xFFFFD700), Color(0xFF00FF66))
+                    for (r in 0 until spectatorRows) {
+                        val rowY = top + 15f + r * 18f
+                        for (c in 0 until cols) {
+                            val dotX = left + 14f + c * 16f
+                            val dotColor = specColors[(r + c + i) % specColors.size]
+                            drawCircle(dotColor.copy(alpha = 0.8f), radius = 3f, center = Offset(dotX, rowY))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun DrawScope.drawTrackSurface(
+    track: TrackDefinition,
+    offX: Float,
+    offY: Float,
+    gridBoxPaint: Paint
+) {
     val points = track.waypoints
     if (points.size < 3) return
 
     val trackWidth = track.trackWidth
+    val halfW = trackWidth / 2f
     val primaryColor = Color(track.barrierPrimaryColor)
-    val secondaryColor = Color(track.barrierSecondaryColor)
 
-    // 1. Cinta de Asfalto Oscuro
+    val asphaltColor = when (track.id) {
+        "neo_tokyo" -> Color(0xFF090D18)
+        "cyber_canyon" -> Color(0xFF130707)
+        "quantum_highway" -> Color(0xFF050E1B)
+        else -> Color(0xFF100518)
+    }
+
+    // 1. Arcén Exterior / Escapatoria de Grava Tecnológica
     for (i in points.indices) {
         val p1 = points[i]
         val p2 = points[(i + 1) % points.size]
         drawLine(
-            color = Color(0xFF090D17),
+            color = Color(0xFF04060C),
+            start = Offset(p1.x + offX, p1.y + offY),
+            end = Offset(p2.x + offX, p2.y + offY),
+            strokeWidth = trackWidth + 44f,
+            cap = StrokeCap.Round
+        )
+    }
+
+    // 2. Calzada Principal de Asfalto
+    for (i in points.indices) {
+        val p1 = points[i]
+        val p2 = points[(i + 1) % points.size]
+        drawLine(
+            color = asphaltColor,
             start = Offset(p1.x + offX, p1.y + offY),
             end = Offset(p2.x + offX, p2.y + offY),
             strokeWidth = trackWidth,
@@ -419,21 +699,275 @@ private fun DrawScope.drawNeonCircuit(track: TrackDefinition, offX: Float, offY:
         )
     }
 
-    // 2. Línea Central Discontinua Neón
+    // 3. Huellas de Rodadura (Goma acumulada de neumáticos) y Líneas de Borde
     for (i in points.indices) {
         val p1 = points[i]
         val p2 = points[(i + 1) % points.size]
+        val dx = p2.x - p1.x
+        val dy = p2.y - p1.y
+        val len = hypot(dx, dy)
+        if (len == 0f) continue
+        val perpX = -dy / len
+        val perpY = dx / len
+
+        // Huellas oscuras de derrape en los carriles izquierdo y derecho
+        val wearDist = halfW * 0.44f
         drawLine(
-            color = primaryColor.copy(alpha = 0.35f),
-            start = Offset(p1.x + offX, p1.y + offY),
-            end = Offset(p2.x + offX, p2.y + offY),
-            strokeWidth = 4f,
+            color = Color.Black.copy(alpha = 0.28f),
+            start = Offset(p1.x + perpX * wearDist + offX, p1.y + perpY * wearDist + offY),
+            end = Offset(p2.x + perpX * wearDist + offX, p2.y + perpY * wearDist + offY),
+            strokeWidth = 24f,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = Color.Black.copy(alpha = 0.28f),
+            start = Offset(p1.x - perpX * wearDist + offX, p1.y - perpY * wearDist + offY),
+            end = Offset(p2.x - perpX * wearDist + offX, p2.y - perpY * wearDist + offY),
+            strokeWidth = 24f,
+            cap = StrokeCap.Round
+        )
+
+        // Líneas blancas continuas delimitadoras del borde del asfalto
+        val edgeDist = halfW - 6f
+        drawLine(
+            color = Color.White.copy(alpha = 0.5f),
+            start = Offset(p1.x + perpX * edgeDist + offX, p1.y + perpY * edgeDist + offY),
+            end = Offset(p2.x + perpX * edgeDist + offX, p2.y + perpY * edgeDist + offY),
+            strokeWidth = 3f,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = Color.White.copy(alpha = 0.5f),
+            start = Offset(p1.x - perpX * edgeDist + offX, p1.y - perpY * edgeDist + offY),
+            end = Offset(p2.x - perpX * edgeDist + offX, p2.y - perpY * edgeDist + offY),
+            strokeWidth = 3f,
+            cap = StrokeCap.Round
+        )
+
+        // 4. Línea Central Discontinua de Neón
+        val dirX = dx / len
+        val dirY = dy / len
+        val dashLen = 36f
+        val gapLen = 26f
+        var step = 0f
+        while (step < len) {
+            val dEnd = min(step + dashLen, len)
+            drawLine(
+                color = primaryColor.copy(alpha = 0.65f),
+                start = Offset(p1.x + dirX * step + offX, p1.y + dirY * step + offY),
+                end = Offset(p1.x + dirX * dEnd + offX, p1.y + dirY * dEnd + offY),
+                strokeWidth = 4.5f,
+                cap = StrokeCap.Round
+            )
+            step += dashLen + gapLen
+        }
+    }
+
+    // 5. Línea de Meta Ajedrezada y Cajones de Parrilla de Salida (en Waypoint 0)
+    val p0 = points[0]
+    val pNext = points[1]
+
+    val fdx = pNext.x - p0.x
+    val fdy = pNext.y - p0.y
+    val flen = hypot(fdx, fdy)
+    if (flen > 0f) {
+        val fDirX = fdx / flen
+        val fDirY = fdy / flen
+        val fPerpX = -fDirY
+        val fPerpY = fDirX
+
+        // Damero Ajedrezado de Meta (2 filas de círculos/cuadrados blancos y negros)
+        val numCols = 12
+        val colWidth = (trackWidth - 24f) / numCols
+        val rowHeight = 12f
+
+        for (row in 0..1) {
+            val rowOffset = (row - 0.5f) * rowHeight
+            for (col in 0 until numCols) {
+                val colOffset = -halfW + 12f + col * colWidth + colWidth / 2f
+                val tileCenterX = p0.x + fDirX * rowOffset + fPerpX * colOffset + offX
+                val tileCenterY = p0.y + fDirY * rowOffset + fPerpY * colOffset + offY
+                val isWhite = (row + col) % 2 == 0
+                val tileColor = if (isWhite) Color.White else Color(0xFF1E293B)
+
+                drawCircle(tileColor, radius = colWidth * 0.42f, center = Offset(tileCenterX, tileCenterY))
+            }
+        }
+
+        // Borde Dorado de Meta
+        drawLine(
+            color = Color(0xFFFFD700),
+            start = Offset(p0.x + fPerpX * (halfW - 8f) - fDirX * 14f + offX, p0.y + fPerpY * (halfW - 8f) - fDirY * 14f + offY),
+            end = Offset(p0.x - fPerpX * (halfW - 8f) - fDirX * 14f + offX, p0.y - fPerpY * (halfW - 8f) - fDirY * 14f + offY),
+            strokeWidth = 3.5f
+        )
+        drawLine(
+            color = Color(0xFFFFD700),
+            start = Offset(p0.x + fPerpX * (halfW - 8f) + fDirX * 14f + offX, p0.y + fPerpY * (halfW - 8f) + fDirY * 14f + offY),
+            end = Offset(p0.x - fPerpX * (halfW - 8f) + fDirX * 14f + offX, p0.y - fPerpY * (halfW - 8f) + fDirY * 14f + offY),
+            strokeWidth = 3.5f
+        )
+
+        // 6. Cajones de Salida de la Parrilla (#1, #2, #3, #4)
+        val gridPositions = listOf(-55f, -110f, -165f, -220f)
+        for (idx in gridPositions.indices) {
+            val distBack = gridPositions[idx]
+            val gridSide = if (idx % 2 == 0) 1f else -1f
+            val boxLateral = halfW * 0.38f * gridSide
+            val boxCenterX = p0.x + fDirX * distBack + fPerpX * boxLateral + offX
+            val boxCenterY = p0.y + fDirY * distBack + fPerpY * boxLateral + offY
+
+            // Marco del cajón
+            drawCircle(Color.White.copy(alpha = 0.55f), radius = 22f, center = Offset(boxCenterX, boxCenterY), style = Stroke(width = 2.5f))
+            drawContext.canvas.nativeCanvas.drawText("#${idx + 1}", boxCenterX, boxCenterY + 6f, gridBoxPaint)
+        }
+    }
+}
+
+private fun DrawScope.drawTrackCurbs(
+    curbs: List<TrackCurb>,
+    offX: Float,
+    offY: Float,
+    curbPath: Path
+) {
+    for (curb in curbs) {
+        val dx = curb.endX - curb.startX
+        val dy = curb.endY - curb.startY
+        val stripes = curb.stripes.coerceAtLeast(2)
+
+        for (s in 0 until stripes) {
+            val t0 = s.toFloat() / stripes
+            val t1 = (s + 1).toFloat() / stripes
+
+            val p0x = curb.startX + dx * t0 + offX
+            val p0y = curb.startY + dy * t0 + offY
+            val p1x = curb.startX + dx * t1 + offX
+            val p1y = curb.startY + dy * t1 + offY
+
+            val w0x = p0x + curb.perpX * curb.width
+            val w0y = p0y + curb.perpY * curb.width
+            val w1x = p1x + curb.perpX * curb.width
+            val w1y = p1y + curb.perpY * curb.width
+
+            curbPath.rewind()
+            curbPath.moveTo(p0x, p0y)
+            curbPath.lineTo(p1x, p1y)
+            curbPath.lineTo(w1x, w1y)
+            curbPath.lineTo(w0x, w0y)
+            curbPath.close()
+
+            val stripeColor = if (s % 2 == 0) curb.color1 else curb.color2
+            drawPath(curbPath, color = stripeColor)
+        }
+
+        // Borde exterior reflectante del curb
+        drawLine(
+            color = Color.White.copy(alpha = 0.85f),
+            start = Offset(curb.startX + curb.perpX * curb.width + offX, curb.startY + curb.perpY * curb.width + offY),
+            end = Offset(curb.endX + curb.perpX * curb.width + offX, curb.endY + curb.perpY * curb.width + offY),
+            strokeWidth = 2.5f,
             cap = StrokeCap.Round
         )
     }
+}
 
-    // 3. Rieles de Barrera Neón Resplandeciente
+private fun DrawScope.drawTrackChevrons(
+    chevrons: List<TrackChevron>,
+    offX: Float,
+    offY: Float,
+    chevronPath: Path,
+    frameTick: Long
+) {
+    for (i in chevrons.indices) {
+        val ch = chevrons[i]
+        val cx = ch.x + offX
+        val cy = ch.y + offY
+        val pulse = (sin(frameTick * 0.000000008f + i * 0.5f) * 0.3f + 0.7f).coerceIn(0.2f, 1f)
+
+        rotate(Math.toDegrees(ch.angleRad.toDouble()).toFloat(), pivot = Offset(cx, cy)) {
+            for (k in -1..1) {
+                chevronPath.rewind()
+                val kx = cx + k * 14f
+                chevronPath.moveTo(kx - 10f, cy - 14f)
+                chevronPath.lineTo(kx + 6f, cy)
+                chevronPath.lineTo(kx - 10f, cy + 14f)
+                drawPath(
+                    path = chevronPath,
+                    color = ch.color.copy(alpha = pulse),
+                    style = Stroke(width = 4.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+            }
+        }
+    }
+}
+
+private fun DrawScope.drawTrackBoostPads(
+    boostPads: List<TrackBoostPad>,
+    offX: Float,
+    offY: Float,
+    boostPadPath: Path,
+    frameTick: Long
+) {
+    for (i in boostPads.indices) {
+        val pad = boostPads[i]
+        val bx = pad.x + offX
+        val by = pad.y + offY
+
+        rotate(Math.toDegrees(pad.angleRad.toDouble()).toFloat(), pivot = Offset(bx, by)) {
+            val halfL = pad.length / 2f
+            val halfW = pad.width / 2f
+
+            // Halo suave en asfalto
+            drawCircle(
+                color = pad.color.copy(alpha = 0.25f),
+                radius = pad.length * 0.6f,
+                center = Offset(bx, by)
+            )
+
+            // Placa metálica oscura
+            drawRoundRect(
+                color = Color(0xFF09101F),
+                topLeft = Offset(bx - halfL, by - halfW),
+                size = Size(pad.length, pad.width),
+                cornerRadius = CornerRadius(12f, 12f)
+            )
+
+            // Borde neón
+            drawRoundRect(
+                color = pad.color,
+                topLeft = Offset(bx - halfL, by - halfW),
+                size = Size(pad.length, pad.width),
+                cornerRadius = CornerRadius(12f, 12f),
+                style = Stroke(width = 3.5f)
+            )
+
+            // 3 Flechas animadas en movimiento continuo
+            val phase = (frameTick * 0.000000006f) % 1f
+            for (a in 0..2) {
+                val arrowX = bx - halfL * 0.5f + ((a + phase) % 3f) * (pad.length * 0.28f)
+                boostPadPath.rewind()
+                boostPadPath.moveTo(arrowX - 12f, by - halfW * 0.55f)
+                boostPadPath.lineTo(arrowX + 12f, by)
+                boostPadPath.lineTo(arrowX - 12f, by + halfW * 0.55f)
+                drawPath(
+                    path = boostPadPath,
+                    color = Color.White,
+                    style = Stroke(width = 5.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+            }
+        }
+    }
+}
+
+private fun DrawScope.drawTrackBarriers(track: TrackDefinition, offX: Float, offY: Float, frameTick: Long) {
+    val points = track.waypoints
+    if (points.size < 3) return
+
+    val trackWidth = track.trackWidth
     val halfW = trackWidth / 2f
+    val primaryColor = Color(track.barrierPrimaryColor)
+    val secondaryColor = Color(track.barrierSecondaryColor)
+
     for (i in points.indices) {
         val p1 = points[i]
         val p2 = points[(i + 1) % points.size]
@@ -444,38 +978,153 @@ private fun DrawScope.drawNeonCircuit(track: TrackDefinition, offX: Float, offY:
         val perpX = -dy / len * halfW
         val perpY = dx / len * halfW
 
-        // Barrera Izquierda
-        drawLine(
-            color = primaryColor,
-            start = Offset(p1.x + perpX + offX, p1.y + perpY + offY),
-            end = Offset(p2.x + perpX + offX, p2.y + perpY + offY),
-            strokeWidth = 6.5f,
-            cap = StrokeCap.Round
-        )
+        val l1x = p1.x + perpX + offX
+        val l1y = p1.y + perpY + offY
+        val l2x = p2.x + perpX + offX
+        val l2y = p2.y + perpY + offY
 
-        // Barrera Derecha
-        drawLine(
-            color = secondaryColor,
-            start = Offset(p1.x - perpX + offX, p1.y - perpY + offY),
-            end = Offset(p2.x - perpX + offX, p2.y - perpY + offY),
-            strokeWidth = 6.5f,
-            cap = StrokeCap.Round
-        )
+        val r1x = p1.x - perpX + offX
+        val r1y = p1.y - perpY + offY
+        val r2x = p2.x - perpX + offX
+        val r2y = p2.y - perpY + offY
 
-        // Puertas Láser de Checkpoints
-        if (p1.isCheckpoint) {
-            val isMeta = (i == 0)
-            val gateColor = if (isMeta) Color(0xFFFFD700) else primaryColor
-            drawLine(
-                color = gateColor.copy(alpha = 0.85f),
-                start = Offset(p1.x - perpX + offX, p1.y - perpY + offY),
-                end = Offset(p1.x + perpX + offX, p1.y + perpY + offY),
-                strokeWidth = 8f
-            )
-            drawCircle(gateColor, radius = 11f, center = Offset(p1.x - perpX + offX, p1.y - perpY + offY))
-            drawCircle(gateColor, radius = 11f, center = Offset(p1.x + perpX + offX, p1.y + perpY + offY))
+        // Barrera Izquierda: Resplandor + Tubo Neón + Núcleo Blanco
+        drawLine(primaryColor.copy(alpha = 0.25f), Offset(l1x, l1y), Offset(l2x, l2y), strokeWidth = 14f, cap = StrokeCap.Round)
+        drawLine(primaryColor, Offset(l1x, l1y), Offset(l2x, l2y), strokeWidth = 6.5f, cap = StrokeCap.Round)
+        drawLine(Color.White.copy(alpha = 0.7f), Offset(l1x, l1y), Offset(l2x, l2y), strokeWidth = 1.8f, cap = StrokeCap.Round)
+
+        // Barrera Derecha: Resplandor + Tubo Neón + Núcleo Blanco
+        drawLine(secondaryColor.copy(alpha = 0.25f), Offset(r1x, r1y), Offset(r2x, r2y), strokeWidth = 14f, cap = StrokeCap.Round)
+        drawLine(secondaryColor, Offset(r1x, r1y), Offset(r2x, r2y), strokeWidth = 6.5f, cap = StrokeCap.Round)
+        drawLine(Color.White.copy(alpha = 0.7f), Offset(r1x, r1y), Offset(r2x, r2y), strokeWidth = 1.8f, cap = StrokeCap.Round)
+
+        // Postes de Soporte Tecnológicos a intervalos
+        val postStep = 75f
+        var stepDist = 0f
+        val dirX = (p2.x - p1.x) / len
+        val dirY = (p2.y - p1.y) / len
+        while (stepDist < len) {
+            val plx = l1x + dirX * stepDist
+            val ply = l1y + dirY * stepDist
+            val prx = r1x + dirX * stepDist
+            val pry = r1y + dirY * stepDist
+
+            drawCircle(Color(0xFF0F172A), radius = 5f, center = Offset(plx, ply))
+            drawCircle(primaryColor, radius = 3f, center = Offset(plx, ply))
+
+            drawCircle(Color(0xFF0F172A), radius = 5f, center = Offset(prx, pry))
+            drawCircle(secondaryColor, radius = 3f, center = Offset(prx, pry))
+
+            stepDist += postStep
         }
     }
+}
+
+private fun DrawScope.drawTrackGantries(
+    gantries: List<TrackGantry>,
+    offX: Float,
+    offY: Float,
+    gantryPaint: Paint,
+    gantryPath: Path
+) {
+    for (gantry in gantries) {
+        val gx = gantry.x + offX
+        val gy = gantry.y + offY
+
+        rotate(Math.toDegrees(gantry.angleRad.toDouble()).toFloat(), pivot = Offset(gx, gy)) {
+            val halfSpan = gantry.spanWidth / 2f
+
+            // Viga Principal de Celosía que cruza la pista
+            drawRoundRect(
+                color = Color(0xFF0B132B),
+                topLeft = Offset(gx - 12f, gy - halfSpan),
+                size = Size(24f, gantry.spanWidth),
+                cornerRadius = CornerRadius(4f, 4f)
+            )
+            // Rieles luminosos superior e inferior
+            drawLine(gantry.primaryColor, Offset(gx - 12f, gy - halfSpan), Offset(gx - 12f, gy + halfSpan), strokeWidth = 3f)
+            drawLine(gantry.primaryColor, Offset(gx + 12f, gy - halfSpan), Offset(gx + 12f, gy + halfSpan), strokeWidth = 3f)
+
+            // Columnas de soporte (Pylons) a los lados con franjas diagonales de advertencia
+            val pylonW = 22f
+            val pylonH = 34f
+            // Columna Izquierda
+            drawRoundRect(Color(0xFF1E293B), topLeft = Offset(gx - pylonW / 2f, gy - halfSpan - pylonH / 2f), size = Size(pylonW, pylonH), cornerRadius = CornerRadius(4f, 4f))
+            drawRoundRect(Color(0xFFFFD700), topLeft = Offset(gx - pylonW / 2f, gy - halfSpan - pylonH / 2f), size = Size(pylonW, pylonH), cornerRadius = CornerRadius(4f, 4f), style = Stroke(width = 2f))
+            // Columna Derecha
+            drawRoundRect(Color(0xFF1E293B), topLeft = Offset(gx - pylonW / 2f, gy + halfSpan - pylonH / 2f), size = Size(pylonW, pylonH), cornerRadius = CornerRadius(4f, 4f))
+            drawRoundRect(Color(0xFFFFD700), topLeft = Offset(gx - pylonW / 2f, gy + halfSpan - pylonH / 2f), size = Size(pylonW, pylonH), cornerRadius = CornerRadius(4f, 4f), style = Stroke(width = 2f))
+
+            // Cartel Digital Central de Información
+            val signW = 32f
+            val signH = 170f
+            drawRoundRect(
+                color = Color(0xFF030712).copy(alpha = 0.95f),
+                topLeft = Offset(gx - signW / 2f, gy - signH / 2f),
+                size = Size(signW, signH),
+                cornerRadius = CornerRadius(6f, 6f)
+            )
+            drawRoundRect(
+                color = gantry.primaryColor,
+                topLeft = Offset(gx - signW / 2f, gy - signH / 2f),
+                size = Size(signW, signH),
+                cornerRadius = CornerRadius(6f, 6f),
+                style = Stroke(width = 2.5f)
+            )
+
+            // Texto ("START / FINISH" o "CHECKPOINT")
+            rotate(-90f, pivot = Offset(gx, gy)) {
+                gantryPaint.color = gantry.primaryColor.toArgb()
+                drawContext.canvas.nativeCanvas.drawText(gantry.title, gx, gy + 5f, gantryPaint)
+            }
+
+            // Luces de Semáforo de Salida (en la meta)
+            if (gantry.isFinishLine) {
+                for (li in -2..2) {
+                    val ly = gy + li * 28f
+                    val lColor = if (li == 2) Color(0xFF00FF66) else if (li == 1) Color(0xFFFFD700) else Color(0xFFFF1744)
+                    drawCircle(lColor, radius = 5f, center = Offset(gx - 18f, ly))
+                }
+            }
+        }
+    }
+}
+
+private fun DrawScope.drawPlayerHeadlights(centerX: Float, centerY: Float, headlightPath: Path) {
+    val hlY = centerY - 32f
+    val hlLeftX = centerX - 12f
+    val hlRightX = centerX + 12f
+
+    // Haz suave izquierdo
+    headlightPath.rewind()
+    headlightPath.moveTo(hlLeftX, hlY)
+    headlightPath.lineTo(hlLeftX - 60f, hlY - 240f)
+    headlightPath.lineTo(hlLeftX + 22f, hlY - 240f)
+    headlightPath.close()
+    drawPath(headlightPath, color = Color(0xFFE0F7FA).copy(alpha = 0.15f))
+
+    // Haz suave derecho
+    headlightPath.rewind()
+    headlightPath.moveTo(hlRightX, hlY)
+    headlightPath.lineTo(hlRightX - 22f, hlY - 240f)
+    headlightPath.lineTo(hlRightX + 60f, hlY - 240f)
+    headlightPath.close()
+    drawPath(headlightPath, color = Color(0xFFE0F7FA).copy(alpha = 0.15f))
+
+    // Núcleo brillante
+    headlightPath.rewind()
+    headlightPath.moveTo(hlLeftX, hlY)
+    headlightPath.lineTo(hlLeftX - 25f, hlY - 120f)
+    headlightPath.lineTo(hlLeftX + 10f, hlY - 120f)
+    headlightPath.close()
+    drawPath(headlightPath, color = Color.White.copy(alpha = 0.28f))
+
+    headlightPath.rewind()
+    headlightPath.moveTo(hlRightX, hlY)
+    headlightPath.lineTo(hlRightX - 10f, hlY - 120f)
+    headlightPath.lineTo(hlRightX + 25f, hlY - 120f)
+    headlightPath.close()
+    drawPath(headlightPath, color = Color.White.copy(alpha = 0.28f))
 }
 
 private fun DrawScope.drawSpectators(spectators: List<Spectator>, offX: Float, offY: Float) {
@@ -506,7 +1155,8 @@ private fun DrawScope.drawAIRacers(
     aiRacers: List<AIRacer>,
     offX: Float,
     offY: Float,
-    aiBodyPath: Path
+    aiBodyPath: Path,
+    headlightPath: Path
 ) {
     for (ai in aiRacers) {
         val sx = ai.x + offX
@@ -516,6 +1166,21 @@ private fun DrawScope.drawAIRacers(
         rotate(aiAngleDeg, pivot = Offset(sx, sy)) {
             val w = 36f
             val l = 64f
+
+            // Faros delanteros proyectados sobre el asfalto hacia adelante
+            headlightPath.rewind()
+            headlightPath.moveTo(sx - 11f, sy - l * 0.4f)
+            headlightPath.lineTo(sx - 45f, sy - l * 0.4f - 180f)
+            headlightPath.lineTo(sx + 15f, sy - l * 0.4f - 180f)
+            headlightPath.close()
+            drawPath(headlightPath, color = Color(0xFFE0F7FA).copy(alpha = 0.14f))
+
+            headlightPath.rewind()
+            headlightPath.moveTo(sx + 11f, sy - l * 0.4f)
+            headlightPath.lineTo(sx - 15f, sy - l * 0.4f - 180f)
+            headlightPath.lineTo(sx + 45f, sy - l * 0.4f - 180f)
+            headlightPath.close()
+            drawPath(headlightPath, color = Color(0xFFE0F7FA).copy(alpha = 0.14f))
 
             // Underglow del rival
             drawCircle(ai.bodyColor.copy(alpha = 0.35f), radius = 35f, center = Offset(sx, sy))

@@ -230,3 +230,82 @@ data class RaceResult(
     val completedMissionIds: List<Int>,
     val isNewBestTime: Boolean
 )
+
+/**
+ * Tipos de estructuras arquitectónicas y decorativas del entorno.
+ */
+enum class SceneryType {
+    CYBER_SKYSCRAPER,
+    HOLO_BILLBOARD,
+    LIGHT_TOWER,
+    CANYON_CLIFF,
+    QUANTUM_BEACON,
+    STADIUM_STAND
+}
+
+/**
+ * Objeto de escenografía colocado alrededor del circuito.
+ */
+data class TrackSceneryObject(
+    val type: SceneryType,
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float,
+    val rotationDeg: Float,
+    val primaryColor: Color,
+    val secondaryColor: Color,
+    val label: String = "",
+    val detailLevel: Int = 1
+)
+
+/**
+ * Piano / Bordillo de circuito de carreras (franjas bicolores reflectantes) en curvas.
+ */
+data class TrackCurb(
+    val startX: Float,
+    val startY: Float,
+    val endX: Float,
+    val endY: Float,
+    val perpX: Float,
+    val perpY: Float,
+    val width: Float = 24f,
+    val color1: Color,
+    val color2: Color,
+    val stripes: Int = 8
+)
+
+/**
+ * Flecha holográfica de advertencia de curva (Chevron de neón).
+ */
+data class TrackChevron(
+    val x: Float,
+    val y: Float,
+    val angleRad: Float,
+    val color: Color
+)
+
+/**
+ * Panel de Aceleración / Turbo Boost Pad en el asfalto.
+ */
+data class TrackBoostPad(
+    val x: Float,
+    val y: Float,
+    val angleRad: Float,
+    val width: Float = 75f,
+    val length: Float = 110f,
+    val color: Color = Color(0xFF00FFCC)
+)
+
+/**
+ * Pórtico elevado (Gantry) de Meta o Checkpoint.
+ */
+data class TrackGantry(
+    val x: Float,
+    val y: Float,
+    val angleRad: Float,
+    val spanWidth: Float,
+    val isFinishLine: Boolean,
+    val title: String,
+    val primaryColor: Color
+)

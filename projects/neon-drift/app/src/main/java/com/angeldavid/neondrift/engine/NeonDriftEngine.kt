@@ -60,6 +60,14 @@ class NeonDriftEngine(
     val aiRacers = ArrayList<AIRacer>(3)
     val spectators = ArrayList<Spectator>(35)
 
+    // Elementos de Detalle del Circuito (Pistas Detalladas)
+    val sceneryObjects = ArrayList<TrackSceneryObject>(70)
+    val trackCurbs = ArrayList<TrackCurb>(50)
+    val trackChevrons = ArrayList<TrackChevron>(40)
+    val trackBoostPads = ArrayList<TrackBoostPad>(8)
+    val trackGantries = ArrayList<TrackGantry>(8)
+    private var boostCooldownTimer = 0f
+
     // Player Touch Controls state
     var steerInput = 0f // -1f = Left, +1f = Right
     var driftInput = false
@@ -157,6 +165,9 @@ class NeonDriftEngine(
         // Generar público espectador neón en los exteriores de la pista
         generateSpectators()
 
+        // Generar detalles arquitectónicos y de asfalto del circuito
+        generateTrackFeatures()
+
         activeBanner = FloatingBanner("¡LISTOS PARA CORRER!", "MANTÉN EL CONTROL EN LAS CURVAS", Color(0xFF00F0FF))
         gameState = GameState.READY
     }
@@ -195,6 +206,282 @@ class NeonDriftEngine(
                         hasGlowStick = Random.nextBoolean()
                     )
                 )
+            }
+        }
+    }
+
+    private fun generateTrackFeatures() {
+        sceneryObjects.clear()
+        trackCurbs.clear()
+        trackChevrons.clear()
+        trackBoostPads.clear()
+        trackGantries.clear()
+
+        val points = track.waypoints
+        val numPoints = points.size
+        if (numPoints < 3) return
+        val halfW = track.trackWidth / 2f
+        val primaryColor = Color(track.barrierPrimaryColor)
+        val secondaryColor = Color(track.barrierSecondaryColor)
+
+        // 1. Pórticos 3D de Meta y Checkpoints (Gantries)
+        for (i in points.indices) {
+            val p = points[i]
+            if (p.isCheckpoint) {
+                val nextP = points[(i + 1) % numPoints]
+                val angle = atan2(nextP.y - p.y, nextP.x - p.x)
+                val isMeta = (i == 0)
+                trackGantries.add(
+                    TrackGantry(
+                        x = p.x,
+                        y = p.y,
+                        angleRad = angle,
+                        spanWidth = track.trackWidth + 36f,
+                        isFinishLine = isMeta,
+                        title = if (isMeta) "START / FINISH" else "CHECKPOINT",
+                        primaryColor = if (isMeta) Color(0xFFFFD700) else primaryColor
+                    )
+                )
+            }
+        }
+
+        // 2. Curbs (Pianos de Circuito Bicolores) y Chevrons en Curvas
+        for (i in points.indices) {
+            val prevP = points[(i + numPoints - 1) % numPoints]
+            val currP = points[i]
+            val nextP = points[(i + 1) % numPoints]
+
+            val inAngle = atan2(currP.y - prevP.y, currP.x - prevP.x)
+            val outAngle = atan2(nextP.y - currP.y, nextP.x - currP.x)
+
+            var diff = outAngle - inAngle
+            while (diff > Math.PI) diff -= (2.0 * Math.PI).toFloat()
+            while (diff < -Math.PI) diff += (2.0 * Math.PI).toFloat()
+
+            // Si hay curvatura notable
+            if (abs(diff) > 0.22f) {
+                val isTurnRight = diff > 0f
+                val innerSide = if (isTurnRight) -1f else 1f
+                val outerSide = -innerSide
+
+                val midAngle = inAngle + diff / 2f
+                val perpMidX = -sin(midAngle)
+                val perpMidY = cos(midAngle)
+
+                // Curb interior en el vértice
+                val curbDist = halfW - 2f
+                val curbStartX = currP.x - cos(inAngle) * 55f + perpMidX * (curbDist * innerSide)
+                val curbStartY = currP.y - sin(inAngle) * 55f + perpMidY * (curbDist * innerSide)
+                val curbEndX = currP.x + cos(outAngle) * 55f + perpMidX * (curbDist * innerSide)
+                val curbEndY = currP.y + sin(outAngle) * 55f + perpMidY * (curbDist * innerSide)
+
+                val (c1, c2) = when (track.id) {
+                    "neo_tokyo" -> Pair(Color(0xFFFF007F), Color.White)
+                    "cyber_canyon" -> Pair(Color(0xFFFF5722), Color.White)
+                    "quantum_highway" -> Pair(Color(0xFF00F0FF), Color.White)
+                    else -> Pair(Color(0xFFFFD700), Color(0xFFBF00FF))
+                }
+
+                trackCurbs.add(
+                    TrackCurb(
+                        startX = curbStartX,
+                        startY = curbStartY,
+                        endX = curbEndX,
+                        endY = curbEndY,
+                        perpX = perpMidX * innerSide,
+                        perpY = perpMidY * innerSide,
+                        width = 24f,
+                        color1 = c1,
+                        color2 = c2,
+                        stripes = 8
+                    )
+                )
+
+                // Chevrons de neón en la barrera exterior si la curva es pronunciada
+                if (abs(diff) > 0.38f) {
+                    val chevronDist = halfW + 12f
+                    for (ch in -1..1) {
+                        val chAngle = midAngle + ch * 0.16f
+                        val chPerpX = -sin(chAngle) * outerSide
+                        val chPerpY = cos(chAngle) * outerSide
+                        val chX = currP.x + chPerpX * chevronDist + cos(chAngle) * (ch * 34f)
+                        val chY = currP.y + chPerpY * chevronDist + sin(chAngle) * (ch * 34f)
+                        trackChevrons.add(
+                            TrackChevron(
+                                x = chX,
+                                y = chY,
+                                angleRad = chAngle + (if (isTurnRight) 0.45f else -0.45f),
+                                color = if (isTurnRight) secondaryColor else primaryColor
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // 3. Paneles Turbo Boost Pads en rectas largas
+        for (i in points.indices) {
+            val p1 = points[i]
+            val p2 = points[(i + 1) % numPoints]
+            val segLen = hypot(p2.x - p1.x, p2.y - p1.y)
+            if (segLen > 520f && i != 0) {
+                val segAngle = atan2(p2.y - p1.y, p2.x - p1.x)
+                val midX = (p1.x + p2.x) / 2f
+                val midY = (p1.y + p2.y) / 2f
+                trackBoostPads.add(
+                    TrackBoostPad(
+                        x = midX,
+                        y = midY,
+                        angleRad = segAngle,
+                        width = 80f,
+                        length = 110f,
+                        color = Color(0xFF00FFCC)
+                    )
+                )
+            }
+        }
+
+        // 4. Elementos Temáticos de Escenario por Circuito
+        generateThematicScenery()
+    }
+
+    private fun generateThematicScenery() {
+        val points = track.waypoints
+        val numPoints = points.size
+        val halfW = track.trackWidth / 2f
+        val primaryColor = Color(track.barrierPrimaryColor)
+        val secondaryColor = Color(track.barrierSecondaryColor)
+
+        val billboardTexts = when (track.id) {
+            "neo_tokyo" -> listOf("NEON DRIFT", "CYBER TOKYO", "TURBO 2099", "NITRO-X", "HYPERION GT")
+            "cyber_canyon" -> listOf("PLASMA GORGE", "NITRO RIDGE", "OUTLAW DRIFT", "DESERT APEX", "HYPERION")
+            "quantum_highway" -> listOf("QUANTUM SPEED", "ORBITAL RUN", "HYPER DRIVE", "ION BOOST", "WARP CORE")
+            else -> listOf("OMEGA GP", "DRIFT KING", "COLOSSEUM 2099", "FINAL LAP", "NITRO FURY")
+        }
+
+        for (i in points.indices) {
+            val p = points[i]
+            val nextP = points[(i + 1) % numPoints]
+            val segAngle = atan2(nextP.y - p.y, nextP.x - p.x)
+            val perpAngle = segAngle + Math.PI.toFloat() / 2f
+            val side = if (i % 2 == 0) 1f else -1f
+
+            // A) Postes de Luz / Farolas Tecnológicas
+            val lightDist = halfW + 36f
+            val lx = p.x + cos(perpAngle) * (lightDist * side)
+            val ly = p.y + sin(perpAngle) * (lightDist * side)
+            sceneryObjects.add(
+                TrackSceneryObject(
+                    type = SceneryType.LIGHT_TOWER,
+                    x = lx,
+                    y = ly,
+                    width = 18f,
+                    height = 36f,
+                    rotationDeg = Math.toDegrees(perpAngle.toDouble()).toFloat() + (if (side > 0) 180f else 0f),
+                    primaryColor = primaryColor,
+                    secondaryColor = Color.White
+                )
+            )
+
+            // B) Vallas Publicitarias Holográficas Flotantes en rectas
+            val segLen = hypot(nextP.x - p.x, nextP.y - p.y)
+            if (segLen > 380f) {
+                val bx = (p.x + nextP.x) / 2f + cos(perpAngle) * ((halfW + 68f) * -side)
+                val by = (p.y + nextP.y) / 2f + sin(perpAngle) * ((halfW + 68f) * -side)
+                val labelText = billboardTexts[i % billboardTexts.size]
+                sceneryObjects.add(
+                    TrackSceneryObject(
+                        type = SceneryType.HOLO_BILLBOARD,
+                        x = bx,
+                        y = by,
+                        width = 110f,
+                        height = 42f,
+                        rotationDeg = Math.toDegrees(segAngle.toDouble()).toFloat(),
+                        primaryColor = primaryColor,
+                        secondaryColor = secondaryColor,
+                        label = labelText
+                    )
+                )
+            }
+
+            // C) Megaestructuras de Fondo según el circuito
+            val deepDist = halfW + 180f + (i % 3) * 60f
+            val dx = p.x + cos(perpAngle) * (deepDist * side)
+            val dy = p.y + sin(perpAngle) * (deepDist * side)
+
+            when (track.id) {
+                "neo_tokyo" -> {
+                    // Rascacielos Futuristas con Ventanas de Neón
+                    val bWidth = 110f + (i % 4) * 25f
+                    val bHeight = 140f + (i % 5) * 30f
+                    sceneryObjects.add(
+                        TrackSceneryObject(
+                            type = SceneryType.CYBER_SKYSCRAPER,
+                            x = dx,
+                            y = dy,
+                            width = bWidth,
+                            height = bHeight,
+                            rotationDeg = Math.toDegrees(segAngle.toDouble()).toFloat(),
+                            primaryColor = Color(0xFF0F172A),
+                            secondaryColor = if (i % 2 == 0) primaryColor else secondaryColor,
+                            detailLevel = (i % 3) + 1
+                        )
+                    )
+                }
+                "cyber_canyon" -> {
+                    // Formaciones Rocosas y Mesetas de Plasma
+                    val mWidth = 140f + (i % 3) * 35f
+                    val mHeight = 110f + (i % 4) * 25f
+                    sceneryObjects.add(
+                        TrackSceneryObject(
+                            type = SceneryType.CANYON_CLIFF,
+                            x = dx,
+                            y = dy,
+                            width = mWidth,
+                            height = mHeight,
+                            rotationDeg = Math.toDegrees(segAngle.toDouble()).toFloat(),
+                            primaryColor = Color(0xFF260D0D),
+                            secondaryColor = primaryColor,
+                            detailLevel = (i % 3) + 1
+                        )
+                    )
+                }
+                "quantum_highway" -> {
+                    // Torres y Boyas de Energía Cuántica Orbital
+                    val qWidth = 90f + (i % 3) * 20f
+                    val qHeight = 130f + (i % 3) * 30f
+                    sceneryObjects.add(
+                        TrackSceneryObject(
+                            type = SceneryType.QUANTUM_BEACON,
+                            x = dx,
+                            y = dy,
+                            width = qWidth,
+                            height = qHeight,
+                            rotationDeg = Math.toDegrees(segAngle.toDouble()).toFloat(),
+                            primaryColor = Color(0xFF0A1E3F),
+                            secondaryColor = primaryColor,
+                            detailLevel = (i % 3) + 1
+                        )
+                    )
+                }
+                else -> {
+                    // Tribunas de Estadio con Público y Pancartas
+                    val sWidth = 170f + (i % 3) * 30f
+                    val sHeight = 90f + (i % 2) * 25f
+                    sceneryObjects.add(
+                        TrackSceneryObject(
+                            type = SceneryType.STADIUM_STAND,
+                            x = dx,
+                            y = dy,
+                            width = sWidth,
+                            height = sHeight,
+                            rotationDeg = Math.toDegrees(segAngle.toDouble()).toFloat(),
+                            primaryColor = Color(0xFF1E0730),
+                            secondaryColor = primaryColor,
+                            detailLevel = (i % 3) + 1
+                        )
+                    )
+                }
             }
         }
     }
@@ -276,6 +563,23 @@ class NeonDriftEngine(
             car.velocity += accelerationRate * clampedDt
         } else {
             car.velocity -= 130f * clampedDt
+        }
+
+        // 2b. PANELES TURBO BOOST PADS
+        if (boostCooldownTimer > 0f) {
+            boostCooldownTimer -= clampedDt
+        } else {
+            for (pad in trackBoostPads) {
+                if (hypot(car.x - pad.x, car.y - pad.y) < 65f) {
+                    car.velocity = (car.velocity * 1.30f).coerceAtMost(car.nitroMaxSpeed * 1.08f)
+                    car.nitro = (car.nitro + 20f).coerceAtMost(100f)
+                    boostCooldownTimer = 1.25f
+                    soundManager.playNitroBoost()
+                    createBoostParticles(pad.x, pad.y, pad.angleRad)
+                    activeBanner = FloatingBanner("¡TURBO BOOST!", "+IMPULSO EN PISTA", Color(0xFF00FFCC), life = 0.85f)
+                    break
+                }
+            }
         }
 
         // 3. FÍSICAS DE GIRO Y DERRAPE ARCADE
@@ -400,6 +704,13 @@ class NeonDriftEngine(
 
             ai.x += cos(ai.angle) * ai.velocity * dt
             ai.y += sin(ai.angle) * ai.velocity * dt
+
+            // Boost pads para IA
+            for (pad in trackBoostPads) {
+                if (hypot(ai.x - pad.x, ai.y - pad.y) < 50f) {
+                    ai.velocity = (ai.velocity * 1.15f).coerceAtMost(ai.maxSpeed * 1.12f)
+                }
+            }
 
             // Si el rival llega cerca del waypoint, avanza al siguiente
             if (dist < 220f) {
@@ -664,6 +975,27 @@ class NeonDriftEngine(
                     size = 3.5f,
                     life = 0.18f,
                     maxLife = 0.18f
+                )
+            )
+        }
+    }
+
+    private fun createBoostParticles(padX: Float, padY: Float, padAngle: Float) {
+        val cosA = cos(padAngle)
+        val sinA = sin(padAngle)
+        for (i in 0 until 18) {
+            val spreadAngle = padAngle + (Random.nextFloat() * 1.2f - 0.6f) + Math.PI.toFloat()
+            val speed = Random.nextFloat() * 380f + 180f
+            particles.add(
+                Particle(
+                    x = padX + (Random.nextFloat() * 40f - 20f),
+                    y = padY + (Random.nextFloat() * 40f - 20f),
+                    vx = cos(spreadAngle) * speed,
+                    vy = sin(spreadAngle) * speed,
+                    color = if (Random.nextBoolean()) Color(0xFF00FFCC) else Color(0xFFFFFFFF),
+                    size = Random.nextFloat() * 6.5f + 3.5f,
+                    life = 0.28f,
+                    maxLife = 0.28f
                 )
             )
         }
