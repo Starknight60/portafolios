@@ -187,18 +187,33 @@ fun MainHubScreen(
                                     fontSize = 11.sp
                                 )
                             }
-                            Surface(
-                                color = Color(0xFF00F0FF).copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(8.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00F0FF))
-                            ) {
-                                Text(
-                                    text = "NIVEL TOTAL: ${activeCarState.totalLevel}",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    color = Color(0xFF00F0FF),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Surface(
+                                    color = Color(carDef.archetypeBadgeColor).copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(carDef.archetypeBadgeColor))
+                                ) {
+                                    Text(
+                                        text = carDef.archetype,
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                        color = Color(carDef.archetypeBadgeColor),
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                                Surface(
+                                    color = Color(0xFF00F0FF).copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00F0FF))
+                                ) {
+                                    Text(
+                                        text = "LVL ${activeCarState.totalLevel}",
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                        color = Color(0xFF00F0FF),
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
 
@@ -358,12 +373,20 @@ fun CarPreviewCanvas(
 
         // Chasis del Bólido
         rotate(90f, pivot = Offset(cx, cy)) {
-            // Neumáticos
+            // Neumáticos con Llantas Personalizadas (Rims)
             val tirePaintColor = Color(0xFF0F172A)
+            val rimColor = Color(carState.rimColor)
+
             drawRoundRect(tirePaintColor, Offset(cx - 36f, cy - 42f), Size(14f, 24f), CornerRadius(4f, 4f))
             drawRoundRect(tirePaintColor, Offset(cx + 22f, cy - 42f), Size(14f, 24f), CornerRadius(4f, 4f))
             drawRoundRect(tirePaintColor, Offset(cx - 36f, cy + 18f), Size(14f, 24f), CornerRadius(4f, 4f))
             drawRoundRect(tirePaintColor, Offset(cx + 22f, cy + 18f), Size(14f, 24f), CornerRadius(4f, 4f))
+
+            // Rines / Llantas de aleación Neón
+            drawCircle(rimColor, radius = 4f, center = Offset(cx - 29f, cy - 30f))
+            drawCircle(rimColor, radius = 4f, center = Offset(cx + 29f, cy - 30f))
+            drawCircle(rimColor, radius = 4f, center = Offset(cx - 29f, cy + 30f))
+            drawCircle(rimColor, radius = 4f, center = Offset(cx + 29f, cy + 30f))
 
             // Carrocería
             val carBodyPath = Path().apply {
@@ -391,13 +414,41 @@ fun CarPreviewCanvas(
             drawPath(cockpitPath, color = Color(0xFF00F0FF).copy(alpha = 0.65f))
             drawPath(cockpitPath, color = Color.White, style = Stroke(width = 1.2f))
 
-            // Alerón Trasero
-            drawRoundRect(
-                color = bodyColor,
-                topLeft = Offset(cx - 28f, cy + 42f),
-                size = Size(56f, 8f),
-                cornerRadius = CornerRadius(2f, 2f)
-            )
+            // Alerón Trasero según estilo de personalización
+            when (carState.spoilerStyle) {
+                1 -> {
+                    // Alerón GT Doble Ala (elevado con soportes laterales)
+                    drawRoundRect(Color(0xFF0F172A), Offset(cx - 30f, cy + 40f), Size(5f, 10f), CornerRadius(1f, 1f))
+                    drawRoundRect(Color(0xFF0F172A), Offset(cx + 25f, cy + 40f), Size(5f, 10f), CornerRadius(1f, 1f))
+                    drawRoundRect(bodyColor, Offset(cx - 34f, cy + 47f), Size(68f, 6f), CornerRadius(2f, 2f))
+                    drawRoundRect(rimColor, Offset(cx - 36f, cy + 44f), Size(4f, 10f), CornerRadius(1f, 1f))
+                    drawRoundRect(rimColor, Offset(cx + 32f, cy + 44f), Size(4f, 10f), CornerRadius(1f, 1f))
+                }
+                2 -> {
+                    // Cyber Blade (alerón curvo aerodinámico con borde neón)
+                    val bladePath = Path().apply {
+                        moveTo(cx - 36f, cy + 48f)
+                        lineTo(cx - 24f, cy + 40f)
+                        lineTo(cx + 24f, cy + 40f)
+                        lineTo(cx + 36f, cy + 48f)
+                        lineTo(cx + 32f, cy + 52f)
+                        lineTo(cx, cy + 45f)
+                        lineTo(cx - 32f, cy + 52f)
+                        close()
+                    }
+                    drawPath(bladePath, color = bodyColor)
+                    drawPath(bladePath, color = Color.White, style = Stroke(width = 1.2f))
+                }
+                else -> {
+                    // Alerón Racing OEM Estándar
+                    drawRoundRect(
+                        color = bodyColor,
+                        topLeft = Offset(cx - 28f, cy + 42f),
+                        size = Size(56f, 8f),
+                        cornerRadius = CornerRadius(2f, 2f)
+                    )
+                }
+            }
 
             // Faros delanteros
             drawCircle(Color.White, radius = 4f, center = Offset(cx - 15f, cy - 40f))
@@ -410,6 +461,11 @@ fun CarPreviewCanvas(
                 end = Offset(cx + 20f, cy + 45f),
                 strokeWidth = 3f
             )
+
+            // Resplandor de tubos de escape / nitro trail
+            val trailColor = Color(carState.trailFxColor)
+            drawCircle(trailColor.copy(alpha = 0.7f), radius = 3f, center = Offset(cx - 8f, cy + 48f))
+            drawCircle(trailColor.copy(alpha = 0.7f), radius = 3f, center = Offset(cx + 8f, cy + 48f))
         }
     }
 }

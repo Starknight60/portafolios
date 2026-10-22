@@ -7,8 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -42,19 +40,39 @@ fun TrackSelectScreen(
     val scope = rememberCoroutineScope()
     var selectedTrackIndex by remember { mutableIntStateOf(0) }
     var trackProgressRecords by remember { mutableStateOf<Map<String, NeonDriftDbHelper.TrackProgressRecord>>(emptyMap()) }
+    var currentUserCoins by remember { mutableIntStateOf(user.coins) }
+    var isUnlockingTrack by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    fun refreshTrackRecords() {
         scope.launch {
             val map = mutableMapOf<String, NeonDriftDbHelper.TrackProgressRecord>()
             for (track in CatalogData.TRACKS) {
                 map[track.id] = repository.getTrackProgress(user.id, track.id)
             }
             trackProgressRecords = map
+            val u = repository.getUser(user.id)
+            if (u != null) {
+                currentUserCoins = u.coins
+            }
         }
     }
 
+    LaunchedEffect(Unit) {
+        refreshTrackRecords()
+    }
+
+    fun isTrackUnlocked(track: TrackDefinition): Boolean {
+        if (track.unlockCost == 0) return true
+        val rec = trackProgressRecords[track.id]
+        if (rec != null && rec.isUnlocked) return true
+        val reqId = track.unlockRequiredTrackId ?: return false
+        val prevRec = trackProgressRecords[reqId] ?: return false
+        return prevRec.m1Done || (prevRec.bestTimeSec < 900f && prevRec.bestScore > 0)
+    }
+
     val currentTrack = CatalogData.TRACKS[selectedTrackIndex]
-    val record = trackProgressRecords[currentTrack.id] ?: NeonDriftDbHelper.TrackProgressRecord(999f, 0, false, false, false)
+    val record = trackProgressRecords[currentTrack.id] ?: NeonDriftDbHelper.TrackProgressRecord(999f, 0, false, false, false, false)
+    val isCurrentTrackUnlocked = isTrackUnlocked(currentTrack)
 
     Box(
         modifier = Modifier
@@ -106,7 +124,7 @@ fun TrackSelectScreen(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "🪙 ${user.coins} CRÉDITOS", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(text = "🪙 $currentUserCoins CRÉDITOS", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
@@ -116,10 +134,12 @@ fun TrackSelectScreen(
             // SELECTOR DE CIRCUITOS (TABS SUPERIORES)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CatalogData.TRACKS.forEachIndexed { idx, track ->
                     val isSelected = (idx == selectedTrackIndex)
+                    val unlocked = isTrackUnlocked(track)
+
                     Surface(
                         modifier = Modifier
                             .weight(1f)
@@ -132,19 +152,27 @@ fun TrackSelectScreen(
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
+                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (unlocked) "🏁" else "🔒",
+                                    fontSize = 11.sp
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = track.name,
+                                    color = if (isSelected) Color(track.barrierPrimaryColor) else if (unlocked) Color.White else Color(0xFF94A3B8),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    maxLines = 1
+                                )
+                            }
                             Text(
-                                text = track.name,
-                                color = if (isSelected) Color(track.barrierPrimaryColor) else Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "${track.totalLaps} VUELTAS",
-                                color = Color(0xFF94A3B8),
-                                fontSize = 10.sp,
+                                text = if (unlocked) "${track.totalLaps} VUELTAS" else "${track.unlockCost} 🪙",
+                                color = if (unlocked) Color(0xFF00FF66) else Color(0xFFFFD700),
+                                fontSize = 9.5.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -154,7 +182,7 @@ fun TrackSelectScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // CONTENIDO: MINIATURA DE PISTA Y PANEL DE MISIONES
+            // CONTENIDO: MINIATURA DE PISTA Y PANEL DE MISIONES / DESBLOQUEO
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -166,7 +194,7 @@ fun TrackSelectScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .border(1.2.dp, Color(currentTrack.barrierPrimaryColor).copy(alpha = 0.6f), RoundedCornerShape(16.dp)),
+                        .border(1.2.dp, Color(currentTrack.barrierPrimaryColor).copy(alpha = if (isCurrentTrackUnlocked) 0.6f else 0.25f), RoundedCornerShape(16.dp)),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF0A0F1D)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -180,7 +208,7 @@ fun TrackSelectScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = currentTrack.location.uppercase(),
-                                color = Color(0xFFFF007F),
+                                color = if (isCurrentTrackUnlocked) Color(0xFFFF007F) else Color(0xFF64748B),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -193,7 +221,7 @@ fun TrackSelectScreen(
                             )
                         }
 
-                        // Miniatura Vectorial del Circuito
+                        // Miniatura Vectorial del Circuito con velo de bloqueo si está cerrado
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -201,6 +229,22 @@ fun TrackSelectScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             TrackMiniMapCanvas(track = currentTrack)
+
+                            if (!isCurrentTrackUnlocked) {
+                                Surface(
+                                    color = Color(0xFF03030C).copy(alpha = 0.85f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFFFF1744))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(text = "🔒 CIRCUITO BLOQUEADO", color = Color(0xFFFF1744), fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                        Text(text = "Acceso restringido por la liga neón", color = Color(0xFF94A3B8), fontSize = 9.sp)
+                                    }
+                                }
+                            }
                         }
 
                         // Récord Personal
@@ -221,7 +265,7 @@ fun TrackSelectScreen(
                     }
                 }
 
-                // Tarjeta Derecha: Lista de Misiones y Botón Iniciar Carrera
+                // Tarjeta Derecha: Lista de Misiones o Panel de Desbloqueo
                 Card(
                     modifier = Modifier
                         .weight(1.3f)
@@ -236,46 +280,141 @@ fun TrackSelectScreen(
                             .padding(14.dp),
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column {
-                            Text(
-                                text = "MISIONES Y RECOMPENSAS",
-                                color = Color(currentTrack.barrierPrimaryColor),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 1.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            if (isCurrentTrackUnlocked) {
+                                Text(
+                                    text = "MISIONES Y RECOMPENSAS",
+                                    color = Color(currentTrack.barrierPrimaryColor),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                currentTrack.missions.forEachIndexed { index, mission ->
-                                    val isDone = when (mission.id) {
-                                        1 -> record.m1Done
-                                        2 -> record.m2Done
-                                        3 -> record.m3Done
-                                        else -> false
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    currentTrack.missions.forEachIndexed { index, mission ->
+                                        val isDone = when (mission.id) {
+                                            1 -> record.m1Done
+                                            2 -> record.m2Done
+                                            3 -> record.m3Done
+                                            else -> false
+                                        }
+                                        MissionRow(mission = mission, isCompleted = isDone)
                                     }
-                                    MissionRow(mission = mission, isCompleted = isDone)
+                                }
+                            } else {
+                                // Vista de Requisitos de Desbloqueo
+                                Surface(
+                                    color = Color(0xFFFFD700).copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFD700))
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text(
+                                            text = "🏆 CÓMO DESBLOQUEAR ESTA PISTA",
+                                            color = Color(0xFFFFD700),
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 12.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = currentTrack.unlockRequiredMissionText,
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Puedes clasificar gratis superando el circuito anterior o adquirir el pase oficial de pista inmediatamente con créditos.",
+                                            color = Color(0xFF94A3B8),
+                                            fontSize = 9.5.sp
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Text(
+                                    text = "RECOMPENSAS POR COMPLETAR:",
+                                    color = Color(0xFF94A3B8),
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                currentTrack.missions.forEach { m ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(text = "• ${m.title}", color = Color.White, fontSize = 10.sp)
+                                        Text(text = "+${m.rewardCoins} 🪙", color = Color(0xFFFFD700), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
 
-                        // Botón de Iniciar Carrera
-                        Button(
-                            onClick = { onTrackSelected(currentTrack) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(currentTrack.barrierPrimaryColor))
-                        ) {
-                            Text(
-                                text = "🏁 INICIAR CARRERA (${currentTrack.totalLaps} VUELTAS)",
-                                color = Color(0xFF03030C),
-                                fontWeight = FontWeight.Black,
-                                fontSize = 13.sp,
-                                letterSpacing = 1.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
+                        // Botón de Acción: Iniciar Carrera o Desbloquear Pista
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (isCurrentTrackUnlocked) {
+                            Button(
+                                onClick = { onTrackSelected(currentTrack) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(46.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(currentTrack.barrierPrimaryColor))
+                            ) {
+                                Text(
+                                    text = "🏁 INICIAR CARRERA (${currentTrack.totalLaps} VUELTAS)",
+                                    color = Color(0xFF03030C),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 13.sp,
+                                    letterSpacing = 1.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+                        } else {
+                            val canAfford = currentUserCoins >= currentTrack.unlockCost
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        isUnlockingTrack = true
+                                        val ok = repository.unlockTrack(user.id, currentTrack.id, currentTrack.unlockCost)
+                                        if (ok) {
+                                            refreshTrackRecords()
+                                        }
+                                        isUnlockingTrack = false
+                                    }
+                                },
+                                enabled = canAfford && !isUnlockingTrack,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(46.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFFD700),
+                                    disabledContainerColor = Color(0xFF1E293B)
+                                )
+                            ) {
+                                Text(
+                                    text = if (canAfford) {
+                                        "🔓 DESBLOQUEAR PISTA (${currentTrack.unlockCost} 🪙)"
+                                    } else {
+                                        "🔒 BLOQUEADA (Requiere ${currentTrack.unlockCost} 🪙)"
+                                    },
+                                    color = if (canAfford) Color(0xFF03030C) else Color(0xFF64748B),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 12.sp,
+                                    letterSpacing = 1.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
                         }
                     }
                 }

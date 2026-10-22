@@ -38,23 +38,28 @@ data class UserAccount(
 )
 
 /**
- * Definición de catálogo de un vehículo.
+ * Definición de catálogo de un vehículo con arquetipo de conducción.
  */
 data class CarDefinition(
     val id: String,
     val name: String,
     val tagline: String,
+    val archetype: String,
+    val archetypeBadgeColor: Long,
+    val prosText: String,
+    val consText: String,
     val price: Int,
     val baseSpeedKmh: Float,
     val baseAccel: Float,
     val baseHandling: Float,
     val baseNitro: Float,
     val defaultBodyColor: Long,
-    val defaultUnderglowColor: Long
+    val defaultUnderglowColor: Long,
+    val defaultRimColor: Long = 0xFF00F0FFL
 )
 
 /**
- * Estado guardado del coche del usuario (niveles de mejoras y colores).
+ * Estado guardado del coche del usuario (niveles de mejoras y personalización).
  */
 data class UserCarState(
     val carId: String,
@@ -64,7 +69,10 @@ data class UserCarState(
     val handlingLevel: Int = 1,
     val nitroLevel: Int = 1,
     val bodyColor: Long = 0xFF00F0FFL,
-    val underglowColor: Long = 0xFF00F0FFL
+    val underglowColor: Long = 0xFF00F0FFL,
+    val rimColor: Long = 0xFF00F0FFL,
+    val spoilerStyle: Int = 0, // 0: Estándar, 1: GT Wing, 2: Cyber Blade
+    val trailFxColor: Long = 0xFF00F0FFL
 ) {
     val totalLevel: Int get() = speedLevel + accelLevel + handlingLevel + nitroLevel
 }
@@ -81,7 +89,7 @@ data class TrackMission(
 )
 
 /**
- * Circuito de carreras completo.
+ * Circuito de carreras completo con sistema de desbloqueo.
  */
 data class TrackDefinition(
     val id: String,
@@ -95,7 +103,10 @@ data class TrackDefinition(
     val barrierPrimaryColor: Long,
     val barrierSecondaryColor: Long,
     val waypoints: List<TrackPoint>,
-    val missions: List<TrackMission>
+    val missions: List<TrackMission>,
+    val unlockCost: Int = 0,
+    val unlockRequiredTrackId: String? = null,
+    val unlockRequiredMissionText: String = ""
 )
 
 /**
@@ -152,6 +163,9 @@ data class Car(
     var isNitroActive: Boolean = false,
     var bodyColor: Color = Color(0xFF00F0FF),
     var underglowColor: Color = Color(0xFF00F0FF),
+    var rimColor: Color = Color(0xFF00F0FF),
+    var spoilerStyle: Int = 0,
+    var trailFxColor: Color = Color(0xFF00F0FF),
     val length: Float = 66f,
     val width: Float = 38f
 )

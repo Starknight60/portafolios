@@ -284,11 +284,12 @@ class NeonDriftEngine(
 
         if (driftInput && car.velocity > 160f) {
             car.isDrifting = true
-            val driftTurnBoost = 3.6f
+            // El giro en derrape depende del manejo específico del coche (Viper = ultra-ágil, Hyperion = pesado y ancho)
+            val driftTurnBoost = (car.turnSpeed * 1.35f).coerceIn(2.2f, 4.8f)
             car.angle += steerInput * driftTurnBoost * clampedDt
 
-            val slipTendency = steerInput * 0.78f
-            car.driftAngle = (car.driftAngle + (slipTendency - car.driftAngle) * 5.5f * clampedDt).coerceIn(-0.88f, 0.88f)
+            val slipTendency = steerInput * (0.85f / (car.turnSpeed / 2.6f).coerceIn(0.6f, 1.6f))
+            car.driftAngle = (car.driftAngle + (slipTendency - car.driftAngle) * 5.5f * clampedDt).coerceIn(-0.95f, 0.95f)
 
             // Acumular puntos de derrape y combo
             val angleIntensity = abs(car.driftAngle)
@@ -500,6 +501,14 @@ class NeonDriftEngine(
                 // Misión 3: Puntuación récord (6,500 pts)
                 if (totalScore >= 6500) completedMissionIds.add(3)
             }
+            "omega_colosseum" -> {
+                // Misión 1: 1er Lugar
+                if (racePosition == 1) completedMissionIds.add(1)
+                // Misión 2: Combo 3.8x
+                if (maxDriftMultiplierReached >= 3.8f) completedMissionIds.add(2)
+                // Misión 3: Menos de 115s
+                if (raceElapsedTimeSec <= 115f) completedMissionIds.add(3)
+            }
         }
     }
 
@@ -610,7 +619,7 @@ class NeonDriftEngine(
                     y = smokeY,
                     vx = (Random.nextFloat() * 60f - 30f) - cosA * (car.velocity * 0.2f),
                     vy = (Random.nextFloat() * 60f - 30f) - sinA * (car.velocity * 0.2f),
-                    color = if (Random.nextFloat() < 0.6f) Color(0xFF80D8FF).copy(alpha = 0.4f) else Color(0xFFFF4081).copy(alpha = 0.4f),
+                    color = if (Random.nextFloat() < 0.65f) car.trailFxColor.copy(alpha = 0.45f) else car.bodyColor.copy(alpha = 0.4f),
                     size = Random.nextFloat() * 12f + 8f,
                     life = 0.35f,
                     maxLife = 0.35f
@@ -632,7 +641,7 @@ class NeonDriftEngine(
                     y = exhaustY + Random.nextFloat() * 10f - 5f,
                     vx = -cosA * (Random.nextFloat() * 320f + 250f),
                     vy = -sinA * (Random.nextFloat() * 320f + 250f),
-                    color = if (Random.nextBoolean()) Color(0xFF00F0FF) else Color(0xFFD500F9),
+                    color = if (Random.nextBoolean()) car.trailFxColor else Color(0xFF00F0FF),
                     size = Random.nextFloat() * 7f + 4f,
                     life = 0.22f,
                     maxLife = 0.22f

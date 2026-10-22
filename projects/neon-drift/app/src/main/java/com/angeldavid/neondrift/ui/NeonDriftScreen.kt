@@ -612,14 +612,44 @@ private fun DrawScope.drawPlayerCar(
         glassPath.close()
         drawPath(glassPath, color = Color(0xFF00F0FF).copy(alpha = 0.85f))
 
-        // Alerón Trasero
+        // Alerón Trasero según personalización
         spoilerPath.rewind()
-        spoilerPath.moveTo(centerX - w * 0.52f, centerY + l * 0.42f)
-        spoilerPath.lineTo(centerX + w * 0.52f, centerY + l * 0.42f)
-        spoilerPath.lineTo(centerX + w * 0.46f, centerY + l * 0.48f)
-        spoilerPath.lineTo(centerX - w * 0.46f, centerY + l * 0.48f)
-        spoilerPath.close()
-        drawPath(spoilerPath, color = car.bodyColor)
+        when (car.spoilerStyle) {
+            1 -> {
+                // Alerón GT Doble Ala (elevado con placas laterales en rimColor)
+                spoilerPath.moveTo(centerX - w * 0.58f, centerY + l * 0.40f)
+                spoilerPath.lineTo(centerX + w * 0.58f, centerY + l * 0.40f)
+                spoilerPath.lineTo(centerX + w * 0.54f, centerY + l * 0.48f)
+                spoilerPath.lineTo(centerX - w * 0.54f, centerY + l * 0.48f)
+                spoilerPath.close()
+                drawPath(spoilerPath, color = car.bodyColor)
+                drawCircle(car.rimColor, radius = 3.5f, center = Offset(centerX - w * 0.58f, centerY + l * 0.44f))
+                drawCircle(car.rimColor, radius = 3.5f, center = Offset(centerX + w * 0.58f, centerY + l * 0.44f))
+            }
+            2 -> {
+                // Cyber Blade (punta afilada)
+                spoilerPath.moveTo(centerX - w * 0.55f, centerY + l * 0.50f)
+                spoilerPath.lineTo(centerX, centerY + l * 0.38f)
+                spoilerPath.lineTo(centerX + w * 0.55f, centerY + l * 0.50f)
+                spoilerPath.lineTo(centerX, centerY + l * 0.44f)
+                spoilerPath.close()
+                drawPath(spoilerPath, color = car.bodyColor)
+            }
+            else -> {
+                spoilerPath.moveTo(centerX - w * 0.52f, centerY + l * 0.42f)
+                spoilerPath.lineTo(centerX + w * 0.52f, centerY + l * 0.42f)
+                spoilerPath.lineTo(centerX + w * 0.46f, centerY + l * 0.48f)
+                spoilerPath.lineTo(centerX - w * 0.46f, centerY + l * 0.48f)
+                spoilerPath.close()
+                drawPath(spoilerPath, color = car.bodyColor)
+            }
+        }
+
+        // Llantas Neón en los 4 neumáticos
+        drawCircle(car.rimColor, radius = 3.2f, center = Offset(centerX - w * 0.42f, centerY - l * 0.28f))
+        drawCircle(car.rimColor, radius = 3.2f, center = Offset(centerX + w * 0.42f, centerY - l * 0.28f))
+        drawCircle(car.rimColor, radius = 3.2f, center = Offset(centerX - w * 0.42f, centerY + l * 0.28f))
+        drawCircle(car.rimColor, radius = 3.2f, center = Offset(centerX + w * 0.42f, centerY + l * 0.28f))
 
         // Faros y Luces Traseras
         drawCircle(Color.White, radius = 3.5f, center = Offset(centerX - w * 0.28f, centerY - l * 0.42f))
@@ -631,21 +661,22 @@ private fun DrawScope.drawPlayerCar(
             strokeWidth = 3f
         )
 
-        // Llamas de Nitro Propulsor
+        // Llamas de Nitro Propulsor con color de estela personalizado
         if (car.isNitroActive) {
+            val nitroFlameColor = car.trailFxColor
             flamePath.rewind()
             flamePath.moveTo(centerX - 10f, centerY + l * 0.48f)
             flamePath.lineTo(centerX - 5f, centerY + l * 0.88f)
             flamePath.lineTo(centerX, centerY + l * 0.48f)
             flamePath.close()
-            drawPath(flamePath, color = Color(0xFF00F0FF))
+            drawPath(flamePath, color = nitroFlameColor)
 
             flamePath.rewind()
             flamePath.moveTo(centerX, centerY + l * 0.48f)
             flamePath.lineTo(centerX + 5f, centerY + l * 0.88f)
             flamePath.lineTo(centerX + 10f, centerY + l * 0.48f)
             flamePath.close()
-            drawPath(flamePath, color = Color(0xFFFF007F))
+            drawPath(flamePath, color = Color.White)
         }
     }
 }

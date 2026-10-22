@@ -11,23 +11,22 @@ import com.angeldavid.neondrift.model.UserAccount
 import com.angeldavid.neondrift.model.UserCarState
 import java.security.MessageDigest
 
-class NeonDriftDbHelper(context: Context) :
-    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+class NeonDriftDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        const val DATABASE_NAME = "neon_drift_cyber.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_NAME = "neon_drift_v2.db"
+        const val DATABASE_VERSION = 2
 
-        // Tabla Users
+        // Tabla Usuarios
         const val TABLE_USERS = "users"
         const val COL_USER_ID = "id"
         const val COL_USERNAME = "username"
         const val COL_PASSWORD_HASH = "password_hash"
         const val COL_COINS = "coins"
-        const val COL_SELECTED_CAR = "selected_car_id"
+        const val COL_SELECTED_CAR = "selected_car"
         const val COL_CREATED_AT = "created_at"
 
-        // Tabla User Cars
+        // Tabla Vehículos por Usuario
         const val TABLE_USER_CARS = "user_cars"
         const val COL_CAR_USER_ID = "user_id"
         const val COL_CAR_ID = "car_id"
@@ -39,11 +38,11 @@ class NeonDriftDbHelper(context: Context) :
         const val COL_BODY_COLOR = "body_color"
         const val COL_UNDERGLOW_COLOR = "underglow_color"
 
-        // Tabla Track Progress
+        // Tabla Récords de Pistas y Misiones
         const val TABLE_TRACK_PROGRESS = "track_progress"
         const val COL_TP_USER_ID = "user_id"
         const val COL_TRACK_ID = "track_id"
-        const val COL_BEST_TIME = "best_time_sec"
+        const val COL_BEST_TIME = "best_time"
         const val COL_BEST_SCORE = "best_score"
         const val COL_M1_DONE = "m1_done"
         const val COL_M2_DONE = "m2_done"
@@ -82,6 +81,9 @@ class NeonDriftDbHelper(context: Context) :
                 $COL_NITRO_LVL INTEGER DEFAULT 1,
                 $COL_BODY_COLOR INTEGER DEFAULT 0,
                 $COL_UNDERGLOW_COLOR INTEGER DEFAULT 0,
+                rim_color INTEGER DEFAULT 0,
+                spoiler_style INTEGER DEFAULT 0,
+                trail_fx_color INTEGER DEFAULT 0,
                 PRIMARY KEY ($COL_CAR_USER_ID, $COL_CAR_ID),
                 FOREIGN KEY ($COL_CAR_USER_ID) REFERENCES $TABLE_USERS($COL_USER_ID) ON DELETE CASCADE
             )
@@ -98,6 +100,7 @@ class NeonDriftDbHelper(context: Context) :
                 $COL_M1_DONE INTEGER DEFAULT 0,
                 $COL_M2_DONE INTEGER DEFAULT 0,
                 $COL_M3_DONE INTEGER DEFAULT 0,
+                is_unlocked INTEGER DEFAULT 0,
                 PRIMARY KEY ($COL_TP_USER_ID, $COL_TRACK_ID),
                 FOREIGN KEY ($COL_TP_USER_ID) REFERENCES $TABLE_USERS($COL_USER_ID) ON DELETE CASCADE
             )
@@ -109,11 +112,19 @@ class NeonDriftDbHelper(context: Context) :
         initializeUserVehicles(db, defaultUserId)
     }
 
+    override fun onOpen(db: SQLiteDatabase) {
+        super.onOpen(db)
+        try { db.execSQL("ALTER TABLE $TABLE_TRACK_PROGRESS ADD COLUMN is_unlocked INTEGER DEFAULT 0") } catch (_: Exception) {}
+        try { db.execSQL("ALTER TABLE $TABLE_USER_CARS ADD COLUMN rim_color INTEGER DEFAULT 0") } catch (_: Exception) {}
+        try { db.execSQL("ALTER TABLE $TABLE_USER_CARS ADD COLUMN spoiler_style INTEGER DEFAULT 0") } catch (_: Exception) {}
+        try { db.execSQL("ALTER TABLE $TABLE_USER_CARS ADD COLUMN trail_fx_color INTEGER DEFAULT 0") } catch (_: Exception) {}
+    }
+
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_TRACK_PROGRESS")
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_USER_CARS")
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_USERS")
-        onCreate(db)
+        try { db.execSQL("ALTER TABLE $TABLE_TRACK_PROGRESS ADD COLUMN is_unlocked INTEGER DEFAULT 0") } catch (_: Exception) {}
+        try { db.execSQL("ALTER TABLE $TABLE_USER_CARS ADD COLUMN rim_color INTEGER DEFAULT 0") } catch (_: Exception) {}
+        try { db.execSQL("ALTER TABLE $TABLE_USER_CARS ADD COLUMN spoiler_style INTEGER DEFAULT 0") } catch (_: Exception) {}
+        try { db.execSQL("ALTER TABLE $TABLE_USER_CARS ADD COLUMN trail_fx_color INTEGER DEFAULT 0") } catch (_: Exception) {}
     }
 
     private fun insertInitialUser(db: SQLiteDatabase, username: String, pass: String, starterCoins: Int): Long {
@@ -205,6 +216,9 @@ class NeonDriftDbHelper(context: Context) :
                 put(COL_NITRO_LVL, 1)
                 put(COL_BODY_COLOR, carDef.defaultBodyColor)
                 put(COL_UNDERGLOW_COLOR, carDef.defaultUnderglowColor)
+                put("rim_color", carDef.defaultRimColor)
+                put("spoiler_style", 0)
+                put("trail_fx_color", 0xFF00F0FFL)
             }
             db.insertWithOnConflict(TABLE_USER_CARS, null, values, SQLiteDatabase.CONFLICT_IGNORE)
         }
@@ -215,24 +229,46 @@ class NeonDriftDbHelper(context: Context) :
         val list = mutableListOf<UserCarState>()
         val cursor = db.rawQuery(
             """
-            SELECT $COL_CAR_ID, $COL_IS_UNLOCKED, $COL_SPEED_LVL, $COL_ACCEL_LVL, 
-                   $COL_HANDLING_LVL, $COL_NITRO_LVL, $COL_BODY_COLOR, $COL_UNDERGLOW_COLOR 
-            FROM $TABLE_USER_CARS WHERE $COL_CAR_USER_ID = ?
+            SELECT * FROM $TABLE_USER_CARS WHERE $COL_CAR_USER_ID = ?
             """.trimIndent(),
             arrayOf(userId.toString())
         )
         cursor.use {
+            val carIdIdx = it.getColumnIndex(COL_CAR_ID)
+            val unlockedIdx = it.getColumnIndex(COL_IS_UNLOCKED)
+            val spdIdx = it.getColumnIndex(COL_SPEED_LVL)
+            val accIdx = it.getColumnIndex(COL_ACCEL_LVL)
+            val hanIdx = it.getColumnIndex(COL_HANDLING_LVL)
+            val nitIdx = it.getColumnIndex(COL_NITRO_LVL)
+            val bodyIdx = it.getColumnIndex(COL_BODY_COLOR)
+            val underIdx = it.getColumnIndex(COL_UNDERGLOW_COLOR)
+            val rimIdx = it.getColumnIndex("rim_color")
+            val spoilerIdx = it.getColumnIndex("spoiler_style")
+            val trailIdx = it.getColumnIndex("trail_fx_color")
+
             while (it.moveToNext()) {
+                val carId = if (carIdIdx >= 0) it.getString(carIdIdx) else "cyber_phantom"
+                val carDef = CatalogData.getCarDef(carId)
+
+                val rimVal = if (rimIdx >= 0 && !it.isNull(rimIdx)) it.getLong(rimIdx) else 0L
+                val finalRim = if (rimVal != 0L) rimVal else carDef.defaultRimColor
+
+                val trailVal = if (trailIdx >= 0 && !it.isNull(trailIdx)) it.getLong(trailIdx) else 0L
+                val finalTrail = if (trailVal != 0L) trailVal else 0xFF00F0FFL
+
                 list.add(
                     UserCarState(
-                        carId = it.getString(0),
-                        isUnlocked = it.getInt(1) == 1,
-                        speedLevel = it.getInt(2),
-                        accelLevel = it.getInt(3),
-                        handlingLevel = it.getInt(4),
-                        nitroLevel = it.getInt(5),
-                        bodyColor = it.getLong(6),
-                        underglowColor = it.getLong(7)
+                        carId = carId,
+                        isUnlocked = if (unlockedIdx >= 0) it.getInt(unlockedIdx) == 1 else (carDef.price == 0),
+                        speedLevel = if (spdIdx >= 0) it.getInt(spdIdx) else 1,
+                        accelLevel = if (accIdx >= 0) it.getInt(accIdx) else 1,
+                        handlingLevel = if (hanIdx >= 0) it.getInt(hanIdx) else 1,
+                        nitroLevel = if (nitIdx >= 0) it.getInt(nitIdx) else 1,
+                        bodyColor = if (bodyIdx >= 0 && it.getLong(bodyIdx) != 0L) it.getLong(bodyIdx) else carDef.defaultBodyColor,
+                        underglowColor = if (underIdx >= 0) it.getLong(underIdx) else carDef.defaultUnderglowColor,
+                        rimColor = finalRim,
+                        spoilerStyle = if (spoilerIdx >= 0) it.getInt(spoilerIdx) else 0,
+                        trailFxColor = finalTrail
                     )
                 )
             }
@@ -264,12 +300,10 @@ class NeonDriftDbHelper(context: Context) :
         val db = writableDatabase
         db.beginTransaction()
         try {
-            // Descontar monedas
             db.execSQL(
                 "UPDATE $TABLE_USERS SET $COL_COINS = $COL_COINS - ? WHERE $COL_USER_ID = ?",
                 arrayOf(cost.toString(), userId.toString())
             )
-            // Marcar coche como desbloqueado
             val values = ContentValues().apply {
                 put(COL_IS_UNLOCKED, 1)
             }
@@ -312,32 +346,93 @@ class NeonDriftDbHelper(context: Context) :
         db.update(TABLE_USER_CARS, values, "$COL_CAR_USER_ID = ? AND $COL_CAR_ID = ?", arrayOf(userId.toString(), carId))
     }
 
+    fun updateCustomization(
+        userId: Long,
+        carId: String,
+        bodyColor: Long,
+        underglowColor: Long,
+        rimColor: Long,
+        spoilerStyle: Int,
+        trailFxColor: Long
+    ) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_BODY_COLOR, bodyColor)
+            put(COL_UNDERGLOW_COLOR, underglowColor)
+            put("rim_color", rimColor)
+            put("spoiler_style", spoilerStyle)
+            put("trail_fx_color", trailFxColor)
+        }
+        db.update(TABLE_USER_CARS, values, "$COL_CAR_USER_ID = ? AND $COL_CAR_ID = ?", arrayOf(userId.toString(), carId))
+    }
+
     data class TrackProgressRecord(
         val bestTimeSec: Float,
         val bestScore: Int,
         val m1Done: Boolean,
         val m2Done: Boolean,
-        val m3Done: Boolean
+        val m3Done: Boolean,
+        val isUnlocked: Boolean = false
     )
 
     fun getTrackProgress(userId: Long, trackId: String): TrackProgressRecord {
         val db = readableDatabase
         val cursor = db.rawQuery(
-            "SELECT $COL_BEST_TIME, $COL_BEST_SCORE, $COL_M1_DONE, $COL_M2_DONE, $COL_M3_DONE FROM $TABLE_TRACK_PROGRESS WHERE $COL_TP_USER_ID = ? AND $COL_TRACK_ID = ?",
+            "SELECT * FROM $TABLE_TRACK_PROGRESS WHERE $COL_TP_USER_ID = ? AND $COL_TRACK_ID = ?",
             arrayOf(userId.toString(), trackId)
         )
         return cursor.use {
             if (it.moveToFirst()) {
+                val timeIdx = it.getColumnIndex(COL_BEST_TIME)
+                val scoreIdx = it.getColumnIndex(COL_BEST_SCORE)
+                val m1Idx = it.getColumnIndex(COL_M1_DONE)
+                val m2Idx = it.getColumnIndex(COL_M2_DONE)
+                val m3Idx = it.getColumnIndex(COL_M3_DONE)
+                val unlockIdx = it.getColumnIndex("is_unlocked")
+
                 TrackProgressRecord(
-                    bestTimeSec = it.getFloat(0),
-                    bestScore = it.getInt(1),
-                    m1Done = it.getInt(2) == 1,
-                    m2Done = it.getInt(3) == 1,
-                    m3Done = it.getInt(4) == 1
+                    bestTimeSec = if (timeIdx >= 0) it.getFloat(timeIdx) else 999f,
+                    bestScore = if (scoreIdx >= 0) it.getInt(scoreIdx) else 0,
+                    m1Done = if (m1Idx >= 0) it.getInt(m1Idx) == 1 else false,
+                    m2Done = if (m2Idx >= 0) it.getInt(m2Idx) == 1 else false,
+                    m3Done = if (m3Idx >= 0) it.getInt(m3Idx) == 1 else false,
+                    isUnlocked = if (unlockIdx >= 0) it.getInt(unlockIdx) == 1 else false
                 )
             } else {
-                TrackProgressRecord(999f, 0, false, false, false)
+                TrackProgressRecord(999f, 0, false, false, false, false)
             }
+        }
+    }
+
+    fun unlockTrack(userId: Long, trackId: String, cost: Int): Boolean {
+        val user = getUserById(userId) ?: return false
+        if (user.coins < cost) return false
+
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.execSQL(
+                "UPDATE $TABLE_USERS SET $COL_COINS = $COL_COINS - ? WHERE $COL_USER_ID = ?",
+                arrayOf(cost.toString(), userId.toString())
+            )
+            val current = getTrackProgress(userId, trackId)
+            val values = ContentValues().apply {
+                put(COL_TP_USER_ID, userId)
+                put(COL_TRACK_ID, trackId)
+                put(COL_BEST_TIME, current.bestTimeSec)
+                put(COL_BEST_SCORE, current.bestScore)
+                put(COL_M1_DONE, if (current.m1Done) 1 else 0)
+                put(COL_M2_DONE, if (current.m2Done) 1 else 0)
+                put(COL_M3_DONE, if (current.m3Done) 1 else 0)
+                put("is_unlocked", 1)
+            }
+            db.insertWithOnConflict(TABLE_TRACK_PROGRESS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+            db.setTransactionSuccessful()
+            return true
+        } catch (_: Exception) {
+            return false
+        } finally {
+            db.endTransaction()
         }
     }
 
@@ -367,6 +462,7 @@ class NeonDriftDbHelper(context: Context) :
             put(COL_M1_DONE, newM1)
             put(COL_M2_DONE, newM2)
             put(COL_M3_DONE, newM3)
+            put("is_unlocked", if (current.isUnlocked || m1Completed) 1 else 0)
         }
         db.insertWithOnConflict(TABLE_TRACK_PROGRESS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }

@@ -168,6 +168,22 @@ class NeonDriftRepository(context: Context) {
         localDb.updateCarColors(userId, carId, bodyColor, underglowColor)
     }
 
+    suspend fun updateCustomization(
+        userId: Long,
+        carId: String,
+        bodyColor: Long,
+        underglowColor: Long,
+        rimColor: Long,
+        spoilerStyle: Int,
+        trailFxColor: Long
+    ) = withContext(Dispatchers.IO) {
+        localDb.updateCustomization(userId, carId, bodyColor, underglowColor, rimColor, spoilerStyle, trailFxColor)
+    }
+
+    suspend fun unlockTrack(userId: Long, trackId: String, cost: Int): Boolean = withContext(Dispatchers.IO) {
+        localDb.unlockTrack(userId, trackId, cost)
+    }
+
     suspend fun addCoins(userId: Long, amount: Int): Int = withContext(Dispatchers.IO) {
         if (isPostgresActive) {
             try {
@@ -207,19 +223,29 @@ class NeonDriftRepository(context: Context) {
     }
 
     fun buildPlayerCar(carDef: CarDefinition, carState: UserCarState): Car {
-        val totalSpeedKmh = carDef.baseSpeedKmh + (carState.speedLevel - 1) * 12f
+        val totalSpeedKmh = carDef.baseSpeedKmh + (carState.speedLevel - 1) * 14f
         val maxSpeedPx = totalSpeedKmh * 1.95f
-        val accelPx = 220f * carDef.baseAccel * (1.0f + (carState.accelLevel - 1) * 0.14f)
-        val turnSpeedRad = 2.8f * carDef.baseHandling * (1.0f + (carState.handlingLevel - 1) * 0.12f)
-        val driftFriction = 0.965f + (carState.handlingLevel - 1) * 0.003f
+        val accelPx = 210f * carDef.baseAccel * (1.0f + (carState.accelLevel - 1) * 0.15f)
+        val turnSpeedRad = 2.6f * carDef.baseHandling * (1.0f + (carState.handlingLevel - 1) * 0.12f)
+        
+        // El nitro escala con la estadística base del coche (Vortex Apex = boost brutal supersónico)
+        val nitroMultiplier = 1.25f + (carDef.baseNitro - 1.0f) * 0.22f + (carState.nitroLevel - 1) * 0.06f
+        val nitroMaxSpeedPx = maxSpeedPx * nitroMultiplier
+
+        // Fricción de derrape según el manejo del auto
+        val driftFriction = (0.955f + (carDef.baseHandling * 0.008f) + (carState.handlingLevel - 1) * 0.003f).coerceIn(0.950f, 0.988f)
 
         return Car(
             maxSpeed = maxSpeedPx,
+            nitroMaxSpeed = nitroMaxSpeedPx,
             acceleration = accelPx,
             turnSpeed = turnSpeedRad,
-            driftFriction = driftFriction.coerceAtMost(0.985f),
+            driftFriction = driftFriction,
             bodyColor = Color(carState.bodyColor),
-            underglowColor = Color(carState.underglowColor)
+            underglowColor = Color(carState.underglowColor),
+            rimColor = Color(carState.rimColor),
+            spoilerStyle = carState.spoilerStyle,
+            trailFxColor = Color(carState.trailFxColor)
         )
     }
 }
