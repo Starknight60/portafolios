@@ -50,6 +50,9 @@ class NeonDriftEngine(
     var racePosition: Int by mutableIntStateOf(1)
         private set
 
+    var isHardMode: Boolean by mutableStateOf(false)
+        internal set
+
     var activeBanner: FloatingBanner? by mutableStateOf(null)
         private set
 
@@ -90,16 +93,17 @@ class NeonDriftEngine(
     private var lastSkidRightY = 0f
 
     /**
-     * Prepara e inicializa la carrera con el circuito seleccionado y el coche del jugador.
+     * Prepara e inicializa la carrera con el circuito seleccionado, el coche del jugador y dificultad.
      */
-    fun setupRace(selectedTrack: TrackDefinition, playerCar: Car) {
+    fun setupRace(selectedTrack: TrackDefinition, playerCar: Car, hardMode: Boolean = false) {
         this.track = selectedTrack
         this.car = playerCar
+        this.isHardMode = hardMode
 
         // Reset de métricas
         totalScore = 0
         currentLap = 1
-        timeLeft = 38f + selectedTrack.baseTimeBonus
+        timeLeft = if (hardMode) (26f + selectedTrack.baseTimeBonus * 0.65f) else (38f + selectedTrack.baseTimeBonus)
         nextCheckpoint = 1
         currentDriftPoints = 0f
         currentDriftMultiplier = 1.0f
@@ -125,7 +129,7 @@ class NeonDriftEngine(
         particles.clear()
         skidmarks.clear()
 
-        // Inicializar 3 Rivales IA en posiciones escalonadas de la parrilla
+        // Inicializar 3 Rivales IA en posiciones escalonadas de la parrilla (espaciado ancho)
         aiRacers.clear()
         val aiConfigs = listOf(
             Triple("KAGE-01", Color(0xFFFF1744), "#01"),
@@ -137,12 +141,17 @@ class NeonDriftEngine(
         for (i in aiConfigs.indices) {
             val (name, color, tag) = aiConfigs[i]
             val forwardOffset = (i + 1) * -45f
-            val lateralOffset = if (i % 2 == 0) 35f else -35f
+            val lateralOffset = if (i % 2 == 0) 55f else -55f
             val aiX = startPoint.x + cos(initialAngle) * forwardOffset + cos(perpAngle) * lateralOffset
             val aiY = startPoint.y + sin(initialAngle) * forwardOffset + sin(perpAngle) * lateralOffset
 
-            val aiSpeed = car.maxSpeed * (0.86f + i * 0.04f)
-            val aiAccel = car.acceleration * (0.88f + i * 0.05f)
+            val speedBase = if (hardMode) 0.98f else 0.86f
+            val speedStep = if (hardMode) 0.05f else 0.04f
+            val accelBase = if (hardMode) 1.15f else 0.88f
+            val accelStep = if (hardMode) 0.06f else 0.05f
+
+            val aiSpeed = car.maxSpeed * (speedBase + i * speedStep)
+            val aiAccel = car.acceleration * (accelBase + i * accelStep)
 
             aiRacers.add(
                 AIRacer(
@@ -168,7 +177,10 @@ class NeonDriftEngine(
         // Generar detalles arquitectónicos y de asfalto del circuito
         generateTrackFeatures()
 
-        activeBanner = FloatingBanner("¡LISTOS PARA CORRER!", "MANTÉN EL CONTROL EN LAS CURVAS", Color(0xFF00F0FF))
+        val modeLabel = if (hardMode) "🔥 MODO DIFÍCIL (x1.85 🪙)" else "¡LISTOS PARA CORRER!"
+        val subLabel = if (hardMode) "CRONÓMETRO IMPLACABLE • RIVALES HARDCORE" else "MANTÉN EL CONTROL EN LAS CURVAS"
+        val bannerColor = if (hardMode) Color(0xFFFF5722) else Color(0xFF00F0FF)
+        activeBanner = FloatingBanner(modeLabel, subLabel, bannerColor)
         gameState = GameState.READY
     }
 
@@ -647,18 +659,26 @@ class NeonDriftEngine(
 
         if (nearestDistance > maxAllowedDistance) {
             barrierHitsCount++
-            car.velocity = (car.velocity * 0.72f).coerceAtLeast(80f)
+            if (isHardMode) {
+                car.velocity = (car.velocity * 0.52f).coerceAtLeast(50f)
+                timeLeft = (timeLeft - 1.2f).coerceAtLeast(0.1f)
+                activeBanner = FloatingBanner("¡COLISIÓN! -1.2s", "PENALIZACIÓN MODO DIFÍCIL", Color(0xFFFF1744))
+            } else {
+                car.velocity = (car.velocity * 0.72f).coerceAtLeast(80f)
+            }
             createBarrierSparks()
             soundManager.playBarrierScrape()
 
             val pushAngle = getAngleTowardsTrackCenter(car.x, car.y)
-            car.x += cos(pushAngle) * 14f
-            car.y += sin(pushAngle) * 14f
+            car.x += cos(pushAngle) * 16f
+            car.y += sin(pushAngle) * 16f
 
             if (currentDriftPoints > 0f) {
                 currentDriftPoints = 0f
                 currentDriftMultiplier = 1.0f
-                activeBanner = FloatingBanner("¡COMBO PERDIDO!", "COLISIÓN CON BARRERA", Color(0xFFFF1744))
+                if (!isHardMode) {
+                    activeBanner = FloatingBanner("¡COMBO PERDIDO!", "COLISIÓN CON BARRERA", Color(0xFFFF1744))
+                }
             }
         }
 
@@ -684,20 +704,23 @@ class NeonDriftEngine(
             val dist = hypot(dx, dy)
             val desiredAngle = atan2(dy, dx)
 
-            // Rotación suave del rival IA hacia el waypoint
+            // Rotación del rival IA hacia el waypoint (más agresiva en modo difícil)
             var angleDiff = desiredAngle - ai.angle
             while (angleDiff < -Math.PI) angleDiff += (Math.PI * 2.0).toFloat()
             while (angleDiff > Math.PI) angleDiff -= (Math.PI * 2.0).toFloat()
 
-            val maxTurnThisFrame = 3.2f * dt
+            val maxTurnThisFrame = (if (isHardMode) 4.2f else 3.2f) * dt
             ai.angle += angleDiff.coerceIn(-maxTurnThisFrame, maxTurnThisFrame)
 
             // Ajuste de velocidad según la curva
             val turnSharpness = abs(angleDiff)
-            val speedTarget = if (turnSharpness > 0.6f) ai.maxSpeed * 0.75f else ai.maxSpeed
+            val speedTarget = if (turnSharpness > 0.6f) {
+                if (isHardMode) ai.maxSpeed * 0.86f else ai.maxSpeed * 0.75f
+            } else ai.maxSpeed
 
+            val effectiveAccel = if (isHardMode) ai.accelRate * 1.22f else ai.accelRate
             if (ai.velocity < speedTarget) {
-                ai.velocity += ai.accelRate * dt
+                ai.velocity += effectiveAccel * dt
             } else {
                 ai.velocity -= 160f * dt
             }
@@ -713,7 +736,7 @@ class NeonDriftEngine(
             }
 
             // Si el rival llega cerca del waypoint, avanza al siguiente
-            if (dist < 220f) {
+            if (dist < 240f) {
                 ai.currentWaypointIndex = (ai.currentWaypointIndex + 1) % numWaypoints
                 if (ai.currentWaypointIndex == 1) {
                     ai.lap++
@@ -753,9 +776,11 @@ class NeonDriftEngine(
         val targetPoint = track.waypoints[targetIndex]
         val dist = hypot(car.x - targetPoint.x, car.y - targetPoint.y)
 
-        if (dist < 280f) {
+        // Radio de detección adaptado a pistas más anchas
+        if (dist < 340f) {
             soundManager.playCheckpointChime()
-            timeLeft += track.baseTimeBonus
+            val timeBonus = if (isHardMode) (track.baseTimeBonus * 0.65f) else track.baseTimeBonus
+            timeLeft += timeBonus
 
             val isFinishLine = (nextCheckpoint % checkpointIndices.size == 0)
 
@@ -766,19 +791,21 @@ class NeonDriftEngine(
                     gameState = GameState.VICTORY
                     soundManager.playVictoryFanfare()
                     val posText = when (racePosition) {
-                        1 -> "¡1ER LUGAR - CAMPEÓN!"
+                        1 -> if (isHardMode) "🔥 ¡1ER LUGAR HARDCORE!" else "¡1ER LUGAR - CAMPEÓN!"
                         2 -> "¡2º LUGAR - PODIO!"
                         3 -> "¡3ER LUGAR - PODIO!"
                         else -> "CARRERA COMPLETADA"
                     }
-                    activeBanner = FloatingBanner(posText, "TIEMPO: ${String.format("%.1fs", raceElapsedTimeSec)}", Color(0xFFFFD700))
+                    val bonusSub = if (isHardMode) "TIEMPO: ${String.format("%.1fs", raceElapsedTimeSec)} (+85% 🪙)" else "TIEMPO: ${String.format("%.1fs", raceElapsedTimeSec)}"
+                    activeBanner = FloatingBanner(posText, bonusSub, Color(0xFFFFD700))
                     return
                 } else {
                     currentLap++
-                    activeBanner = FloatingBanner("¡VUELTA $currentLap / ${track.totalLaps}!", "+${track.baseTimeBonus.toInt()}s EXTENSIÓN", Color(0xFFFF007F))
+                    activeBanner = FloatingBanner("¡VUELTA $currentLap / ${track.totalLaps}!", "+${timeBonus.toInt()}s EXTENSIÓN", Color(0xFFFF007F))
                 }
             } else {
-                activeBanner = FloatingBanner("CHECKPOINT SUPERADO", "+${track.baseTimeBonus.toInt()}s", Color(0xFF00F0FF))
+                val bannerText = if (isHardMode) "+${timeBonus.toInt()}s (MODO DIFÍCIL)" else "+${timeBonus.toInt()}s"
+                activeBanner = FloatingBanner("CHECKPOINT SUPERADO", bannerText, Color(0xFF00F0FF))
             }
 
             nextCheckpoint++
@@ -838,6 +865,10 @@ class NeonDriftEngine(
             if (mission != null) {
                 coins += mission.rewardCoins
             }
+        }
+        // Multiplicador por Modo Difícil (+85% en recompensa total de créditos)
+        if (isHardMode) {
+            coins = (coins * 1.85f).toInt()
         }
         return coins
     }

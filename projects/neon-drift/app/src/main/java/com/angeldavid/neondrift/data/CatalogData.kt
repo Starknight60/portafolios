@@ -181,7 +181,7 @@ object CatalogData {
             name = "Neo Tokyo Grid",
             location = "Distrito Metropolitano Neón",
             totalLaps = 3,
-            trackWidth = 240f,
+            trackWidth = 380f, // Pista extra-ancha para derrapes de alta velocidad
             baseTimeBonus = 12f,
             skyColorTop = 0xFF03030CL,
             skyColorBottom = 0xFF17082CL,
@@ -216,7 +216,7 @@ object CatalogData {
             name = "Cyber Canyon",
             location = "Gargantas de Plasma de Nueva Nevada",
             totalLaps = 3,
-            trackWidth = 220f,
+            trackWidth = 350f, // Pista ancha
             baseTimeBonus = 13f,
             skyColorTop = 0xFF0D0303L,
             skyColorBottom = 0xFF2A0808L,
@@ -251,7 +251,7 @@ object CatalogData {
             name = "Quantum Highway",
             location = "Autovía Elevada Orbital",
             totalLaps = 4,
-            trackWidth = 250f,
+            trackWidth = 390f, // Autovía ancha orbital
             baseTimeBonus = 11f,
             skyColorTop = 0xFF02091AL,
             skyColorBottom = 0xFF0A1E42L,
@@ -286,7 +286,7 @@ object CatalogData {
             name = "Omega Colosseum",
             location = "Mega-Estadio Orbital Synthwave",
             totalLaps = 4,
-            trackWidth = 260f,
+            trackWidth = 410f, // Gran coliseo ultra-ancho
             baseTimeBonus = 10f,
             skyColorTop = 0xFF140226L,
             skyColorBottom = 0xFF2A034AL,

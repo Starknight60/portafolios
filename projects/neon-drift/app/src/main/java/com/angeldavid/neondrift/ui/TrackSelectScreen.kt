@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 fun TrackSelectScreen(
     user: UserAccount,
     repository: NeonDriftRepository,
-    onTrackSelected: (TrackDefinition) -> Unit,
+    onTrackSelected: (TrackDefinition, Boolean) -> Unit,
     onBackToHub: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -42,6 +42,7 @@ fun TrackSelectScreen(
     var trackProgressRecords by remember { mutableStateOf<Map<String, NeonDriftDbHelper.TrackProgressRecord>>(emptyMap()) }
     var currentUserCoins by remember { mutableIntStateOf(user.coins) }
     var isUnlockingTrack by remember { mutableStateOf(false) }
+    var isHardModeSelected by remember { mutableStateOf(false) }
 
     fun refreshTrackRecords() {
         scope.launch {
@@ -358,23 +359,84 @@ fun TrackSelectScreen(
                             }
                         }
 
+                        // Selector de Dificultad (Modo Normal vs Modo Difícil)
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF0F172A), RoundedCornerShape(10.dp))
+                                .border(1.dp, if (isHardModeSelected) Color(0xFFFF5722) else Color(0xFF334155), RoundedCornerShape(10.dp))
+                                .padding(3.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { isHardModeSelected = false },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (!isHardModeSelected) Color(0xFF1E293B) else Color.Transparent
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 7.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "🛡️ NORMAL",
+                                        color = if (!isHardModeSelected) Color(0xFF00F0FF) else Color(0xFF64748B),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { isHardModeSelected = true },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isHardModeSelected) Color(0xFFFF5722).copy(alpha = 0.35f) else Color.Transparent
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 7.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "🔥 DIFÍCIL (+85% 🪙)",
+                                        color = if (isHardModeSelected) Color(0xFFFFD700) else Color(0xFF64748B),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                }
+                            }
+                        }
+
                         // Botón de Acción: Iniciar Carrera o Desbloquear Pista
                         Spacer(modifier = Modifier.height(8.dp))
 
                         if (isCurrentTrackUnlocked) {
+                            val startBtnColor = if (isHardModeSelected) Color(0xFFFF5722) else Color(currentTrack.barrierPrimaryColor)
                             Button(
-                                onClick = { onTrackSelected(currentTrack) },
+                                onClick = { onTrackSelected(currentTrack, isHardModeSelected) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(46.dp),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(currentTrack.barrierPrimaryColor))
+                                colors = ButtonDefaults.buttonColors(containerColor = startBtnColor)
                             ) {
                                 Text(
-                                    text = "🏁 INICIAR CARRERA (${currentTrack.totalLaps} VUELTAS)",
+                                    text = if (isHardModeSelected) {
+                                        "🔥 INICIAR MODO DIFÍCIL (${currentTrack.totalLaps} VUELTAS)"
+                                    } else {
+                                        "🏁 INICIAR CARRERA (${currentTrack.totalLaps} VUELTAS)"
+                                    },
                                     color = Color(0xFF03030C),
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     letterSpacing = 1.sp,
                                     fontFamily = FontFamily.Monospace
                                 )

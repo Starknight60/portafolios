@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -105,7 +106,7 @@ fun NeonDriftScreen() {
                 TrackSelectScreen(
                     user = user,
                     repository = repository,
-                    onTrackSelected = { track ->
+                    onTrackSelected = { track, isHard ->
                         selectedTrack = track
                         val activeCarState = userCars.firstOrNull { it.carId == user.selectedCarId }
                             ?: userCars.firstOrNull { it.isUnlocked }
@@ -113,7 +114,7 @@ fun NeonDriftScreen() {
                         val carDef = CatalogData.getCarDef(activeCarState.carId)
                         val builtCar = repository.buildPlayerCar(carDef, activeCarState)
 
-                        engine.setupRace(track, builtCar)
+                        engine.setupRace(track, builtCar, isHard)
                         currentScreen = AppScreen.RACE_GAME
                     },
                     onBackToHub = { currentScreen = AppScreen.MAIN_HUB }
@@ -410,6 +411,10 @@ fun RaceCanvasScreen(
         if (engine.gameState == GameState.READY) {
             StartRaceOverlay(
                 track = engine.track,
+                isHardMode = engine.isHardMode,
+                onToggleHardMode = { hard ->
+                    engine.setupRace(engine.track, engine.car, hard)
+                },
                 onStart = { engine.startRace() }
             )
         }
@@ -420,7 +425,7 @@ fun RaceCanvasScreen(
                 engine = engine,
                 coinsEarned = engine.calculateCoinsEarned(),
                 onRestart = {
-                    engine.setupRace(engine.track, engine.car)
+                    engine.setupRace(engine.track, engine.car, engine.isHardMode)
                     engine.startRace()
                 },
                 onGoToGarage = onGoToGarage,
@@ -776,8 +781,8 @@ private fun DrawScope.drawTrackSurface(
         val fPerpX = -fDirY
         val fPerpY = fDirX
 
-        // Damero Ajedrezado de Meta (2 filas de círculos/cuadrados blancos y negros)
-        val numCols = 12
+        // Damero Ajedrezado de Meta (2 filas de círculos/cuadrados blancos y negros en pista ancha)
+        val numCols = 16
         val colWidth = (trackWidth - 24f) / numCols
         val rowHeight = 12f
 
@@ -1410,7 +1415,7 @@ private fun DrawScope.drawDriftHUD(
 
     // 3. Cronómetro con Bonificación (Centro Superior)
     val timeInt = ceil(engine.timeLeft).toInt()
-    timerPaint.color = if (timeInt <= 6) 0xFFFF1744.toInt() else 0xFFFFD700.toInt()
+    timerPaint.color = if (timeInt <= 6) 0xFFFF1744.toInt() else if (engine.isHardMode) 0xFFFF9100.toInt() else 0xFFFFD700.toInt()
     drawRoundRect(
         color = Color(0xFF0F172A).copy(alpha = 0.88f),
         topLeft = Offset(centerX - 90f, 40f),
@@ -1418,6 +1423,18 @@ private fun DrawScope.drawDriftHUD(
         cornerRadius = CornerRadius(14f, 14f)
     )
     nativeCanvas.drawText("${timeInt}s", centerX, 80f, timerPaint)
+
+    // Insignia de modo difícil en HUD
+    if (engine.isHardMode) {
+        drawRoundRect(
+            color = Color(0xFFFF5722).copy(alpha = 0.85f),
+            topLeft = Offset(centerX - 75f, 100f),
+            size = Size(150f, 22f),
+            cornerRadius = CornerRadius(6f, 6f)
+        )
+        nativeCanvas.drawText("🔥 DIFÍCIL (x1.85 🪙)", centerX, 116f, bannerSubPaint.apply { textSize = 11f; color = android.graphics.Color.WHITE })
+        bannerSubPaint.textSize = 22f
+    }
 
     // 4. Vuelta y Puntuación (Superior Derecha)
     val lapText = "VUELTA ${engine.currentLap}/${engine.track.totalLaps}"
@@ -1564,8 +1581,12 @@ private fun TouchHoldButton(
 @Composable
 fun StartRaceOverlay(
     track: TrackDefinition,
+    isHardMode: Boolean,
+    onToggleHardMode: (Boolean) -> Unit,
     onStart: () -> Unit
 ) {
+    val primaryColor = if (isHardMode) Color(0xFFFF5722) else Color(track.barrierPrimaryColor)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1575,31 +1596,87 @@ fun StartRaceOverlay(
         Card(
             modifier = Modifier
                 .width(440.dp)
-                .border(2.dp, Color(track.barrierPrimaryColor), RoundedCornerShape(20.dp)),
+                .border(2.dp, primaryColor, RoundedCornerShape(20.dp)),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0A0F1D)),
             shape = RoundedCornerShape(20.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = track.name.uppercase(),
-                    color = Color(track.barrierPrimaryColor),
+                    color = primaryColor,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Monospace
                 )
                 Text(
-                    text = "${track.totalLaps} VUELTAS • 3 RIVALES IA",
+                    text = "${track.totalLaps} VUELTAS • PISTA EXTRA ANCHA • 3 RIVALES IA",
                     color = Color.White,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Selector rápido de dificultad en el overlay
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF0F172A), RoundedCornerShape(10.dp))
+                        .border(1.dp, if (isHardMode) Color(0xFFFF5722) else Color(0xFF334155), RoundedCornerShape(10.dp))
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onToggleHardMode(false) },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (!isHardMode) Color(0xFF1E293B) else Color.Transparent
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 7.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "🛡️ MODO NORMAL",
+                                color = if (!isHardMode) Color(0xFF00F0FF) else Color(0xFF64748B),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onToggleHardMode(true) },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isHardMode) Color(0xFFFF5722).copy(alpha = 0.35f) else Color.Transparent
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 7.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "🔥 DIFÍCIL (+85% 🪙)",
+                                color = if (isHardMode) Color(0xFFFFD700) else Color(0xFF64748B),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
 
                 Button(
                     onClick = onStart,
@@ -1607,13 +1684,14 @@ fun StartRaceOverlay(
                         .fillMaxWidth()
                         .height(48.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(track.barrierPrimaryColor))
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                 ) {
                     Text(
-                        text = "🏁 ¡INICIAR CARRERA!",
+                        text = if (isHardMode) "🔥 ¡INICIAR EN MODO DIFÍCIL!" else "🏁 ¡INICIAR CARRERA!",
                         color = Color(0xFF03030C),
                         fontWeight = FontWeight.Black,
-                        fontSize = 14.sp
+                        fontSize = 13.sp,
+                        fontFamily = FontFamily.Monospace
                     )
                 }
             }
@@ -1631,7 +1709,7 @@ fun RaceResultsOverlay(
 ) {
     val isWin = (engine.gameState == GameState.VICTORY)
     val posTitle = when (engine.racePosition) {
-        1 -> "🏆 ¡1ER LUGAR - CAMPEÓN!"
+        1 -> if (engine.isHardMode) "🔥 ¡1ER LUGAR HARDCORE!" else "🏆 ¡1ER LUGAR - CAMPEÓN!"
         2 -> "🥈 ¡2º LUGAR - PODIO!"
         3 -> "🥉 ¡3ER LUGAR - PODIO!"
         else -> "4º LUGAR"
@@ -1663,6 +1741,23 @@ fun RaceResultsOverlay(
                     fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Monospace
                 )
+
+                if (engine.isHardMode) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        color = Color(0xFFFF5722).copy(alpha = 0.25f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF5722)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "🔥 MODO DIFÍCIL: +85% 🪙 CRÉDITOS EXTRA",
+                            color = Color(0xFFFFD700),
+                            fontWeight = FontWeight.Black,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(10.dp))
 
