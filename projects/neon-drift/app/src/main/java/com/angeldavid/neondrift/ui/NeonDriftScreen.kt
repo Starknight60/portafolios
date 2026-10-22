@@ -12,6 +12,7 @@ import android.hardware.SensorManager
 import android.os.Build
 import android.view.Surface
 import android.view.WindowManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -104,6 +105,10 @@ fun NeonDriftScreen() {
         }
 
         AppScreen.MAIN_HUB -> {
+            BackHandler {
+                currentUser = null
+                currentScreen = AppScreen.AUTH_LOGIN
+            }
             currentUser?.let { user ->
                 MainHubScreen(
                     user = user,
@@ -119,6 +124,9 @@ fun NeonDriftScreen() {
         }
 
         AppScreen.GARAGE -> {
+            BackHandler {
+                currentScreen = AppScreen.MAIN_HUB
+            }
             currentUser?.let { user ->
                 GarageScreen(
                     user = user,
@@ -130,6 +138,9 @@ fun NeonDriftScreen() {
         }
 
         AppScreen.TRACK_SELECT -> {
+            BackHandler {
+                currentScreen = AppScreen.MAIN_HUB
+            }
             currentUser?.let { user ->
                 TrackSelectScreen(
                     user = user,
@@ -151,6 +162,10 @@ fun NeonDriftScreen() {
         }
 
         AppScreen.RACE_GAME, AppScreen.RACE_RESULTS -> {
+            BackHandler {
+                refreshUserData()
+                currentScreen = AppScreen.MAIN_HUB
+            }
             RaceCanvasScreen(
                 engine = engine,
                 controlScheme = currentControlScheme,
@@ -434,6 +449,17 @@ fun RaceCanvasScreen(
                 .border(1.dp, Color(0xFF334155), CircleShape)
         ) {
             Text(text = "✕", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+        }
+
+        // Radar GPS Minimapa en Vivo en HUD
+        if (engine.gameState == GameState.RACING) {
+            RadarMinimap(
+                engine = engine,
+                frameTick = frameTick,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 58.dp, end = 10.dp)
+            )
         }
 
         // Controles Táctiles Horizontales (Ergonomía Móvil según Esquema Seleccionado)
@@ -1476,16 +1502,16 @@ private fun DrawScope.drawDriftHUD(
         bannerSubPaint.textSize = 22f
     }
 
-    // 4. Vuelta y Puntuación (Superior Derecha)
+    // 4. Vuelta y Puntuación (Superior Derecha, posicionado junto al minimapa)
     val lapText = "VUELTA ${engine.currentLap}/${engine.track.totalLaps}"
     drawRoundRect(
         color = Color(0xFF1E1B4B).copy(alpha = 0.9f),
-        topLeft = Offset(size.width - 240f, 40f),
-        size = Size(170f, 65f),
+        topLeft = Offset(size.width - 450f, 40f),
+        size = Size(185f, 65f),
         cornerRadius = CornerRadius(14f, 14f)
     )
-    nativeCanvas.drawText(lapText, size.width - 225f, 70f, unitPaint)
-    nativeCanvas.drawText("SCORE: ${engine.totalScore}", size.width - 225f, 95f, speedPaint.apply { textSize = 20f })
+    nativeCanvas.drawText(lapText, size.width - 435f, 70f, unitPaint)
+    nativeCanvas.drawText("SCORE: ${engine.totalScore}", size.width - 435f, 95f, speedPaint.apply { textSize = 20f })
 
     // 5. Banner Flotante de Derrape
     if (engine.car.isDrifting && engine.currentDriftScoreDisplay > 0) {
@@ -1516,6 +1542,279 @@ private fun DrawScope.drawDriftHUD(
         size = Size(nitroW * nitroRatio, 14f),
         cornerRadius = CornerRadius(7f, 7f)
     )
+}
+
+// -------------------------------------------------------------
+// RADAR MINIMAPA GPS EN TIEMPO REAL (HUD SUPERIOR DERECHO)
+// -------------------------------------------------------------
+
+@Composable
+fun RadarMinimap(
+    engine: NeonDriftEngine,
+    frameTick: Long,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    val cardWidth = if (isExpanded) 220.dp else 145.dp
+    val cardHeight = if (isExpanded) 195.dp else 130.dp
+
+    val track = engine.track
+    val wps = track.waypoints
+
+    val path = remember { Path() }
+    val playerArrowPath = remember { Path() }
+
+    Surface(
+        modifier = modifier
+            .width(cardWidth)
+            .height(cardHeight)
+            .clickable { isExpanded = !isExpanded },
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xDD070B1A),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.2.dp,
+            brush = Brush.linearGradient(
+                listOf(
+                    Color(0xFF00F0FF),
+                    Color(track.barrierPrimaryColor)
+                )
+            )
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Header del Radar GPS
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(Color(0xFF00FF66), CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "RADAR GPS",
+                        color = Color(0xFF00F0FF),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+
+                // Badge de Posición en el Minimapa
+                val (badgeBg, badgeFg) = when (engine.racePosition) {
+                    1 -> Color(0xFFFFD700).copy(alpha = 0.25f) to Color(0xFFFFD700)
+                    2 -> Color(0xFFE2E8F0).copy(alpha = 0.25f) to Color(0xFFE2E8F0)
+                    3 -> Color(0xFFCD7F32).copy(alpha = 0.25f) to Color(0xFFCD7F32)
+                    else -> Color(0xFF00F0FF).copy(alpha = 0.2f) to Color(0xFF00F0FF)
+                }
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = badgeBg
+                ) {
+                    Text(
+                        text = "P${engine.racePosition}",
+                        color = badgeFg,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                    )
+                }
+            }
+
+            // Canvas del Circuito y Vehículos
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    if (wps.size < 3) return@Canvas
+
+                    var minX = Float.MAX_VALUE
+                    var maxX = Float.MIN_VALUE
+                    var minY = Float.MAX_VALUE
+                    var maxY = Float.MIN_VALUE
+
+                    for (p in wps) {
+                        if (p.x < minX) minX = p.x
+                        if (p.x > maxX) maxX = p.x
+                        if (p.y < minY) minY = p.y
+                        if (p.y > maxY) maxY = p.y
+                    }
+
+                    val rangeX = (maxX - minX).coerceAtLeast(10f)
+                    val rangeY = (maxY - minY).coerceAtLeast(10f)
+
+                    val padRatio = 0.12f
+                    val bMinX = minX - rangeX * padRatio
+                    val bMaxX = maxX + rangeX * padRatio
+                    val bMinY = minY - rangeY * padRatio
+                    val bMaxY = maxY + rangeY * padRatio
+                    val totalSpanX = bMaxX - bMinX
+                    val totalSpanY = bMaxY - bMinY
+
+                    val scaleX = size.width / totalSpanX
+                    val scaleY = size.height / totalSpanY
+                    val scale = minOf(scaleX, scaleY)
+
+                    val mapW = totalSpanX * scale
+                    val mapH = totalSpanY * scale
+                    val offX = (size.width - mapW) / 2f
+                    val offY = (size.height - mapH) / 2f
+
+                    fun toRadar(wx: Float, wy: Float): Offset {
+                        return Offset(
+                            offX + (wx - bMinX) * scale,
+                            offY + (wy - bMinY) * scale
+                        )
+                    }
+
+                    // Cuadrícula y Barrido Radar
+                    val radarSweepAngle = ((frameTick / 16_000_000L) % 360).toFloat()
+                    val sweepRad = Math.toRadians(radarSweepAngle.toDouble())
+                    val centerRadar = Offset(size.width / 2f, size.height / 2f)
+                    val sweepLen = maxOf(size.width, size.height) * 0.6f
+                    drawLine(
+                        color = Color(0x1F00F0FF),
+                        start = centerRadar,
+                        end = Offset(
+                            centerRadar.x + cos(sweepRad).toFloat() * sweepLen,
+                            centerRadar.y + sin(sweepRad).toFloat() * sweepLen
+                        ),
+                        strokeWidth = 1.2f
+                    )
+
+                    // Trazado de Pista Neón
+                    path.reset()
+                    val p0 = toRadar(wps[0].x, wps[0].y)
+                    path.moveTo(p0.x, p0.y)
+                    for (i in 1 until wps.size) {
+                        val pt = toRadar(wps[i].x, wps[i].y)
+                        path.lineTo(pt.x, pt.y)
+                    }
+                    path.close()
+
+                    // Resplandor exterior oscuro
+                    drawPath(
+                        path = path,
+                        color = Color(track.barrierPrimaryColor).copy(alpha = 0.25f),
+                        style = Stroke(width = 8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    )
+                    // Línea Neón de la calzada
+                    drawPath(
+                        path = path,
+                        color = Color(0xFF00F0FF).copy(alpha = 0.85f),
+                        style = Stroke(width = 2.4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    )
+
+                    // Checkpoints
+                    for (p in wps) {
+                        if (p.isCheckpoint) {
+                            val cp = toRadar(p.x, p.y)
+                            drawCircle(
+                                color = Color(track.barrierSecondaryColor).copy(alpha = 0.8f),
+                                radius = 2.2f,
+                                center = cp
+                            )
+                        }
+                    }
+
+                    // Meta / Salida (Waypoint 0)
+                    drawCircle(Color.White, radius = 3.6f, center = p0)
+                    drawCircle(Color(0xFFFFD700), radius = 5f, center = p0, style = Stroke(width = 1f))
+
+                    // Rivales IA
+                    for (ai in engine.aiRacers) {
+                        val aiPt = toRadar(ai.x, ai.y)
+                        drawCircle(
+                            color = ai.bodyColor.copy(alpha = 0.4f),
+                            radius = 4.8f,
+                            center = aiPt
+                        )
+                        drawCircle(
+                            color = ai.bodyColor,
+                            radius = 3.2f,
+                            center = aiPt
+                        )
+                        drawCircle(
+                            color = Color.White,
+                            radius = 1.1f,
+                            center = aiPt
+                        )
+                    }
+
+                    // Coche del Jugador (Superdeportivo con Pulso Sonar y Flecha Orientada)
+                    val playerPt = toRadar(engine.car.x, engine.car.y)
+
+                    // Onda sonar pulsante
+                    val pulse = ((frameTick / 14_000_000L) % 100) / 100f
+                    drawCircle(
+                        color = Color(0xFF00F0FF).copy(alpha = (1f - pulse).coerceIn(0f, 1f)),
+                        radius = 3f + pulse * 8f,
+                        center = playerPt,
+                        style = Stroke(width = 1.2f)
+                    )
+
+                    // Flecha orientada de dirección
+                    val carAngle = engine.car.angle
+                    val tipX = playerPt.x + cos(carAngle) * 6.5f
+                    val tipY = playerPt.y + sin(carAngle) * 6.5f
+                    val backLeftX = playerPt.x + cos(carAngle + 2.4f) * 4.8f
+                    val backLeftY = playerPt.y + sin(carAngle + 2.4f) * 4.8f
+                    val backRightX = playerPt.x + cos(carAngle - 2.4f) * 4.8f
+                    val backRightY = playerPt.y + sin(carAngle - 2.4f) * 4.8f
+
+                    playerArrowPath.reset()
+                    playerArrowPath.moveTo(tipX, tipY)
+                    playerArrowPath.lineTo(backLeftX, backLeftY)
+                    playerArrowPath.lineTo(playerPt.x, playerPt.y)
+                    playerArrowPath.lineTo(backRightX, backRightY)
+                    playerArrowPath.close()
+
+                    drawPath(playerArrowPath, color = Color.White)
+                    drawPath(playerArrowPath, color = Color(0xFF00F0FF), style = Stroke(width = 1.2f))
+                }
+            }
+
+            // Footer con info táctica
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val statusText = if (engine.racePosition == 1) {
+                    "LIDERANDO"
+                } else {
+                    "PERSEGUIDOR"
+                }
+                Text(
+                    text = statusText,
+                    color = if (engine.racePosition == 1) Color(0xFFFFD700) else Color(0xFF94A3B8),
+                    fontSize = 7.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Text(
+                    text = if (isExpanded) "[-] REDUCIR" else "[+] AMPLIAR",
+                    color = Color(0xFF64748B),
+                    fontSize = 7.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+    }
 }
 
 // -------------------------------------------------------------
