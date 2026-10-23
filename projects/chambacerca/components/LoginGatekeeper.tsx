@@ -612,54 +612,77 @@ export default function LoginGatekeeper({
               </button>
             </form>
 
-            {/* ACCESOS DEMO EN 1 CLIC (INTERACTIVOS Y MODERNOS) */}
-            <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-2.5">
+            {/* =========================================================================
+                SECCIÓN MODO INVITADO: PRUÉBALO AL INSTANTE SIN REGISTRARTE
+                ========================================================================= */}
+            <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-3">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-slate-400">Pruébalo al instante sin registrarte:</span>
-                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md font-bold">
-                  1-Clic
+                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Compass className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>¿Prefieres explorar antes de crear una cuenta?</span>
+                </span>
+                <span className="text-[10px] text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-full font-bold">
+                  1 Clic
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('carlos.perez@ejemplo.com', 'Password123!')}
-                  disabled={loading}
-                  className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/60 hover:bg-slate-900 transition-all text-left cursor-pointer group"
-                >
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span className="text-xs font-bold text-white group-hover:text-emerald-400">Carlos Pérez</span>
+              {/* Botón Principal: Pruébalo al instante sin registrarte (Modo Invitado) */}
+              <button
+                type="button"
+                onClick={onContinueAsGuest}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-slate-900 via-[#0C1527] to-slate-900 hover:from-slate-800 hover:to-[#0F1B33] border border-cyan-500/40 hover:border-cyan-400 text-white shadow-lg shadow-cyan-950/40 flex items-center justify-between transition-all group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <MapPin className="w-5 h-5 text-cyan-400" />
                   </div>
-                  <p className="text-[10px] text-slate-400">Buscador de Chamba</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('rrhh@plazas.com', 'Chamba2026!')}
-                  disabled={loading}
-                  className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-teal-500/60 hover:bg-slate-900 transition-all text-left cursor-pointer group"
-                >
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <div className="w-2 h-2 rounded-full bg-teal-400" />
-                    <span className="text-xs font-bold text-white group-hover:text-teal-400">RRHH Plaza's</span>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1.5">
+                      <span>Pruébalo al instante sin registrarte</span>
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-cyan-400/20 text-cyan-300 rounded border border-cyan-400/30">
+                        Invitado
+                      </span>
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      Entra al mapa satelital interactivo y descubre vacantes en tu zona
+                    </p>
                   </div>
-                  <p className="text-[10px] text-slate-400">Empleador Comercial</p>
-                </button>
-              </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
+              </button>
 
-              {/* Botón de Invitado Rápido */}
-              <div className="pt-1 text-center">
-                <button
-                  type="button"
-                  onClick={onContinueAsGuest}
-                  className="text-[11px] text-slate-400 hover:text-emerald-300 font-semibold inline-flex items-center gap-1 transition cursor-pointer"
-                >
-                  <span>¿Prefieres ver el mapa primero?</span>
-                  <span className="underline text-emerald-400">Entrar como Invitado</span>
-                  <ArrowRight className="w-3 h-3" />
-                </button>
+              {/* Cuentas de Demostración Rápidas */}
+              <div className="pt-1.5">
+                <p className="text-[10px] text-slate-500 font-semibold mb-1.5 text-center">
+                  O entra con una cuenta demo:
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDemoLogin('carlos.perez@ejemplo.com', 'Password123!')}
+                    disabled={loading}
+                    className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-emerald-500/50 hover:bg-slate-900 transition-all text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span className="text-[11px] font-bold text-white group-hover:text-emerald-400">Carlos Pérez</span>
+                    </div>
+                    <p className="text-[9px] text-slate-400">Demo Buscador</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDemoLogin('rrhh@plazas.com', 'Chamba2026!')}
+                    disabled={loading}
+                    className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-teal-500/50 hover:bg-slate-900 transition-all text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                      <span className="text-[11px] font-bold text-white group-hover:text-teal-400">RRHH Plaza's</span>
+                    </div>
+                    <p className="text-[9px] text-slate-400">Demo Comercio</p>
+                  </button>
+                </div>
               </div>
             </div>
 
