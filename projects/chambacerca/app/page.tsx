@@ -9,11 +9,12 @@ import VacancyDetailModal from '@/components/VacancyDetailModal';
 import ReportModal from '@/components/ReportModal';
 import EmployerModal from '@/components/EmployerModal';
 import AuthModal from '@/components/AuthModal';
+import LoginGatekeeper from '@/components/LoginGatekeeper';
 import { 
   Compass, MapPin, Navigation, Search, Filter, RefreshCw, 
   Briefcase, MessageCircle, DollarSign, Clock, Users, ArrowUpRight, 
   ExternalLink, ChevronRight, Layers, ShieldCheck, HeartHandshake,
-  AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark
+  AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn
 } from 'lucide-react';
 
 // Carga dinámica del mapa de Google Maps sin SSR para evitar errores de hidratación
@@ -51,6 +52,8 @@ export default function HomePage() {
 
   // Estados de Autenticación de Usuario
   const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [sessionLoading, setSessionLoading] = useState<boolean>(true);
+  const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [savedIds, setSavedIds] = useState<string[]>([]);
@@ -69,6 +72,8 @@ export default function HomePage() {
       }
     } catch {
       setCurrentUser(null);
+    } finally {
+      setSessionLoading(false);
     }
   }
 
@@ -92,6 +97,7 @@ export default function HomePage() {
       setCurrentUser(null);
       setSavedIds([]);
       setFilterSavedOnly(false);
+      setIsGuestMode(false);
     } catch (err) {
       console.error('Logout error:', err);
     }
@@ -193,6 +199,35 @@ export default function HomePage() {
     ? places.filter((p) => savedIds.includes(p.id))
     : places;
 
+  // Pantalla de carga mientras se verifica la sesión
+  if (sessionLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#070A13] text-slate-100">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-slate-400 font-semibold tracking-wide">Iniciando ChambaCerca Radar...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // GATEKEEPER DE LOGIN & EXPLICACIÓN FORMAL DE LA PLATAFORMA (COMO EN LOS ANTERIORES RADARES)
+  // =========================================================================
+  if (!currentUser && !isGuestMode) {
+    return (
+      <LoginGatekeeper
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          fetchSaved();
+        }}
+        onContinueAsGuest={() => {
+          setIsGuestMode(true);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#080D15] text-slate-100 flex flex-col font-sans">
       {/* 1. Alerta Superior Anti-Estafas en Venezuela */}
@@ -285,13 +320,10 @@ export default function HomePage() {
               </div>
             ) : (
               <button
-                onClick={() => {
-                  setAuthModalTab('login');
-                  setIsAuthModalOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                onClick={() => setIsGuestMode(false)}
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-md shadow-emerald-950 transition cursor-pointer"
               >
-                <User className="w-3.5 h-3.5 text-emerald-400" />
+                <LogIn className="w-3.5 h-3.5" />
                 <span>Iniciar Sesión</span>
               </button>
             )}
