@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Credenciales inválidas.' },
+        { error: 'Por favor ingresa un correo y contraseña válidos.' },
         { status: 400 }
       );
     }
@@ -28,17 +28,17 @@ export async function POST(request: NextRequest) {
 
     const users = (await (sql as any).query(
       `
-      SELECT "id", "email", "password", "name", "role", "company"
+      SELECT "id", "email", "password", "name", "role", "company", "phone"
       FROM chambacerca."User"
       WHERE "email" = $1
       LIMIT 1;
       `,
-      [email.toLowerCase()]
+      [email.toLowerCase().trim()]
     )) as any[];
 
     if (!users || users.length === 0) {
       return NextResponse.json(
-        { error: 'Correo o contraseña incorrectos.' },
+        { error: 'Correo o contraseña incorrectos. Verifica tus datos o regístrate si aún no tienes cuenta.' },
         { status: 401 }
       );
     }
@@ -57,17 +57,18 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       email: user.email,
       name: user.name,
-      role: user.role,
-      company: user.company,
+      role: user.role || 'SEEKER',
+      company: user.company || null,
     });
 
     const response = NextResponse.json({
       success: true,
+      message: `¡Bienvenido de vuelta, ${user.name}!`,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role || 'SEEKER',
         company: user.company,
       },
     });
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 14 * 24 * 60 * 60,
     });
 
     return response;

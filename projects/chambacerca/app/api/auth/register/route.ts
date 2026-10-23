@@ -11,7 +11,8 @@ const RegisterSchema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email(),
   password: z.string().min(6).max(100),
-  company: z.string().min(2).max(120),
+  role: z.enum(['SEEKER', 'EMPLOYER']).default('SEEKER'),
+  company: z.string().max(120).optional().nullable(),
   phone: z.string().max(30).optional().nullable(),
 });
 
@@ -22,20 +23,20 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Datos de registro inválidos.', issues: parsed.error.issues },
+        { error: 'Datos de registro inválidos. La contraseña debe tener al menos 6 caracteres.', issues: parsed.error.issues },
         { status: 400 }
       );
     }
 
-    const { name, email, password, company, phone } = parsed.data;
+    const { name, email, password, role, company, phone } = parsed.data;
 
     // Verificar si el correo ya existe
-    const existing = await sql.query(
+    const existing = (await (sql as any).query(
       `SELECT "id" FROM chambacerca."User" WHERE "email" = $1 LIMIT 1;`,
-      [email.toLowerCase()]
-    );
+      [email.toLowerCase().trim()]
+    )) as any[];
 
-    if (existing.length > 0) {
+    if (existing && existing.length > 0) {
       return NextResponse.json(
         { error: 'Ya existe una cuenta registrada con este correo electrónico.' },
         { status: 409 }
@@ -45,25 +46,26 @@ export async function POST(request: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 10);
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    await sql.query(
+    await (sql as any).query(
       `
-      INSERT INTO chambacerca."User" ("id", "name", "email", "password", "company", "phone", "role", "isVerified")
-      VALUES ($1, $2, $3, $4, $5, $6, 'EMPLOYER', true);
+      INSERT INTO chambacerca."User" ("id", "name", "email", "password", "role", "company", "phone", "isVerified")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, true);
       `,
-      [userId, name, email.toLowerCase(), passwordHash, company, phone || null]
+      [userId, name.trim(), email.toLowerCase().trim(), passwordHash, role, company || null, phone || null]
     );
 
     const token = await createSessionToken({
       userId,
-      email: email.toLowerCase(),
-      name,
-      role: 'EMPLOYER',
-      company,
+      email: email.toLowerCase().trim(),
+      name: name.trim(),
+      role,
+      company: company || null,
     });
 
     const response = NextResponse.json({
       success: true,
-      user: { id: userId, name, email: email.toLowerCase(), company },
+      message: role === 'SEEKER' ? '¡Bienvenido a ChambaCerca!' : '¡Cuenta de comercio registrada con éxito!',
+      user: { id: userId, name: name.trim(), email: email.toLowerCase().trim(), role, company },
     });
 
     response.cookies.set({
@@ -73,14 +75,14 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 14 * 24 * 60 * 60, // 14 días
     });
 
     return response;
   } catch (err: any) {
     console.error('Register error:', err);
     return NextResponse.json(
-      { error: 'Error interno al registrar la cuenta de empleador.', details: err.message },
+      { error: 'Error interno al registrar la cuenta.', details: err.message },
       { status: 500 }
     );
   }

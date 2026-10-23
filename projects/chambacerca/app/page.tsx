@@ -8,11 +8,12 @@ import { VENEZUELA_CITIES } from '@/lib/venezuelaCities';
 import VacancyDetailModal from '@/components/VacancyDetailModal';
 import ReportModal from '@/components/ReportModal';
 import EmployerModal from '@/components/EmployerModal';
+import AuthModal from '@/components/AuthModal';
 import { 
   Compass, MapPin, Navigation, Search, Filter, RefreshCw, 
   Briefcase, MessageCircle, DollarSign, Clock, Users, ArrowUpRight, 
   ExternalLink, ChevronRight, Layers, ShieldCheck, HeartHandshake,
-  AlertTriangle, Globe, Mail, Sparkles 
+  AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark
 } from 'lucide-react';
 
 // Carga dinámica del mapa de Google Maps sin SSR para evitar errores de hidratación
@@ -48,7 +49,82 @@ export default function HomePage() {
   const [mobileTab, setMobileTab] = useState<'feed' | 'map'>('feed');
   const [summary, setSummary] = useState<any>(null);
 
-  // Consulta de lugares reales a la API
+  // Estados de Autenticación de Usuario
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [filterSavedOnly, setFilterSavedOnly] = useState<boolean>(false);
+
+  // Verificar sesión actual al cargar
+  async function checkSession() {
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      if (data.authenticated && data.user) {
+        setCurrentUser(data.user);
+        fetchSaved();
+      } else {
+        setCurrentUser(null);
+      }
+    } catch {
+      setCurrentUser(null);
+    }
+  }
+
+  // Obtener IDs de vacantes guardadas
+  async function fetchSaved() {
+    try {
+      const res = await fetch('/api/saved');
+      const data = await res.json();
+      if (data.savedIds && Array.isArray(data.savedIds)) {
+        setSavedIds(data.savedIds);
+      }
+    } catch {
+      // Silencioso
+    }
+  }
+
+  // Cerrar sesión
+  async function handleLogout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      setCurrentUser(null);
+      setSavedIds([]);
+      setFilterSavedOnly(false);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  }
+
+  // Guardar / Quitar de guardados
+  async function handleToggleSave(placeId: string) {
+    if (!currentUser) {
+      setAuthModalTab('login');
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vacancyId: placeId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.saved) {
+          setSavedIds((prev) => [...prev, placeId]);
+        } else {
+          setSavedIds((prev) => prev.filter((id) => id !== placeId));
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling save:', err);
+    }
+  }
+
+  // Consulta de lugares a la API
   async function fetchPlaces() {
     setLoading(true);
     try {
@@ -68,6 +144,8 @@ export default function HomePage() {
 
   // Solicitar ubicación GPS automáticamente al cargar
   useEffect(() => {
+    checkSession();
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -76,7 +154,7 @@ export default function HomePage() {
           setUserLocation([newCoords.lat, newCoords.lng]);
         },
         () => {
-          // Si el usuario deniega o falla, se mantiene la posición por defecto
+          // Fallback silencioso a coordenadas por defecto
         },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
       );
@@ -110,6 +188,11 @@ export default function HomePage() {
     );
   }
 
+  // Filtrado final de lugares (incluyendo filtro de guardados)
+  const displayedPlaces = filterSavedOnly
+    ? places.filter((p) => savedIds.includes(p.id))
+    : places;
+
   return (
     <div className="min-h-screen bg-[#080D15] text-slate-100 flex flex-col font-sans">
       {/* 1. Alerta Superior Anti-Estafas en Venezuela */}
@@ -120,7 +203,7 @@ export default function HomePage() {
         </span>
       </div>
 
-      {/* 2. Header Principal */}
+      {/* 2. Header Principal con Autenticación de Usuario */}
       <header className="sticky top-0 z-[100] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Logo & Marca */}
@@ -145,7 +228,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Acciones de Cabecera */}
+          {/* Acciones de Cabecera & Perfil de Usuario */}
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => {
@@ -162,11 +245,56 @@ export default function HomePage() {
 
             <button
               onClick={() => setIsEmployerModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-md shadow-emerald-950"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-md shadow-emerald-950"
             >
               <Briefcase className="w-3.5 h-3.5" />
               <span>Publicar Empleo</span>
             </button>
+
+            {/* Estado de Sesión del Usuario */}
+            {currentUser ? (
+              <div className="flex items-center gap-2 bg-slate-900/90 p-1 pl-2.5 rounded-xl border border-slate-700/80">
+                <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">
+                  {currentUser.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="hidden sm:block text-left pr-1">
+                  <p className="text-xs font-bold text-slate-100 leading-tight line-clamp-1">{currentUser.name}</p>
+                  <p className="text-[10px] text-emerald-400 font-semibold">
+                    {currentUser.role === 'EMPLOYER' ? 'Comercio / Empleador' : 'Buscador de Chamba'}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setFilterSavedOnly(!filterSavedOnly)}
+                  className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                    filterSavedOnly ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-amber-300'
+                  }`}
+                  title="Ver oportunidades guardadas"
+                >
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                  <span className="text-[11px]">{savedIds.length}</span>
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 transition"
+                  title="Cerrar sesión"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setAuthModalTab('login');
+                  setIsAuthModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+              >
+                <User className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Iniciar Sesión</span>
+              </button>
+            )}
 
             <a
               href="https://portafolios-rho.vercel.app"
@@ -174,7 +302,7 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="hidden lg:flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-xl transition border border-slate-800"
             >
-              <span>Mi Portafolio</span>
+              <span>Portafolio</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </a>
           </div>
@@ -243,12 +371,28 @@ export default function HomePage() {
 
           {/* Fila 2: Indicador de Ubicación Detectada & Filtro de Categorías */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-slate-800/60">
-            {summary?.detectedLocation && (
-              <p className="text-xs text-slate-300 font-medium flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-rose-400" />
-                <span>Explorando en: <strong className="text-white">{summary.detectedLocation}</strong></span>
-              </p>
-            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              {summary?.detectedLocation && (
+                <p className="text-xs text-slate-300 font-medium flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Explorando en: <strong className="text-white">{summary.detectedLocation}</strong></span>
+                </p>
+              )}
+
+              {currentUser && savedIds.length > 0 && (
+                <button
+                  onClick={() => setFilterSavedOnly(!filterSavedOnly)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
+                    filterSavedOnly
+                      ? 'bg-amber-500 text-slate-950 shadow'
+                      : 'bg-slate-900 text-amber-300 border border-amber-800/60 hover:bg-slate-800'
+                  }`}
+                >
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                  <span>{filterSavedOnly ? 'Viendo Guardadas' : `Mis Guardadas (${savedIds.length})`}</span>
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
               <button
@@ -295,7 +439,7 @@ export default function HomePage() {
               : 'border-transparent text-slate-400'
           }`}
         >
-          <span>Lista de Vacantes ({places.length})</span>
+          <span>Lista de Vacantes ({displayedPlaces.length})</span>
         </button>
         <button
           onClick={() => setMobileTab('map')}
@@ -306,7 +450,7 @@ export default function HomePage() {
           }`}
         >
           <MapPin className="w-3.5 h-3.5" />
-          <span>Google Maps ({places.length})</span>
+          <span>Google Maps ({displayedPlaces.length})</span>
         </button>
       </div>
 
@@ -326,14 +470,14 @@ export default function HomePage() {
                 <span className="text-slate-200">Maps Proximidad</span>
               </span>
               <span className="text-[11px] text-slate-400">
-                {places.length} comercios reales detectados
+                {displayedPlaces.length} comercios reales detectados
               </span>
             </div>
             <div className="flex-1 h-full min-h-[400px]">
               <MapViewer
                 center={[coords.lat, coords.lng]}
                 radiusMeters={radius}
-                places={places}
+                places={displayedPlaces}
                 selectedPlaceId={selectedPlace ? selectedPlace.id : null}
                 onSelectPlace={(p) => setSelectedPlace(p)}
                 userLocation={userLocation}
@@ -353,7 +497,7 @@ export default function HomePage() {
               <div>
                 <h3 className="font-bold text-sm text-white">¿Buscando trabajo cerca de ti?</h3>
                 <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                  Mostramos vacantes verificadas en <strong className="text-emerald-400">CompuTrabajo, LinkedIn, WhatsApp corporativo y redes oficiales</strong>. Puedes postularte en línea o acudir en persona con tu currículo impreso a la dirección indicada.
+                  Mostramos vacantes verificadas en <strong className="text-emerald-400">CompuTrabajo, LinkedIn, WhatsApp corporativo y redes oficiales</strong>. Inicia sesión para guardar tus oportunidades favoritas.
                 </p>
               </div>
             </div>
@@ -366,27 +510,42 @@ export default function HomePage() {
               <p className="text-sm font-semibold text-slate-200">Consultando oportunidades reales...</p>
               <p className="text-xs text-slate-400">Conectando con Neon PostgreSQL y servicios de proximidad en Venezuela</p>
             </div>
-          ) : places.length === 0 ? (
+          ) : displayedPlaces.length === 0 ? (
             /* Estado Vacío */
             <div className="p-10 text-center space-y-4 bg-[#0E1726] rounded-2xl border border-slate-800">
               <span className="text-4xl">🔍</span>
-              <h4 className="font-bold text-base text-slate-200">No encontramos registros en este radio inmediato</h4>
+              <h4 className="font-bold text-base text-slate-200">
+                {filterSavedOnly ? 'No tienes oportunidades guardadas todavía' : 'No encontramos registros en este radio inmediato'}
+              </h4>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Amplía el radio a 3 km o 5 km, o selecciona una de las ciudades principales en la barra superior.
+                {filterSavedOnly
+                  ? 'Guarda oportunidades haciendo clic en la estrella (★) para tenerlas a mano cuando salgas a postularte.'
+                  : 'Amplía el radio a 3 km o 5 km, o selecciona una de las ciudades principales en la barra superior.'}
               </p>
               <div className="pt-2 flex justify-center gap-3">
-                <button
-                  onClick={() => setRadius(5000)}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition"
-                >
-                  Ampliar a 5 km
-                </button>
-                <button
-                  onClick={() => setIsEmployerModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition"
-                >
-                  Publicar Vacante
-                </button>
+                {filterSavedOnly ? (
+                  <button
+                    onClick={() => setFilterSavedOnly(false)}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition"
+                  >
+                    Ver todas las ofertas
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setRadius(5000)}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition"
+                    >
+                      Ampliar a 5 km
+                    </button>
+                    <button
+                      onClick={() => setIsEmployerModalOpen(true)}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition"
+                    >
+                      Publicar Vacante
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ) : (
@@ -394,16 +553,17 @@ export default function HomePage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-400 px-1">
                 <span className="font-semibold text-slate-300">
-                  {places.length} lugares ordenados por distancia:
+                  {displayedPlaces.length} lugares ordenados por distancia:
                 </span>
                 <span>🚶 Caminata estimada (80m/min)</span>
               </div>
 
-              {places.map((place) => {
+              {displayedPlaces.map((place) => {
                 const isSelected = selectedPlace?.id === place.id;
                 const isVerified = place.status === 'VERIFIED_VACANCY';
                 const isCommunity = place.status === 'COMMUNITY_HIRING';
                 const isPotential = place.status === 'POTENTIAL_PLACE';
+                const isSaved = savedIds.includes(place.id);
 
                 return (
                   <div
@@ -439,13 +599,27 @@ export default function HomePage() {
                         </span>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/40">
-                          📍 {place.distanceFormatted}
-                        </span>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          {place.walkTimeMinutes} min a pie
-                        </p>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleSave(place.id);
+                          }}
+                          className={`p-1 rounded-lg border transition ${
+                            isSaved
+                              ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                              : 'bg-slate-900/80 border-slate-800 text-slate-500 hover:text-amber-300'
+                          }`}
+                          title={isSaved ? 'Guardada en tus favoritos' : 'Guardar oportunidad'}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
+                        </button>
+
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/40">
+                            📍 {place.distanceFormatted}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
@@ -549,9 +723,9 @@ export default function HomePage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="px-2 py-1 rounded-lg bg-red-700 hover:bg-red-600 text-white font-semibold text-[11px] flex items-center gap-1 transition"
+                            className="px-2.5 py-1 rounded-lg bg-red-700 hover:bg-red-600 text-white font-semibold text-[11px] flex items-center gap-1 transition"
                           >
-                            <Briefcase className="w-3 h-3" /> CompuTrabajo
+                            <Briefcase className="w-3.5 h-3.5" /> CompuTrabajo
                           </a>
                         )}
                       </div>
@@ -572,12 +746,17 @@ export default function HomePage() {
           </p>
           <div className="flex items-center gap-4 text-xs">
             <span className="text-emerald-400">● Neon Cloud PostgreSQL Activa</span>
-            <button
-              onClick={() => setIsEmployerModalOpen(true)}
-              className="text-slate-300 hover:text-white underline"
-            >
-              Publicar Vacante Gratis
-            </button>
+            {!currentUser && (
+              <button
+                onClick={() => {
+                  setAuthModalTab('register');
+                  setIsAuthModalOpen(true);
+                }}
+                className="text-slate-300 hover:text-white underline"
+              >
+                Crear Cuenta Gratis
+              </button>
+            )}
           </div>
         </div>
       </footer>
@@ -600,6 +779,16 @@ export default function HomePage() {
         onClose={() => setIsEmployerModalOpen(false)}
         userCoords={coords}
         onVacancyCreated={() => fetchPlaces()}
+      />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialTab={authModalTab}
+        onSuccess={(user) => {
+          setCurrentUser(user);
+          fetchSaved();
+        }}
       />
     </div>
   );
