@@ -289,10 +289,16 @@ export default function HomePage() {
           <div className="h-full flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Compass className="w-4 h-4 text-emerald-400" /> Radar en Vivo
+                <span className="text-blue-400 font-bold">G</span>
+                <span className="text-rose-400 font-bold">o</span>
+                <span className="text-amber-400 font-bold">o</span>
+                <span className="text-blue-400 font-bold">g</span>
+                <span className="text-emerald-400 font-bold">l</span>
+                <span className="text-rose-400 font-bold">e</span>
+                <span className="text-slate-200">Maps Proximidad</span>
               </span>
               <span className="text-[11px] text-slate-400">
-                {places.length} puntos detectados a pie
+                {places.length} comercios reales detectados
               </span>
             </div>
             <div className="flex-1 h-full min-h-[380px]">
@@ -447,7 +453,7 @@ export default function HomePage() {
                     )}
 
                     {/* Acciones Rápidas */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
+                    <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -459,15 +465,27 @@ export default function HomePage() {
                       </button>
 
                       <div className="flex items-center gap-2">
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-300 font-medium text-[11px] flex items-center gap-1 transition"
+                          title="Abrir ruta en Google Maps"
+                        >
+                          <Navigation className="w-3 h-3 text-blue-400" />
+                          <span>Google Maps</span>
+                        </a>
+
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setReportTargetPlace(place);
                           }}
-                          className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-amber-300 text-xs transition"
+                          className="p-1 px-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-amber-300 text-[11px] transition"
                           title="Fui a preguntar / Aportar dato"
                         >
-                          📢 Aportar dato
+                          📢 Aportar
                         </button>
 
                         {place.contactWhatsapp && (
