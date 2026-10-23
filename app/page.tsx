@@ -50,6 +50,24 @@ interface ProjectItem {
 
 const DEFAULT_PROJECTS: ProjectItem[] = [
   {
+    id: "chambacerca",
+    category: "fullstack",
+    title: "ChambaCerca Radar",
+    badge: "Impacto Social & Geolocalización",
+    gradient: "from-emerald-500 via-teal-500 to-cyan-600",
+    description:
+      "Radar web geoespacial de empleo por proximidad para ayudar a personas en búsqueda activa de trabajo a descubrir comercios, talleres, farmacias y empresas cercanas que solicitan personal a pie (500m a 5km). 100% libre de registro para postulantes, con mapa interactivo en vivo (Leaflet), reportes comunitarios colaborativos y base de datos Neon PostgreSQL en la nube.",
+    tech: ["Next.js 16", "PostgreSQL (Neon Cloud)", "Leaflet / OSM", "Zod", "Bcryptjs & JWT"],
+    features: [
+      "Radar de proximidad por GPS y radio a pie (500m, 1km, 3km, 5km)",
+      "Reportes comunitarios 'Fui a preguntar' anónimos y verificados",
+      "Guía de postulación presencial y plantilla directa a WhatsApp",
+      "Portal para empleadores con publicación inmediata en la nube",
+    ],
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/chambacerca",
+    demoUrl: "https://chambacerca.vercel.app/",
+  },
+  {
     id: "menupulse",
     category: "fullstack",
     title: "MenuPulse Enterprise",

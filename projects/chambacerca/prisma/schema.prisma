@@ -1,0 +1,99 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Quien publica vacantes (empleadores). Quien busca trabajo NO necesita cuenta:
+// su seguimiento vive en su propio dispositivo para no guardar datos de personas desempleadas.
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  businessName String?
+  phone        String?
+  createdAt    DateTime  @default(now())
+  vacancies    Vacancy[]
+}
+
+model Vacancy {
+  id               String        @id @default(cuid())
+  employerId       String?
+  employer         User?         @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  title            String
+  businessName     String
+  category         String
+  description      String
+  requirements     String?
+  payInfo          String?
+  schedule         String?
+  howToApply       String        @default("Presentarse en persona con tu hoja de vida")
+  contactWhatsapp  String?
+  contactPhone     String?
+  contactEmail     String?
+  address          String?
+  lat              Float
+  lng              Float
+  status           String        @default("OPEN") // OPEN | CLOSED | HIDDEN
+  isDemo           Boolean       @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  flags            VacancyFlag[]
+
+  @@index([status, lat, lng])
+  @@index([employerId])
+}
+
+// Alertas de la comunidad sobre vacantes sospechosas (estafas, cobros por empleo, etc.)
+model VacancyFlag {
+  id         String   @id @default(cuid())
+  vacancyId  String
+  vacancy    Vacancy  @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  deviceHash String
+  reason     String
+  createdAt  DateTime @default(now())
+
+  @@unique([vacancyId, deviceHash])
+}
+
+// "Pregunté aqui": reportes de personas que fueron a un lugar (sin cuenta).
+// Un voto por dispositivo y lugar; el voto caduca a los 30 dias.
+model PlaceReport {
+  id         String   @id @default(cuid())
+  placeKey   String
+  placeName  String
+  category   String
+  lat        Float
+  lng        Float
+  hiring     Boolean
+  deviceHash String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([placeKey, deviceHash])
+  @@index([placeKey])
+  @@index([lat, lng])
+}
+
+// Cache de respuestas de OpenStreetMap (Overpass / Nominatim) para no abusar de servicios gratuitos.
+model PlaceCache {
+  key       String   @id
+  payload   Json
+  source    String
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+// Limitador de peticiones respaldado por base de datos (funciona en serverless, a diferencia de un Map en memoria).
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+}
