@@ -707,64 +707,46 @@ export default function HomePage() {
       </section>
 
       {/* 4. Selector Móvil de Vista (Feed vs Mapa) */}
-      <div className="lg:hidden flex items-center border-b border-slate-800 bg-[#0E1726]">
-        <button
-          onClick={() => setMobileTab('feed')}
-          className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-2 border-b-2 transition ${
-            mobileTab === 'feed'
-              ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
-              : 'border-transparent text-slate-400'
-          }`}
-        >
-          <span>Lista de Vacantes ({displayedPlaces.length})</span>
-        </button>
-        <button
-          onClick={() => setMobileTab('map')}
-          className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-2 border-b-2 transition ${
-            mobileTab === 'map'
-              ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
-              : 'border-transparent text-slate-400'
-          }`}
-        >
-          <MapPin className="w-3.5 h-3.5" />
-          <span>Google Maps ({displayedPlaces.length})</span>
-        </button>
-      </div>
-
-      {/* 5. Dual Screen: Mapa a la Izquierda, Feed a la Derecha */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Columna Izquierda: Mapa de Google Maps */}
-        <div className={`lg:col-span-7 h-[440px] lg:h-[calc(100vh-230px)] lg:sticky lg:top-[160px] ${mobileTab === 'map' ? 'block' : 'hidden lg:block'}`}>
-          <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+      {/* 5. Contenedor Principal: Radar Panorámico Arriba y Ofertas Debajo (Cero Espacio Vacío) */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6">
+        {/* SECCIÓN 1: Radar Panorámico Superior con Google Maps */}
+        <section className="w-full space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 bg-slate-900/80 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-800">
                 <span className="text-blue-400 font-bold">G</span>
                 <span className="text-rose-400 font-bold">o</span>
                 <span className="text-amber-400 font-bold">o</span>
                 <span className="text-blue-400 font-bold">g</span>
                 <span className="text-emerald-400 font-bold">l</span>
                 <span className="text-rose-400 font-bold">e</span>
-                <span className="text-slate-200">Maps Proximidad</span>
+                <span className="text-slate-200 ml-1 font-bold">Maps Proximidad</span>
               </span>
-              <span className="text-[11px] text-slate-400">
-                {displayedPlaces.length} comercios reales detectados
+              <span className="text-xs text-slate-400 hidden md:inline">
+                Radar satelital en vivo • Rutas a pie con minutos y pasos calculados
               </span>
             </div>
-            <div className="flex-1 h-full min-h-[400px]">
-              <MapViewer
-                center={[coords.lat, coords.lng]}
-                radiusMeters={radius}
-                places={displayedPlaces}
-                selectedPlaceId={selectedPlace ? selectedPlace.id : null}
-                onSelectPlace={(p) => setSelectedPlace(p)}
-                userLocation={userLocation}
-              />
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono font-bold text-emerald-300 bg-gradient-to-r from-emerald-950/90 to-teal-950/90 px-2.5 py-1 rounded-lg border border-emerald-500/40 shadow-sm">
+                {displayedPlaces.length} Comercios en Radio
+              </span>
             </div>
           </div>
-        </div>
 
-        {/* Columna Derecha: Feed de Oportunidades Reales */}
-        <div className={`lg:col-span-5 space-y-4 ${mobileTab === 'feed' ? 'block' : 'hidden lg:block'}`}>
+          <div className="w-full h-[360px] sm:h-[420px] lg:h-[480px] rounded-2xl overflow-hidden border border-slate-800/90 shadow-2xl relative">
+            <MapViewer
+              center={[coords.lat, coords.lng]}
+              radiusMeters={radius}
+              places={displayedPlaces}
+              selectedPlaceId={selectedPlace ? selectedPlace.id : null}
+              onSelectPlace={(p) => setSelectedPlace(p)}
+              userLocation={userLocation}
+            />
+          </div>
+        </section>
+
+        {/* SECCIÓN 2: Ofertas de Empleo Organizadas Directamente Debajo del Radar */}
+        <section className="w-full space-y-4">
           {/* Banner de Ayuda al Solicitante de Empleo (Colores Enriquecidos y Resplandor) */}
           <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900/90 to-slate-900 border border-emerald-500/30 shadow-lg shadow-emerald-950/30 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -945,16 +927,20 @@ export default function HomePage() {
               </div>
             </div>
           ) : (
-            /* Feed de Oportunidades */
+            /* Feed de Oportunidades en Grid Responsivo (2 a 3 Columnas) */
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-                <span className="font-semibold text-slate-300">
-                  {displayedPlaces.length} lugares ordenados por distancia:
+                <span className="font-bold text-slate-200 text-sm flex items-center gap-2">
+                  <span>Vacantes en tu Radio Inmediato</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-xs border border-emerald-500/40">
+                    {displayedPlaces.length} disponibles
+                  </span>
                 </span>
                 <span>🚶 Caminata estimada (80m/min)</span>
               </div>
 
-              {displayedPlaces.map((place) => {
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {displayedPlaces.map((place) => {
                 const isSelected = selectedPlace?.id === place.id;
                 const isVerified = place.status === 'VERIFIED_VACANCY';
                 const isCommunity = place.status === 'COMMUNITY_HIRING';
@@ -1159,9 +1145,10 @@ export default function HomePage() {
                   </div>
                 );
               })}
+              </div>
             </div>
           )}
-        </div>
+        </section>
       </main>
 
       {/* 6. Footer */}
