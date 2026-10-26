@@ -275,7 +275,7 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-lg shadow-emerald-950 flex items-center justify-center relative">
               <div className="w-full h-full bg-[#080D15] rounded-[10px] flex items-center justify-center overflow-hidden relative">
-                <Compass className="w-5 h-5 text-emerald-400 animate-pulse" />
+                <Compass className="w-5 h-5 text-emerald-400 animate-compass-spin" />
                 <div className="absolute inset-0 bg-emerald-500/15 rounded-full animate-sonar-wave pointer-events-none" />
               </div>
             </div>
@@ -284,7 +284,7 @@ export default function HomePage() {
                 <h1 className="font-extrabold text-lg sm:text-xl tracking-tight text-white flex items-center gap-1.5">
                   Chamba<span className="text-emerald-400">Cerca</span>
                 </h1>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 animate-liquid-shimmer">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                   Venezuela Real
                 </span>
@@ -296,9 +296,14 @@ export default function HomePage() {
           </div>
 
           {/* Ticker de Señal de Radar Central */}
-          <div className="hidden xl:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-emerald-500/30 text-xs font-semibold text-emerald-300 shadow-inner">
-            <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span>Radar Activo: {displayedPlaces.length} vacantes verificadas en tu radio</span>
+          <div className="hidden xl:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-emerald-500/40 text-xs font-semibold text-emerald-300 shadow-inner">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
+            </span>
+            <span className="font-mono text-[11px] tracking-wide">
+              RADAR ACTIVO: <strong className="text-white">{displayedPlaces.length} OFERTAS AUDITADAS</strong> EN TU RADIO
+            </span>
           </div>
 
           {/* Acciones de Cabecera & Perfil de Usuario */}
@@ -726,24 +731,27 @@ export default function HomePage() {
                   <div
                     key={place.id}
                     onClick={() => setSelectedPlace(place)}
-                    className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer relative overflow-hidden group hover:-translate-y-1 ${
+                    className={`p-4 rounded-2xl border transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1.5 ${
                       isSelected
-                        ? 'bg-slate-800/95 border-emerald-500 shadow-2xl shadow-emerald-950/50 ring-2 ring-emerald-500/80'
-                        : 'bg-[#0E1726] border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800/60 hover:shadow-xl hover:shadow-emerald-950/20'
+                        ? 'bg-slate-800/95 border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/80 animate-card-glow'
+                        : 'bg-[#0E1726] border-slate-800/90 hover:border-emerald-500/60 hover:bg-slate-800/70 hover:shadow-2xl hover:shadow-emerald-950/40'
                     }`}
                   >
+                    {/* Borde Láser Superior en Hover */}
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
                     {/* Badge Superior */}
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {isVerified && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 flex items-center gap-1 shadow-sm">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-600/70 flex items-center gap-1 shadow-sm animate-liquid-shimmer">
                             <ShieldCheck className="w-3 h-3 text-emerald-400" />
                             {place.isOfficiallyVerified ? 'Canal Oficial Verificado' : 'Vacante Activa'}
                           </span>
                         )}
                         {isWalkable && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-950/80 text-teal-300 border border-teal-700/60 flex items-center gap-1">
-                            🚶‍♂️ A pie ({place.walkTimeMinutes} min)
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-teal-950/90 text-teal-300 border border-teal-600/70 flex items-center gap-1 shadow-sm">
+                            <span className="animate-bounce">🚶‍♂️</span> A pie ({place.walkTimeMinutes} min)
                           </span>
                         )}
                         {isCommunity && (
@@ -778,8 +786,12 @@ export default function HomePage() {
                         </button>
 
                         <div className="text-right">
-                          <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/40">
-                            📍 {place.distanceFormatted}
+                          <span className="text-xs font-bold text-emerald-400 bg-emerald-950/70 px-2.5 py-0.5 rounded-full border border-emerald-800/60 flex items-center gap-1 shadow-sm">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                            </span>
+                            <span>{place.distanceFormatted}</span>
                           </span>
                         </div>
                       </div>

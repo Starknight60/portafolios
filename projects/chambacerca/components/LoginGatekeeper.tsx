@@ -256,60 +256,158 @@ export default function LoginGatekeeper({
           {/* WIDGET INTERACTIVO DE CONVERSIÓN VISUAL SEGÚN PESTAÑA */}
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#0B1220]/90 via-[#0A101C]/90 to-[#070B14]/90 border border-slate-800/90 shadow-2xl backdrop-blur-xl">
             {activeTabFeature === 'radar' && (
-              <div className="space-y-3 animate-fade-in">
+              <div className="space-y-4 animate-fade-in">
+                {/* HUD Telemetría del Simulador */}
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-white flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                    Simulando proximidad desde tu ubicación:
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
+                    </span>
+                    <span>Radar GPS Sonar en Vivo:</span>
                   </span>
-                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md font-mono font-bold">
-                    GPS Precisión: &lt; 15m
+                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono font-bold animate-pulse">
+                    GPS LOCK: &lt; 15m
                   </span>
                 </div>
 
+                {/* VISOR SONAR RADAR TÁCTICO CIRCULAR */}
+                <div className="relative w-full h-48 sm:h-56 rounded-2xl bg-slate-950/90 border border-emerald-500/30 overflow-hidden flex items-center justify-center shadow-inner">
+                  {/* Cuadrícula Táctica de Fondo */}
+                  <div 
+                    className="absolute inset-0 opacity-[0.05]" 
+                    style={{
+                      backgroundImage: 'radial-gradient(circle at 1px 1px, #10b981 1px, transparent 0)',
+                      backgroundSize: '20px 20px'
+                    }}
+                  />
+
+                  {/* Línea de Escaneo Táctica */}
+                  <div className="animate-scanline" />
+
+                  {/* Anillos Concéntricos Militares */}
+                  <div className="relative w-40 h-40 sm:w-48 sm:h-48 rounded-full border border-emerald-500/30 flex items-center justify-center">
+                    {/* Anillo de 1 km */}
+                    <div className="w-[70%] h-[70%] rounded-full border border-dashed border-teal-400/35 flex items-center justify-center">
+                      {/* Anillo de 500m (a pie) */}
+                      <div className="w-[50%] h-[50%] rounded-full border border-emerald-400/40" />
+                    </div>
+
+                    {/* Cruz Cardinal */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-full h-[1px] bg-emerald-500/20" />
+                      <div className="h-full w-[1px] bg-emerald-500/20" />
+                    </div>
+
+                    {/* Marcas de Grados */}
+                    <span className="absolute -top-3 text-[8px] font-mono font-bold text-emerald-400/80">000°</span>
+                    <span className="absolute -right-3 text-[8px] font-mono font-bold text-emerald-400/80">090°</span>
+                    <span className="absolute -bottom-3 text-[8px] font-mono font-bold text-emerald-400/80">180°</span>
+                    <span className="absolute -left-3 text-[8px] font-mono font-bold text-emerald-400/80">270°</span>
+
+                    {/* Haz Cónico Giratorio de Sonar */}
+                    <div 
+                      className="absolute inset-0 rounded-full animate-sonar-beam pointer-events-none"
+                      style={{
+                        background: 'conic-gradient(from 0deg, rgba(16, 185, 129, 0) 0deg, rgba(16, 185, 129, 0) 270deg, rgba(16, 185, 129, 0.15) 330deg, rgba(52, 211, 153, 0.55) 360deg)',
+                        borderRight: '1.5px solid rgba(52, 211, 153, 0.8)',
+                      }}
+                    />
+
+                    {/* Pin Central: Tu Ubicación GPS */}
+                    <div className="absolute z-10 flex flex-col items-center">
+                      <div className="w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-white shadow-[0_0_10px_#3B82F6]" />
+                      <span className="text-[9px] font-extrabold text-blue-300 mt-1 bg-slate-950/80 px-1 rounded shadow">Tú</span>
+                    </div>
+
+                    {/* Eco Blip 1: Automercados Plaza's (450m) */}
+                    <div className="absolute top-6 right-8 z-10 flex flex-col items-center group cursor-pointer">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-90"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_10px_#10B981]"></span>
+                      </span>
+                      <span className="text-[8px] font-bold text-emerald-300 bg-slate-950/90 px-1 py-0.2 rounded border border-emerald-500/40 mt-1 whitespace-nowrap">
+                        Plaza's • 450m
+                      </span>
+                    </div>
+
+                    {/* Eco Blip 2: Pastelería Danubio (820m) */}
+                    <div className="absolute bottom-7 right-6 z-10 flex flex-col items-center group cursor-pointer">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-90"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-400 shadow-[0_0_10px_#14B8A6]"></span>
+                      </span>
+                      <span className="text-[8px] font-bold text-teal-300 bg-slate-950/90 px-1 py-0.2 rounded border border-teal-500/40 mt-1 whitespace-nowrap">
+                        Danubio • 820m
+                      </span>
+                    </div>
+
+                    {/* Eco Blip 3: Farmatodo Express (1.8km) */}
+                    <div className="absolute bottom-9 left-6 z-10 flex flex-col items-center group cursor-pointer">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-90"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400 shadow-[0_0_10px_#06B6D4]"></span>
+                      </span>
+                      <span className="text-[8px] font-bold text-cyan-300 bg-slate-950/90 px-1 py-0.2 rounded border border-cyan-500/40 mt-1 whitespace-nowrap">
+                        Farmatodo • 1.8km
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Leyenda Telemetría HUD Inferior */}
+                  <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[9px] font-mono text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Compass className="w-2.5 h-2.5 text-emerald-400" />
+                      ESCANEO EN TIEMPO REAL
+                    </span>
+                    <span className="text-emerald-400 font-bold">3 SEÑALES A PIE</span>
+                  </div>
+                </div>
+
+                {/* Tarjetas de Oportunidades Detectadas con Hover Elevado */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
                   {/* Vacante 1 */}
-                  <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/30 flex flex-col justify-between">
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/40 hover:border-emerald-400 hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between shadow-lg shadow-emerald-950/20">
                     <div>
                       <div className="flex items-center justify-between text-[11px] mb-1">
                         <span className="font-bold text-emerald-300">Automercados Plaza's</span>
-                        <span className="text-[10px] text-emerald-400 font-extrabold bg-emerald-500/10 px-1.5 py-0.5 rounded">450m • 6 min</span>
+                        <span className="text-[10px] text-emerald-400 font-extrabold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">450m • 6 min</span>
                       </div>
                       <p className="text-xs font-semibold text-white">Cajero & Pasillero</p>
                       <p className="text-[11px] text-slate-400 mt-1">$180 - $220 + Bono</p>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-slate-800/80 text-[10px] text-emerald-400 font-medium">
-                      ✓ A pie (Cero pasajes)
+                    <div className="mt-2 pt-2 border-t border-slate-800/80 text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                      <span>🚶‍♂️</span> A pie (Cero pasajes)
                     </div>
                   </div>
 
                   {/* Vacante 2 */}
-                  <div className="p-3 rounded-xl bg-slate-900/80 border border-teal-500/30 flex flex-col justify-between">
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-teal-500/40 hover:border-teal-400 hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between shadow-lg shadow-teal-950/20">
                     <div>
                       <div className="flex items-center justify-between text-[11px] mb-1">
                         <span className="font-bold text-teal-300">Pastelería Danubio</span>
-                        <span className="text-[10px] text-teal-400 font-extrabold bg-teal-500/10 px-1.5 py-0.5 rounded">820m • 10 min</span>
+                        <span className="text-[10px] text-teal-400 font-extrabold bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-500/30">820m • 10 min</span>
                       </div>
                       <p className="text-xs font-semibold text-white">Ayudante Pastelero</p>
                       <p className="text-[11px] text-slate-400 mt-1">$220 - $280 + Almuerzo</p>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-slate-800/80 text-[10px] text-teal-400 font-medium">
-                      ✓ WhatsApp directo
+                    <div className="mt-2 pt-2 border-t border-slate-800/80 text-[10px] text-teal-400 font-medium flex items-center gap-1">
+                      <span>💬</span> WhatsApp directo
                     </div>
                   </div>
 
                   {/* Vacante 3 */}
-                  <div className="p-3 rounded-xl bg-slate-900/80 border border-cyan-500/30 flex flex-col justify-between">
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-cyan-500/40 hover:border-cyan-400 hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between shadow-lg shadow-cyan-950/20">
                     <div>
                       <div className="flex items-center justify-between text-[11px] mb-1">
                         <span className="font-bold text-cyan-300">Farmatodo Express</span>
-                        <span className="text-[10px] text-cyan-400 font-extrabold bg-cyan-500/10 px-1.5 py-0.5 rounded">1.8 km • 1 ruta</span>
+                        <span className="text-[10px] text-cyan-400 font-extrabold bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/30">1.8 km • 1 ruta</span>
                       </div>
                       <p className="text-xs font-semibold text-white">Auxiliar de Farmacia</p>
                       <p className="text-[11px] text-slate-400 mt-1">$210 - $260 + HCM</p>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-slate-800/80 text-[10px] text-cyan-400 font-medium">
-                      ✓ Transporte nocturno
+                    <div className="mt-2 pt-2 border-t border-slate-800/80 text-[10px] text-cyan-400 font-medium flex items-center gap-1">
+                      <span>🚍</span> Transporte nocturno
                     </div>
                   </div>
                 </div>
@@ -626,30 +724,38 @@ export default function LoginGatekeeper({
                 </span>
               </div>
 
-              {/* Botón Principal: Pruébalo al instante sin registrarte (Modo Invitado) */}
-              <button
-                type="button"
-                onClick={onContinueAsGuest}
-                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-slate-900 via-[#0C1527] to-slate-900 hover:from-slate-800 hover:to-[#0F1B33] border border-cyan-500/40 hover:border-cyan-400 text-white shadow-lg shadow-cyan-950/40 flex items-center justify-between transition-all group cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <MapPin className="w-5 h-5 text-cyan-400" />
+              {/* Botón Principal: Pruébalo al instante sin registrarte (Modo Invitado con Borde Láser Giratorio) */}
+              <div className="border-laser-container shadow-2xl shadow-cyan-950/60 my-2">
+                <button
+                  type="button"
+                  onClick={onContinueAsGuest}
+                  className="border-laser-content w-full py-3.5 px-4 text-white flex items-center justify-between transition-all group cursor-pointer hover:bg-slate-900"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.4)] group-hover:scale-105 transition-transform">
+                      <Radio className="w-5 h-5 text-cyan-300 animate-pulse" />
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm font-black text-white group-hover:text-cyan-300 transition-colors">
+                          Pruébalo al instante sin registrarte
+                        </span>
+                        <span className="text-[9px] font-black tracking-wider uppercase px-2 py-0.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 rounded-full font-mono shadow-sm">
+                          INVITADO
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 group-hover:text-slate-300">
+                        Entra directo al radar de Google Maps con tu GPS en tiempo real
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="text-xs font-black text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1.5">
-                      <span>Pruébalo al instante sin registrarte</span>
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-cyan-400/20 text-cyan-300 rounded border border-cyan-400/30">
-                        Invitado
-                      </span>
-                    </p>
-                    <p className="text-[10px] text-slate-400">
-                      Entra al mapa satelital interactivo y descubre vacantes en tu zona
-                    </p>
+                  <div className="flex items-center gap-1 text-cyan-400 group-hover:translate-x-1.5 transition-transform">
+                    <span className="text-xs font-bold hidden sm:inline">Explorar</span>
+                    <ArrowRight className="w-4 h-4" />
                   </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
-              </button>
+                </button>
+              </div>
 
               {/* Cuentas de Demostración Rápidas */}
               <div className="pt-1.5">
