@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { PlaceResultItem } from '@/app/api/places/route';
-import { Navigation, ExternalLink, Layers, MapPin, Eye, Radio, Sparkles, Compass, Crosshair } from 'lucide-react';
+import { Navigation, ExternalLink, Layers, MapPin, Eye, Radio, Sparkles, Compass, Crosshair, Footprints } from 'lucide-react';
 
 interface MapViewerProps {
   center: [number, number];
@@ -37,12 +37,64 @@ const GOOGLE_MAPS_LAYERS = {
   },
 };
 
-function MapController({ center, zoom }: { center: [number, number]; zoom: number }) {
+function MapController({ 
+  center, 
+  zoom, 
+  selectedPlace, 
+  userLocation 
+}: { 
+  center: [number, number]; 
+  zoom: number;
+  selectedPlace?: PlaceResultItem | null;
+  userLocation?: [number, number] | null;
+}) {
   const map = useMap();
   useEffect(() => {
-    map.flyTo(center, zoom, { duration: 1.2 });
-  }, [center, zoom, map]);
+    if (selectedPlace && userLocation) {
+      map.flyToBounds(
+        [
+          userLocation,
+          [selectedPlace.latitude, selectedPlace.longitude],
+        ],
+        { padding: [70, 70], duration: 1.2 }
+      );
+    } else {
+      map.flyTo(center, zoom, { duration: 1.2 });
+    }
+  }, [center, zoom, selectedPlace, userLocation, map]);
   return null;
+}
+
+function createWalkingBadgeIcon(walkMinutes: number, meters: number) {
+  const steps = Math.round(meters * 1.3);
+  const html = `
+    <div style="
+      background: rgba(10, 16, 28, 0.95);
+      color: #34d399;
+      border: 1.5px solid #10b981;
+      border-radius: 9999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.8), 0 4px 12px rgba(0,0,0,0.8);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    ">
+      <span style="font-size: 13px;">🚶‍♂️</span>
+      <span>${walkMinutes} min a pie</span>
+      <span style="color: #94a3b8; font-weight: 600; font-size: 10px;">(~${steps} pasos)</span>
+    </div>
+  `;
+  return L.divIcon({
+    html,
+    className: 'walking-route-midpoint-badge',
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
 }
 
 function createCustomPin(item: PlaceResultItem, isSelected: boolean) {
@@ -205,6 +257,7 @@ export default function MapViewer({
 
   const zoom = radiusMeters <= 600 ? 16 : radiusMeters <= 1500 ? 15 : radiusMeters <= 3500 ? 14 : 13;
   const currentLayer = GOOGLE_MAPS_LAYERS[mapType];
+  const selectedPlace = places.find((p) => p.id === selectedPlaceId) || null;
 
   return (
     <div className="relative w-full h-full min-h-[460px] rounded-2xl overflow-hidden border border-slate-700/80 shadow-[0_0_35px_rgba(0,0,0,0.7)] group">
@@ -233,6 +286,16 @@ export default function MapViewer({
           <span>{center[0].toFixed(4)}°N, {Math.abs(center[1]).toFixed(4)}°W</span>
           <span className="text-emerald-400 font-bold">R={radiusMeters}m</span>
         </div>
+
+        {/* Ticker de Ruta Activa Trazada */}
+        {selectedPlace && (
+          <div className="bg-emerald-950/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-emerald-400/80 text-[10px] font-mono text-emerald-300 flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
+            <Footprints className="w-3.5 h-3.5 text-emerald-300 animate-bounce shrink-0" />
+            <span className="truncate max-w-[200px] sm:max-w-[280px]">
+              RUTA: <strong>{selectedPlace.placeName}</strong> ({selectedPlace.distanceFormatted} • {selectedPlace.walkTimeMinutes} min)
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Selector Flotante de Capa & Toggle Sonar (Esquina Superior Derecha) */}
@@ -339,7 +402,7 @@ export default function MapViewer({
         scrollWheelZoom={true}
         style={{ width: '100%', height: '100%', minHeight: '460px' }}
       >
-        <MapController center={center} zoom={zoom} />
+        <MapController center={center} zoom={zoom} selectedPlace={selectedPlace} userLocation={userLocation} />
 
         {/* Capa Oficial de Google Maps */}
         <TileLayer
@@ -362,6 +425,53 @@ export default function MapViewer({
             dashArray: '6, 10',
           }}
         />
+
+        {/* =========================================================================
+            RUTA A PIE ANIMADA DIRECTA ENTRE TU GPS Y LA VACANTE SELECCIONADA
+            ========================================================================= */}
+        {selectedPlace && userLocation && (
+          <>
+            {/* Halo Neón Esmeralda Grueso de Base */}
+            <Polyline
+              positions={[
+                userLocation,
+                [selectedPlace.latitude, selectedPlace.longitude],
+              ]}
+              pathOptions={{
+                color: '#10B981',
+                weight: 8,
+                opacity: 0.35,
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            />
+
+            {/* Haz Láser Animado de Ruta a Pie */}
+            <Polyline
+              className="leaflet-walking-path"
+              positions={[
+                userLocation,
+                [selectedPlace.latitude, selectedPlace.longitude],
+              ]}
+              pathOptions={{
+                color: '#34D399',
+                weight: 4,
+                dashArray: '10, 16',
+                opacity: 0.95,
+                lineCap: 'round',
+              }}
+            />
+
+            {/* Badge Flotante en el Punto Medio de la Ruta */}
+            <Marker
+              position={[
+                (userLocation[0] + selectedPlace.latitude) / 2,
+                (userLocation[1] + selectedPlace.longitude) / 2,
+              ]}
+              icon={createWalkingBadgeIcon(selectedPlace.walkTimeMinutes, selectedPlace.distanceMeters)}
+            />
+          </>
+        )}
 
         {/* Pin de ubicación del usuario */}
         {userLocation && (

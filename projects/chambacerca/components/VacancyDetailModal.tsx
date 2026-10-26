@@ -13,9 +13,10 @@ interface VacancyDetailModalProps {
   place: PlaceResultItem | null;
   onClose: () => void;
   onOpenReport: (place: PlaceResultItem) => void;
+  onOpenCalculator?: () => void;
 }
 
-export default function VacancyDetailModal({ place, onClose, onOpenReport }: VacancyDetailModalProps) {
+export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpenCalculator }: VacancyDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'requirements' | 'apply' | 'safety'>('info');
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -233,6 +234,36 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport }: Vac
                   </div>
                 </div>
               )}
+
+              {/* Widget de Impacto Económico / Ahorro en Pasajes */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-[#0B1526] to-slate-900 border border-emerald-500/40 flex items-center justify-between gap-3 flex-wrap shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center shrink-0">
+                    <DollarSign className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-white flex items-center gap-2">
+                      <span>¿Cuánto dinero te ahorras trabajando aquí?</span>
+                      <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/40">
+                        Caminata: {place.walkTimeMinutes} min
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-300 mt-0.5">
+                      Al no pagar camioneticas diarias, tu salario rinde hasta un <strong>+25% más en comida y gastos de tu casa</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                {onOpenCalculator && (
+                  <button
+                    onClick={onOpenCalculator}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 shadow-md shadow-emerald-950 cursor-pointer"
+                  >
+                    <DollarSign className="w-3.5 h-3.5" />
+                    <span>Ver Balance en Calculadora</span>
+                  </button>
+                )}
+              </div>
 
               {/* Accesos a Google Maps */}
               <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-2 flex-wrap">
