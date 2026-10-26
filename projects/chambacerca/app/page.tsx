@@ -12,13 +12,14 @@ import AuthModal from '@/components/AuthModal';
 import LoginGatekeeper from '@/components/LoginGatekeeper';
 import SavingsCalculatorModal from '@/components/SavingsCalculatorModal';
 import CurriculumBuilderModal from '@/components/CurriculumBuilderModal';
+import { COMMERCIAL_HUBS, CommercialHub } from '@/lib/commercialHubs';
 import { playSonarPing, playSuccessChime, playTacticalClick, initSoundState, setSoundEnabled } from '@/lib/audio';
 import { 
   Compass, MapPin, Navigation, Search, Filter, RefreshCw, 
   Briefcase, MessageCircle, DollarSign, Clock, Users, ArrowUpRight, 
   ExternalLink, ChevronRight, Layers, ShieldCheck, HeartHandshake,
   AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn,
-  Radio, Zap, X, SlidersHorizontal, Volume2, VolumeX, FileText
+  Radio, Zap, X, SlidersHorizontal, Volume2, VolumeX, FileText, Sun, Utensils, Bus, GraduationCap
 } from 'lucide-react';
 
 // Carga dinámica del mapa de Google Maps sin SSR para evitar errores de hidratación
@@ -65,15 +66,25 @@ export default function HomePage() {
 
   // Estados de Búsqueda y Filtros Inteligentes
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [quickFilter, setQuickFilter] = useState<'all' | 'walk' | 'salary200' | 'immediate'>('all');
+  const [quickFilter, setQuickFilter] = useState<
+    'all' | 'walk' | 'firstJob' | 'nightTransit' | 'lunch' | 'dayShift' | 'salary200' | 'immediate'
+  >('all');
   const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
   const [isCvBuilderOpen, setIsCvBuilderOpen] = useState<boolean>(false);
   const [soundOn, setSoundOn] = useState<boolean>(false);
+  const [sunlightMode, setSunlightMode] = useState<boolean>(false);
+  const [selectedHub, setSelectedHub] = useState<string | null>(null);
 
-  // Inicializar estado de sonido
+  // Inicializar estado de sonido y modo sol de calle
   useEffect(() => {
     const active = initSoundState();
     setSoundOn(active);
+    try {
+      if (typeof window !== 'undefined') {
+        const savedSun = localStorage.getItem('chambacerca_sunlight_mode');
+        setSunlightMode(savedSun === '1');
+      }
+    } catch {}
   }, []);
 
   const handleToggleSound = () => {
@@ -83,6 +94,15 @@ export default function HomePage() {
     if (next) {
       playSuccessChime();
     }
+  };
+
+  const toggleSunlightMode = () => {
+    const next = !sunlightMode;
+    setSunlightMode(next);
+    try {
+      localStorage.setItem('chambacerca_sunlight_mode', next ? '1' : '0');
+    } catch {}
+    playTacticalClick();
   };
 
   // Verificar sesión actual al cargar
@@ -239,7 +259,7 @@ export default function HomePage() {
       }
     }
 
-    // 3. Filtro rápido de proximidad / salario / urgencia
+    // 3. Filtro rápido de proximidad / beneficios en Venezuela
     if (quickFilter === 'walk' && p.distanceMeters > 1500) return false;
     if (quickFilter === 'salary200') {
       const salary = p.salaryRange || '';
@@ -247,6 +267,26 @@ export default function HomePage() {
       if (!has200) return false;
     }
     if (quickFilter === 'immediate' && p.status !== 'VERIFIED_VACANCY') return false;
+    if (quickFilter === 'firstJob') {
+      const text = `${p.title} ${(p.requirements || []).join(' ')} ${p.description}`.toLowerCase();
+      const isFirstJobFriendly = text.includes('sin experiencia') || text.includes('primer empleo') || text.includes('aprender') || text.includes('pasillero') || text.includes('auxiliar') || text.includes('ayudante') || (p.requirements || []).length <= 2;
+      if (!isFirstJobFriendly) return false;
+    }
+    if (quickFilter === 'nightTransit') {
+      const text = `${(p.benefits || []).join(' ')} ${p.description} ${p.schedule}`.toLowerCase();
+      const hasTransit = text.includes('transporte') || text.includes('nocturno') || text.includes('salida') || text.includes('ruta');
+      if (!hasTransit) return false;
+    }
+    if (quickFilter === 'lunch') {
+      const text = `${(p.benefits || []).join(' ')} ${p.description}`.toLowerCase();
+      const hasLunch = text.includes('almuerzo') || text.includes('comida') || text.includes('refrigerio') || text.includes('alimentación') || text.includes('cesta ticket') || text.includes('cestaticket');
+      if (!hasLunch) return false;
+    }
+    if (quickFilter === 'dayShift') {
+      const text = `${p.schedule} ${p.description}`.toLowerCase();
+      const isDayShift = text.includes('mañana') || text.includes('diurno') || text.includes('fijo') || text.includes('7am') || text.includes('8am');
+      if (!isDayShift) return false;
+    }
 
     return true;
   });
@@ -281,7 +321,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080D15] text-slate-100 flex flex-col font-sans">
+    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${sunlightMode ? 'street-sunlight-mode' : 'bg-[#080D15] text-slate-100'}`}>
       {/* 1. Alerta Superior Anti-Estafas en Venezuela */}
       <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-b border-emerald-800/40 px-4 py-1.5 text-center text-[11px] text-emerald-300 flex items-center justify-center gap-2">
         <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -388,6 +428,20 @@ export default function HomePage() {
             >
               {soundOn ? <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
               <span className="hidden xl:inline text-[10px] font-mono">{soundOn ? 'AUDIO ON' : 'AUDIO OFF'}</span>
+            </button>
+
+            {/* Toggle de Modo Sol de Calle */}
+            <button
+              onClick={toggleSunlightMode}
+              className={`p-1.5 px-2 rounded-xl text-xs font-bold border transition flex items-center gap-1 cursor-pointer ${
+                sunlightMode
+                  ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-md font-black'
+                  : 'bg-slate-900/80 text-amber-300 border-slate-800 hover:text-white hover:border-amber-500/50'
+              }`}
+              title={sunlightMode ? 'Desactivar modo sol de calle' : 'Activar Modo Sol de Calle (Alto contraste para buscar bajo el sol)'}
+            >
+              <Sun className={`w-3.5 h-3.5 ${sunlightMode ? 'fill-current text-slate-950' : 'text-amber-400'}`} />
+              <span className="hidden xl:inline text-[10px] font-mono">{sunlightMode ? 'SOL ON' : 'SOL'}</span>
             </button>
 
             {/* Estado de Sesión del Usuario */}
@@ -562,6 +616,41 @@ export default function HomePage() {
               })}
             </div>
           </div>
+
+          {/* Fila 3: Polos y Hubs Comerciales de Empleo en Venezuela */}
+          <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar border-t border-slate-800/60 text-xs">
+            <span className="text-[10px] font-extrabold text-cyan-400 uppercase tracking-wider flex items-center gap-1 shrink-0 mr-1">
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+              <span>Polos Comerciales:</span>
+            </span>
+            {COMMERCIAL_HUBS.map((hub) => {
+              const isSelected = Math.abs(coords.lat - hub.lat) < 0.015 && Math.abs(coords.lng - hub.lng) < 0.015;
+              return (
+                <button
+                  key={hub.id}
+                  onClick={() => {
+                    setCoords({ lat: hub.lat, lng: hub.lng });
+                    setUserLocation([hub.lat, hub.lng]);
+                    setRadius(2000);
+                    setSelectedHub(hub.id);
+                    playSonarPing();
+                  }}
+                  className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer ${
+                    isSelected
+                      ? 'bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/30'
+                      : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800'
+                  }`}
+                  title={hub.description}
+                >
+                  <span>{hub.icon}</span>
+                  <span>{hub.name.split(' / ')[0]}</span>
+                  <span className={`text-[9px] px-1 rounded ${isSelected ? 'bg-slate-950 text-cyan-300 font-bold' : 'text-slate-500'}`}>
+                    {hub.cityName}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -666,7 +755,7 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Filtros Rápidos */}
+            {/* Filtros Rápidos de Beneficios en Venezuela */}
             <div className="flex items-center gap-1.5 flex-wrap text-xs">
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mr-1">
                 Filtros:
@@ -684,14 +773,47 @@ export default function HomePage() {
               </button>
               <button
                 type="button"
-                onClick={() => setQuickFilter(quickFilter === 'immediate' ? 'all' : 'immediate')}
+                onClick={() => setQuickFilter(quickFilter === 'firstJob' ? 'all' : 'firstJob')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
-                  quickFilter === 'immediate'
-                    ? 'bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/30'
+                  quickFilter === 'firstJob'
+                    ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30'
                     : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
                 }`}
               >
-                <span>⚡ Inmediata</span>
+                <span>🎓 Primer Empleo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickFilter(quickFilter === 'nightTransit' ? 'all' : 'nightTransit')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                  quickFilter === 'nightTransit'
+                    ? 'bg-purple-500 text-slate-950 shadow-sm shadow-purple-500/30'
+                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <span>🚌 Transp. Nocturno</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickFilter(quickFilter === 'lunch' ? 'all' : 'lunch')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                  quickFilter === 'lunch'
+                    ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30'
+                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <span>🍲 Con Almuerzo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickFilter(quickFilter === 'dayShift' ? 'all' : 'dayShift')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                  quickFilter === 'dayShift'
+                    ? 'bg-teal-500 text-slate-950 shadow-sm shadow-teal-500/30'
+                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <span>☀️ Turno Diurno</span>
               </button>
               <button
                 type="button"

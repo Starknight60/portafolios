@@ -221,6 +221,45 @@
   }
 }
 
+/* =========================================================================
+   MODO SOL DE CALLE (ALTO CONTRASTE PARA BÚSQUEDA BAJO EL SOL EN VENEZUELA)
+   ========================================================================= */
+.street-sunlight-mode {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+.street-sunlight-mode .bg-\[\#080D15\],
+.street-sunlight-mode .bg-\[\#070A13\],
+.street-sunlight-mode .bg-\[\#060A12\],
+.street-sunlight-mode .bg-\[\#0A101C\],
+.street-sunlight-mode .bg-\[\#0B131F\],
+.street-sunlight-mode .bg-\[\#0E1726\] {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+
+.street-sunlight-mode .text-slate-400,
+.street-sunlight-mode .text-slate-500 {
+  color: #334155 !important;
+}
+
+.street-sunlight-mode .text-white {
+  color: #020617 !important;
+}
+
+.street-sunlight-mode .border-slate-800,
+.street-sunlight-mode .border-slate-700 {
+  border-color: #CBD5E1 !important;
+}
+
+.street-sunlight-mode .bg-slate-900,
+.street-sunlight-mode .bg-slate-950 {
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
+}
+
 /* Clases Utilitarias de Animación */
 .animate-radar-pulse {
   animation: radar-pulse 2.2s infinite ease-in-out;
