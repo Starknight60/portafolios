@@ -17,7 +17,7 @@ import { playSonarPing, playSuccessChime, playTacticalClick, initSoundState, set
 import { 
   Compass, MapPin, Navigation, Search, Filter, RefreshCw, 
   Briefcase, MessageCircle, DollarSign, Clock, Users, ArrowUpRight, 
-  ExternalLink, ChevronRight, Layers, ShieldCheck, HeartHandshake,
+  ExternalLink, ChevronRight, ChevronDown, Layers, ShieldCheck, HeartHandshake,
   AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn,
   Radio, Zap, X, SlidersHorizontal, Volume2, VolumeX, FileText, Sun, Utensils, Bus, GraduationCap
 } from 'lucide-react';
@@ -71,6 +71,7 @@ export default function HomePage() {
   >('all');
   const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
   const [isCvBuilderOpen, setIsCvBuilderOpen] = useState<boolean>(false);
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState<boolean>(false);
   const [soundOn, setSoundOn] = useState<boolean>(false);
   const [sunlightMode, setSunlightMode] = useState<boolean>(false);
   const [selectedHub, setSelectedHub] = useState<string | null>(null);
@@ -322,155 +323,207 @@ export default function HomePage() {
 
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${sunlightMode ? 'street-sunlight-mode' : 'bg-[#080D15] text-slate-100'}`}>
-      {/* 1. Alerta Superior Anti-Estafas en Venezuela */}
-      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-b border-emerald-800/40 px-4 py-1.5 text-center text-[11px] text-emerald-300 flex items-center justify-center gap-2">
-        <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-        <span>
-          <strong>Información 100% Real y Verificada:</strong> Canales oficiales de CompuTrabajo, LinkedIn, Instagram y WhatsApp corporativo sin intermediarios fraudulentos.
-        </span>
-      </div>
-
-      {/* 2. Header Principal con Autenticación de Usuario */}
-      <header className="sticky top-0 z-[100] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Logo & Marca con Animación de Radar */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-lg shadow-emerald-950 flex items-center justify-center relative">
-              <div className="w-full h-full bg-[#080D15] rounded-[10px] flex items-center justify-center overflow-hidden relative">
-                <Compass className="w-5 h-5 text-emerald-400 animate-compass-spin" />
+      {/* Header Principal Compacto y Elegante */}
+      <header className="sticky top-0 z-[100] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 py-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          {/* Logo & Marca Compacta con Compás Animado */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-md shadow-emerald-950/60 flex items-center justify-center relative">
+              <div className="w-full h-full bg-[#080D15] rounded-[9px] flex items-center justify-center overflow-hidden relative">
+                <Compass className="w-4 h-4 text-emerald-400 animate-compass-spin" />
                 <div className="absolute inset-0 bg-emerald-500/15 rounded-full animate-sonar-wave pointer-events-none" />
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-extrabold text-lg sm:text-xl tracking-tight text-white flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <h1 className="font-extrabold text-base sm:text-lg tracking-tight text-white flex items-center gap-0.5">
                   Chamba<span className="text-emerald-400">Cerca</span>
                 </h1>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 animate-liquid-shimmer">
+                <span className="hidden sm:inline-flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  Venezuela Real
+                  Venezuela
+                </span>
+                <span className="hidden md:inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400/90 px-1.5 py-0.5 rounded-full bg-emerald-950/40 border border-emerald-800/40">
+                  <ShieldCheck className="w-2.5 h-2.5 text-emerald-400" />
+                  100% Verificado
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden xs:block">
-                Radar de empleo local por GPS • Google Maps en vivo
-              </p>
             </div>
           </div>
 
-          {/* Ticker de Señal de Radar Central */}
-          <div className="hidden xl:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-emerald-500/40 text-xs font-semibold text-emerald-300 shadow-inner">
-            <span className="relative flex h-2.5 w-2.5">
+          {/* Ticker de Señal de Radar Central (Esbelto en 1 sola línea) */}
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-emerald-500/30 text-xs font-semibold text-emerald-300 shadow-inner shrink-0">
+            <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
             </span>
-            <span className="font-mono text-[11px] tracking-wide">
-              RADAR ACTIVO: <strong className="text-white">{displayedPlaces.length} OFERTAS AUDITADAS</strong> EN TU RADIO
+            <span className="font-mono text-[11px] tracking-tight whitespace-nowrap">
+              RADAR ACTIVO: <strong className="text-white font-bold">{displayedPlaces.length} OFERTAS</strong> EN RADIO
             </span>
           </div>
 
-          {/* Acciones de Cabecera & Perfil de Usuario */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={() => {
-                if (places.length > 0) {
-                  setReportTargetPlace(places[0]);
-                } else {
-                  alert('Selecciona primero un comercio para aportar tu reporte vecinal.');
-                }
-              }}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-950/50 hover:bg-amber-900/40 text-amber-300 border border-amber-800/50 transition"
-            >
-              <span>📢 Fui a preguntar</span>
-            </button>
-
+          {/* Acciones de Cabecera: Botones Primarios, Herramientas y Toggles */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Botón Primario: Publicar Empleo */}
             <button
               onClick={() => setIsEmployerModalOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-md shadow-emerald-950"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm cursor-pointer whitespace-nowrap"
             >
               <Briefcase className="w-3.5 h-3.5" />
-              <span>Publicar Empleo</span>
+              <span className="hidden xs:inline">Publicar</span>
+              <span className="xs:hidden">+</span>
             </button>
 
-            {/* Botón Calculadora de Ahorro */}
-            <button
-              onClick={() => {
-                setIsCalculatorOpen(true);
-                playTacticalClick();
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 hover:border-emerald-400 transition shadow-sm cursor-pointer"
-            >
-              <DollarSign className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              <span className="hidden md:inline">Calculadora de Ahorro</span>
-              <span className="md:hidden">Ahorro</span>
-            </button>
+            {/* Menú Desplegable de Herramientas (Ahorro, CV, Aporte Vecinal, Portafolio) */}
+            <div className="relative">
+              <button
+                onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+                className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition cursor-pointer whitespace-nowrap ${
+                  isToolsMenuOpen
+                    ? 'bg-slate-800 text-emerald-300 border-emerald-500/50'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700/80'
+                }`}
+                title="Herramientas adicionales de ChambaCerca"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Herramientas</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isToolsMenuOpen ? 'rotate-180 text-emerald-400' : ''}`} />
+              </button>
 
-            {/* Botón Generador de CV Rápido */}
-            <button
-              onClick={() => {
-                setIsCvBuilderOpen(true);
-                playTacticalClick();
-              }}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 transition shadow-sm cursor-pointer"
-            >
-              <FileText className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Generar CV (1 Pág)</span>
-            </button>
+              {isToolsMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-[105]"
+                    onClick={() => setIsToolsMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-64 bg-[#0E1726] border border-slate-700/90 rounded-2xl shadow-2xl p-2 z-[110] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2.5 py-1 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                      Herramientas de Búsqueda
+                    </div>
 
-            {/* Toggle de Sonido Sonar Táctico */}
+                    <button
+                      onClick={() => {
+                        setIsToolsMenuOpen(false);
+                        setIsCalculatorOpen(true);
+                        playTacticalClick();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-emerald-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center shrink-0">
+                        <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-100">Calculadora de Pasaje</p>
+                        <p className="text-[10px] text-slate-400">Gasto en camionetica vs salario real</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsToolsMenuOpen(false);
+                        setIsCvBuilderOpen(true);
+                        playTacticalClick();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-cyan-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center shrink-0">
+                        <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-100">Generar CV (1 Página)</p>
+                        <p className="text-[10px] text-slate-400">PDF para imprimir y WhatsApp</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsToolsMenuOpen(false);
+                        if (places.length > 0) {
+                          setReportTargetPlace(places[0]);
+                        } else {
+                          alert('Selecciona primero un comercio para aportar tu reporte vecinal.');
+                        }
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-amber-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-amber-950/80 border border-amber-800/60 flex items-center justify-center shrink-0">
+                        <span className="text-xs">📢</span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-100">Fui a preguntar</p>
+                        <p className="text-[10px] text-slate-400">Aporte vecinal de vacantes vistas</p>
+                      </div>
+                    </button>
+
+                    <div className="my-1 border-t border-slate-800" />
+
+                    <a
+                      href="https://portafolios-rho.vercel.app"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-xl transition"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Globe className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Ver Portafolio</span>
+                      </span>
+                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Toggle de Sonido Sonar Táctico (Icono Compacto de 32x32px) */}
             <button
               onClick={handleToggleSound}
-              className={`p-1.5 px-2 rounded-xl text-xs font-bold border transition flex items-center gap-1 cursor-pointer ${
+              className={`w-8 h-8 rounded-lg text-xs font-bold border transition flex items-center justify-center cursor-pointer shrink-0 ${
                 soundOn
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
                   : 'bg-slate-900/80 text-slate-500 border-slate-800 hover:text-slate-300'
               }`}
               title={soundOn ? 'Sonido sonar activo (clic para silenciar)' : 'Activar efectos de sonido de radar táctico'}
             >
-              {soundOn ? <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
-              <span className="hidden xl:inline text-[10px] font-mono">{soundOn ? 'AUDIO ON' : 'AUDIO OFF'}</span>
+              {soundOn ? <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" /> : <VolumeX className="w-4 h-4" />}
             </button>
 
-            {/* Toggle de Modo Sol de Calle */}
+            {/* Toggle de Modo Sol de Calle (Icono Compacto de 32x32px) */}
             <button
               onClick={toggleSunlightMode}
-              className={`p-1.5 px-2 rounded-xl text-xs font-bold border transition flex items-center gap-1 cursor-pointer ${
+              className={`w-8 h-8 rounded-lg text-xs font-bold border transition flex items-center justify-center cursor-pointer shrink-0 ${
                 sunlightMode
                   ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-md font-black'
                   : 'bg-slate-900/80 text-amber-300 border-slate-800 hover:text-white hover:border-amber-500/50'
               }`}
               title={sunlightMode ? 'Desactivar modo sol de calle' : 'Activar Modo Sol de Calle (Alto contraste para buscar bajo el sol)'}
             >
-              <Sun className={`w-3.5 h-3.5 ${sunlightMode ? 'fill-current text-slate-950' : 'text-amber-400'}`} />
-              <span className="hidden xl:inline text-[10px] font-mono">{sunlightMode ? 'SOL ON' : 'SOL'}</span>
+              <Sun className={`w-4 h-4 ${sunlightMode ? 'fill-current text-slate-950' : 'text-amber-400'}`} />
             </button>
 
-            {/* Estado de Sesión del Usuario */}
+            {/* Estado de Sesión del Usuario (Esbelto y Compacto) */}
             {currentUser ? (
-              <div className="flex items-center gap-2 bg-slate-900/90 p-1 pl-2.5 rounded-xl border border-slate-700/80">
-                <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">
+              <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 pl-2 rounded-xl border border-slate-800 shrink-0">
+                <div className="w-6 h-6 rounded-md bg-emerald-600 text-white font-extrabold text-[11px] flex items-center justify-center shrink-0">
                   {currentUser.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="hidden sm:block text-left pr-1">
-                  <p className="text-xs font-bold text-slate-100 leading-tight line-clamp-1">{currentUser.name}</p>
-                  <p className="text-[10px] text-emerald-400 font-semibold">
-                    {currentUser.role === 'EMPLOYER' ? 'Comercio / Empleador' : 'Buscador de Chamba'}
-                  </p>
+                <div className="hidden md:block text-left pr-1 max-w-[100px]">
+                  <p className="text-xs font-bold text-slate-100 truncate leading-tight">{currentUser.name}</p>
                 </div>
 
                 <button
                   onClick={() => setFilterSavedOnly(!filterSavedOnly)}
-                  className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                  className={`p-1 rounded-md text-xs font-semibold flex items-center gap-0.5 transition ${
                     filterSavedOnly ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-amber-300'
                   }`}
                   title="Ver oportunidades guardadas"
                 >
                   <Star className="w-3.5 h-3.5 fill-current" />
-                  <span className="text-[11px]">{savedIds.length}</span>
+                  {savedIds.length > 0 && <span className="text-[10px] font-bold">{savedIds.length}</span>}
                 </button>
 
                 <button
                   onClick={handleLogout}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 transition"
+                  className="p-1 rounded-md text-slate-400 hover:text-rose-400 transition"
                   title="Cerrar sesión"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -479,44 +532,34 @@ export default function HomePage() {
             ) : (
               <button
                 onClick={() => setIsGuestMode(false)}
-                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-md shadow-emerald-950 transition cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-sm transition cursor-pointer shrink-0"
               >
                 <LogIn className="w-3.5 h-3.5" />
-                <span>Iniciar Sesión</span>
+                <span>Acceder</span>
               </button>
             )}
-
-            <a
-              href="https://portafolios-rho.vercel.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden lg:flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-xl transition border border-slate-800"
-            >
-              <span>Portafolio</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </a>
           </div>
         </div>
       </header>
 
-      {/* 3. Barra de Control Geográfico & Selector de Ciudades de Venezuela */}
-      <section className="bg-[#0B131F] border-b border-slate-800/80 px-4 sm:px-6 py-3.5">
-        <div className="max-w-7xl mx-auto space-y-3">
+      {/* 3. Barra de Control Geográfico & Selector de Ciudades de Venezuela (Optimizada y Esbelta) */}
+      <section className="bg-[#0B131F] border-b border-slate-800/80 px-3 sm:px-6 py-2">
+        <div className="max-w-7xl mx-auto space-y-2">
           {/* Fila 1: Botón GPS, Selector de Ciudad Nacional y Selector de Radio */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 flex-wrap">
               {/* Botón GPS */}
               <button
                 onClick={handleRequestLocation}
                 disabled={gpsLoading}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 text-xs font-bold transition shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 text-xs font-bold transition shadow-sm"
               >
                 <Navigation className={`w-3.5 h-3.5 text-emerald-400 ${gpsLoading ? 'animate-spin' : ''}`} />
-                <span>{gpsLoading ? 'Obteniendo GPS...' : '📍 Mi Ubicación GPS'}</span>
+                <span>{gpsLoading ? 'GPS...' : '📍 Mi GPS'}</span>
               </button>
 
               {/* Selector de Ciudades en Toda Venezuela */}
-              <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar max-w-full md:max-w-xl">
+              <div className="flex items-center gap-1 overflow-x-auto py-0.5 no-scrollbar max-w-full md:max-w-xl">
                 <span className="text-[11px] text-slate-400 mr-1 hidden sm:inline whitespace-nowrap">Ciudades:</span>
                 {VENEZUELA_CITIES.map((city) => {
                   const isActive = Math.abs(coords.lat - city.lat) < 0.05 && Math.abs(coords.lng - city.lng) < 0.05;
@@ -541,13 +584,13 @@ export default function HomePage() {
             </div>
 
             {/* Selector de Radio de Distancia */}
-            <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 self-start md:self-auto overflow-x-auto">
-              <span className="text-[11px] text-slate-400 px-2 font-medium">Radio:</span>
+            <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 self-start md:self-auto overflow-x-auto">
+              <span className="text-[11px] text-slate-400 px-1.5 font-medium">Radio:</span>
               {RADIUS_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => setRadius(opt.value)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition ${
+                  className={`px-2 py-0.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
                     radius === opt.value
                       ? 'bg-emerald-600 text-white font-bold shadow'
                       : 'text-slate-400 hover:text-slate-200'
