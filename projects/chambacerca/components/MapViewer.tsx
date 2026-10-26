@@ -98,31 +98,35 @@ function createWalkingBadgeIcon(walkMinutes: number, meters: number) {
 }
 
 function createCustomPin(item: PlaceResultItem, isSelected: boolean) {
-  let bgColor = '#10B981'; // Emerald para vacantes verificadas
-  let borderColor = '#059669';
-  let glowColor = 'rgba(16, 185, 129, 0.6)';
+  let bgGradient = 'linear-gradient(135deg, #10B981 0%, #059669 100%)'; // Emerald vivo
+  let borderColor = '#34D399';
+  let glowColor = 'rgba(16, 185, 129, 0.75)';
+  let arrowColor = '#059669';
   let iconHtml = '💼';
 
   if (item.status === 'COMMUNITY_HIRING') {
-    bgColor = '#F59E0B'; // Ámbar
-    borderColor = '#D97706';
-    glowColor = 'rgba(245, 158, 11, 0.6)';
+    bgGradient = 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'; // Ámbar dorado
+    borderColor = '#FCD34D';
+    glowColor = 'rgba(245, 158, 11, 0.75)';
+    arrowColor = '#D97706';
     iconHtml = '📢';
   } else if (item.status === 'COMMUNITY_NOT_HIRING') {
-    bgColor = '#64748B';
-    borderColor = '#475569';
+    bgGradient = 'linear-gradient(135deg, #64748B 0%, #475569 100%)';
+    borderColor = '#94A3B8';
     glowColor = 'rgba(100, 116, 139, 0.4)';
+    arrowColor = '#475569';
     iconHtml = '❌';
   } else if (item.status === 'POTENTIAL_PLACE') {
-    bgColor = '#3B82F6';
-    borderColor = '#2563EB';
-    glowColor = 'rgba(59, 130, 246, 0.6)';
+    bgGradient = 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)'; // Azul Zafiro
+    borderColor = '#93C5FD';
+    glowColor = 'rgba(59, 130, 246, 0.75)';
+    arrowColor = '#1D4ED8';
     iconHtml = '🏬';
   }
 
   const selectedAnimation = isSelected 
-    ? 'transform: scale(1.18); box-shadow: 0 0 22px 6px #10B981; border: 2.5px solid #ffffff;' 
-    : 'box-shadow: 0 4px 14px rgba(0,0,0,0.6);';
+    ? 'transform: scale(1.18); box-shadow: 0 0 0 2px #ffffff, 0 0 24px 6px #10B981; border: 2px solid #ffffff;' 
+    : `box-shadow: 0 4px 14px rgba(0,0,0,0.6), 0 0 10px ${glowColor};`;
 
   const html = `
     <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);">
@@ -142,24 +146,25 @@ function createCustomPin(item: PlaceResultItem, isSelected: boolean) {
       <div style="
         position: relative;
         z-index: 1;
-        background: ${bgColor};
+        background: ${bgGradient};
         color: white;
-        border: 2px solid ${borderColor};
+        border: 1.5px solid ${borderColor};
         border-radius: 9999px;
-        padding: 5px 9px;
+        padding: 5px 10px;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 800;
         display: flex;
         align-items: center;
         gap: 5px;
         white-space: nowrap;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.4);
         ${selectedAnimation}
       ">
-        <span style="font-size: 13px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));">${iconHtml}</span>
+        <span style="font-size: 13px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));">${iconHtml}</span>
         <span style="max-width: 110px; overflow: hidden; text-overflow: ellipsis; font-size: 11px; letter-spacing: -0.2px;">
           ${item.placeName.split(' ').slice(0, 2).join(' ')}
         </span>
-        ${isSelected ? '<span style="color: #6ee7b7; font-size: 9px; font-weight: 900; background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 4px;">ACTIVA</span>' : ''}
+        ${isSelected ? '<span style="color: #6ee7b7; font-size: 9px; font-weight: 900; background: rgba(0,0,0,0.5); padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(110,231,183,0.5);">ACTIVA</span>' : ''}
       </div>
 
       <!-- Triángulo inferior -->
@@ -168,7 +173,7 @@ function createCustomPin(item: PlaceResultItem, isSelected: boolean) {
         height: 0;
         border-left: 6px solid transparent;
         border-right: 6px solid transparent;
-        border-top: 6px solid ${bgColor};
+        border-top: 6px solid ${arrowColor};
         margin-top: -1px;
         z-index: 1;
         filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));

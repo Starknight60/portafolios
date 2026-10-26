@@ -322,7 +322,16 @@ export default function HomePage() {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${sunlightMode ? 'street-sunlight-mode' : 'bg-[#080D15] text-slate-100'}`}>
+    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${sunlightMode ? 'street-sunlight-mode' : 'bg-[#080D15] text-slate-100'} relative overflow-hidden`}>
+      {/* Orbes de Iluminación Ambiental de Fondo (Mantiene los colores originales con mayor riqueza y profundidad) */}
+      {!sunlightMode && (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-emerald-500/[0.08] rounded-full blur-[130px]" />
+          <div className="absolute top-1/3 -right-32 w-96 h-96 bg-cyan-500/[0.06] rounded-full blur-[140px]" />
+          <div className="absolute -bottom-32 left-1/3 w-[500px] h-[350px] bg-blue-600/[0.05] rounded-full blur-[160px]" />
+        </div>
+      )}
+
       {/* Header Principal Compacto y Elegante */}
       <header className="sticky top-0 z-[100] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 py-2">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
@@ -632,7 +641,7 @@ export default function HomePage() {
                 onClick={() => setSelectedCategory('all')}
                 className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition flex items-center gap-1.5 border ${
                   selectedCategory === 'all'
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-bold'
+                    ? 'bg-gradient-to-r from-emerald-500/25 to-teal-500/20 text-emerald-300 border-emerald-400/60 font-bold shadow-[0_0_10px_rgba(16,185,129,0.25)]'
                     : 'bg-slate-900/60 text-slate-400 border-slate-800/60 hover:text-slate-200'
                 }`}
               >
@@ -648,7 +657,7 @@ export default function HomePage() {
                     onClick={() => setSelectedCategory(cat.id)}
                     className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition flex items-center gap-1.5 border ${
                       isSelected
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-bold'
+                        ? 'bg-gradient-to-r from-emerald-500/25 to-teal-500/20 text-emerald-300 border-emerald-400/60 font-bold shadow-[0_0_10px_rgba(16,185,129,0.25)]'
                         : 'bg-slate-900/60 text-slate-400 border-slate-800/60 hover:text-slate-200'
                     }`}
                   >
@@ -680,8 +689,8 @@ export default function HomePage() {
                   }}
                   className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer ${
                     isSelected
-                      ? 'bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/30'
-                      : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800'
+                      ? 'bg-gradient-to-r from-cyan-400 to-teal-400 text-slate-950 font-black shadow-[0_0_12px_rgba(6,182,212,0.45)]'
+                      : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 hover:border-slate-700'
                   }`}
                   title={hub.description}
                 >
@@ -756,17 +765,17 @@ export default function HomePage() {
 
         {/* Columna Derecha: Feed de Oportunidades Reales */}
         <div className={`lg:col-span-5 space-y-4 ${mobileTab === 'feed' ? 'block' : 'hidden lg:block'}`}>
-          {/* Banner de Ayuda al Solicitante de Empleo */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/50 via-slate-900 to-slate-900 border border-emerald-800/40 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-xl bg-emerald-900/60 text-emerald-400 shrink-0 mt-0.5">
-                <HeartHandshake className="w-5 h-5" />
+          {/* Banner de Ayuda al Solicitante de Empleo (Colores Enriquecidos y Resplandor) */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900/90 to-slate-900 border border-emerald-500/30 shadow-lg shadow-emerald-950/30 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="flex items-start gap-3 relative z-1">
+              <div className="p-2 rounded-xl bg-emerald-950/90 border border-emerald-600/60 text-emerald-400 shrink-0 mt-0.5 shadow-sm shadow-emerald-950">
+                <HeartHandshake className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
                 <h3 className="font-bold text-sm text-white flex items-center gap-2">
                   <span>¿Buscando trabajo cerca de ti?</span>
-                  <span className="text-[10px] font-extrabold px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
                     Cero Estafas
                   </span>
                 </h3>
@@ -786,7 +795,7 @@ export default function HomePage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar por cargo, comercio o requisito (ej: cajero, farmacia, panadero, ventas)..."
-                className="w-full pl-10 pr-9 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+                className="w-full pl-10 pr-9 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/30 transition"
               />
               {searchQuery && (
                 <button
@@ -798,7 +807,7 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Filtros Rápidos de Beneficios en Venezuela */}
+            {/* Filtros Rápidos con Gradientes y Luces de Neón Mejoradas */}
             <div className="flex items-center gap-1.5 flex-wrap text-xs">
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mr-1">
                 Filtros:
@@ -808,8 +817,8 @@ export default function HomePage() {
                 onClick={() => setQuickFilter(quickFilter === 'walk' ? 'all' : 'walk')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
                   quickFilter === 'walk'
-                    ? 'bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/30'
-                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 text-slate-950 shadow-[0_0_14px_rgba(16,185,129,0.5)] font-black'
+                    : 'bg-slate-900/90 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200'
                 }`}
               >
                 <span>🚶‍♂️ A pie (&lt; 1.5 km)</span>
@@ -819,8 +828,8 @@ export default function HomePage() {
                 onClick={() => setQuickFilter(quickFilter === 'firstJob' ? 'all' : 'firstJob')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
                   quickFilter === 'firstJob'
-                    ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30'
-                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 text-slate-950 shadow-[0_0_14px_rgba(6,182,212,0.5)] font-black'
+                    : 'bg-slate-900/90 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200'
                 }`}
               >
                 <span>🎓 Primer Empleo</span>
@@ -830,8 +839,8 @@ export default function HomePage() {
                 onClick={() => setQuickFilter(quickFilter === 'nightTransit' ? 'all' : 'nightTransit')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
                   quickFilter === 'nightTransit'
-                    ? 'bg-purple-500 text-slate-950 shadow-sm shadow-purple-500/30'
-                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-purple-500 via-fuchsia-500 to-indigo-500 text-white shadow-[0_0_14px_rgba(168,85,247,0.5)] font-black'
+                    : 'bg-slate-900/90 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200'
                 }`}
               >
                 <span>🚌 Transp. Nocturno</span>
@@ -841,8 +850,8 @@ export default function HomePage() {
                 onClick={() => setQuickFilter(quickFilter === 'lunch' ? 'all' : 'lunch')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
                   quickFilter === 'lunch'
-                    ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30'
-                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-orange-400 text-slate-950 shadow-[0_0_14px_rgba(245,158,11,0.5)] font-black'
+                    : 'bg-slate-900/90 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200'
                 }`}
               >
                 <span>🍲 Con Almuerzo</span>
@@ -852,8 +861,8 @@ export default function HomePage() {
                 onClick={() => setQuickFilter(quickFilter === 'dayShift' ? 'all' : 'dayShift')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
                   quickFilter === 'dayShift'
-                    ? 'bg-teal-500 text-slate-950 shadow-sm shadow-teal-500/30'
-                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 shadow-[0_0_14px_rgba(20,184,166,0.5)] font-black'
+                    : 'bg-slate-900/90 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200'
                 }`}
               >
                 <span>☀️ Turno Diurno</span>
@@ -863,8 +872,8 @@ export default function HomePage() {
                 onClick={() => setQuickFilter(quickFilter === 'salary200' ? 'all' : 'salary200')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
                   quickFilter === 'salary200'
-                    ? 'bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/30'
-                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500 text-slate-950 shadow-[0_0_14px_rgba(16,185,129,0.5)] font-black'
+                    : 'bg-slate-900/90 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200'
                 }`}
               >
                 <span>💰 &gt; $200/mes</span>
@@ -959,8 +968,8 @@ export default function HomePage() {
                     onClick={() => setSelectedPlace(place)}
                     className={`p-4 rounded-2xl border transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1.5 ${
                       isSelected
-                        ? 'bg-slate-800/95 border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/80 animate-card-glow'
-                        : 'bg-[#0E1726] border-slate-800/90 hover:border-emerald-500/60 hover:bg-slate-800/70 hover:shadow-2xl hover:shadow-emerald-950/40'
+                        ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-[#0C1524] border-emerald-400 shadow-[0_0_28px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/80 animate-card-glow'
+                        : 'bg-gradient-to-br from-[#0E1726] via-[#0C1523] to-[#090F1A] border-slate-800/90 hover:border-emerald-500/60 hover:bg-slate-800/80 hover:shadow-2xl hover:shadow-emerald-950/50'
                     }`}
                   >
                     {/* Borde Láser Superior en Hover */}
@@ -970,27 +979,27 @@ export default function HomePage() {
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {isVerified && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-600/70 flex items-center gap-1 shadow-sm animate-liquid-shimmer">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-500/70 flex items-center gap-1 shadow-sm shadow-emerald-950/60 animate-liquid-shimmer">
                             <ShieldCheck className="w-3 h-3 text-emerald-400" />
                             {place.isOfficiallyVerified ? 'Canal Oficial Verificado' : 'Vacante Activa'}
                           </span>
                         )}
                         {isWalkable && (
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-teal-950/90 text-teal-300 border border-teal-600/70 flex items-center gap-1 shadow-sm">
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-teal-950/90 text-teal-300 border border-teal-500/70 flex items-center gap-1 shadow-sm shadow-teal-950/60">
                             <span className="animate-bounce">🚶‍♂️</span> A pie ({place.walkTimeMinutes} min)
                           </span>
                         )}
                         {isCommunity && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-950 text-amber-300 border border-amber-800">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-950 text-amber-300 border border-amber-500/70 shadow-sm shadow-amber-950/60">
                             📢 Reporte Vecinal
                           </span>
                         )}
                         {isPotential && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-950 text-blue-300 border border-blue-900/80">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-950 text-blue-300 border border-blue-600/70 shadow-sm shadow-blue-950/60">
                             🏬 Comercio Real
                           </span>
                         )}
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-400 font-medium">
                           {place.categoryIcon} {place.categoryLabel}
                         </span>
                       </div>
@@ -1003,8 +1012,8 @@ export default function HomePage() {
                           }}
                           className={`p-1.5 rounded-lg border transition cursor-pointer ${
                             isSaved
-                              ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
-                              : 'bg-slate-900/80 border-slate-800 text-slate-500 hover:text-amber-300'
+                              ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
+                              : 'bg-slate-900/80 border-slate-800 text-slate-500 hover:text-amber-300 hover:border-amber-500/40'
                           }`}
                           title={isSaved ? 'Guardada en tus favoritos' : 'Guardar oportunidad'}
                         >
@@ -1012,10 +1021,10 @@ export default function HomePage() {
                         </button>
 
                         <div className="text-right">
-                          <span className="text-xs font-bold text-emerald-400 bg-emerald-950/70 px-2.5 py-0.5 rounded-full border border-emerald-800/60 flex items-center gap-1 shadow-sm">
+                          <span className="text-xs font-bold text-emerald-300 bg-gradient-to-r from-emerald-950/90 to-teal-950/90 px-2.5 py-0.5 rounded-full border border-emerald-500/50 flex items-center gap-1 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                             <span className="relative flex h-1.5 w-1.5">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 shadow-[0_0_6px_#10B981]"></span>
                             </span>
                             <span>{place.distanceFormatted}</span>
                           </span>
@@ -1032,38 +1041,38 @@ export default function HomePage() {
                       <span className="line-clamp-1">{place.placeName} — {place.address}</span>
                     </p>
 
-                    {/* Fila de Salario / Horario */}
+                    {/* Fila de Salario / Horario con Textura Metálica Esmeralda */}
                     {(place.salaryRange || place.schedule) && (
                       <div className="mt-2.5 pt-2.5 border-t border-slate-800/80 flex items-center gap-3 text-xs flex-wrap">
                         {place.salaryRange && (
-                          <span className="font-bold text-emerald-400 flex items-center gap-1 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/30">
-                            <DollarSign className="w-3.5 h-3.5" /> {place.salaryRange}
+                          <span className="font-bold text-emerald-300 flex items-center gap-1 bg-gradient-to-r from-emerald-950/80 via-emerald-900/50 to-emerald-950/80 px-2.5 py-0.5 rounded-lg border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)] font-mono">
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> {place.salaryRange}
                           </span>
                         )}
                         {place.schedule && (
-                          <span className="text-slate-400 flex items-center gap-1">
+                          <span className="text-slate-300 flex items-center gap-1 font-medium">
                             <Clock className="w-3.5 h-3.5 text-amber-400" /> {place.schedule}
                           </span>
                         )}
                       </div>
                     )}
 
-                    {/* Canales Reales Detectados */}
+                    {/* Canales Reales Detectados con Colores Oficiales Mejorados */}
                     {(place.computrabajoUrl || place.contactWhatsapp || place.contactEmail) && (
                       <div className="mt-2 flex items-center gap-2 flex-wrap text-[11px]">
                         {place.contactWhatsapp && (
-                          <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-semibold flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className="px-2 py-0.5 rounded bg-emerald-950/90 text-[#4EED96] border border-[#25D366]/60 font-semibold flex items-center gap-1 shadow-sm shadow-emerald-950">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#25D366] animate-pulse" />
                             WhatsApp de Selección
                           </span>
                         )}
                         {place.computrabajoUrl && (
-                          <span className="px-2 py-0.5 rounded bg-red-950/60 text-red-300 border border-red-800/60 font-semibold">
+                          <span className="px-2 py-0.5 rounded bg-red-950/70 text-[#FFA8B4] border border-[#E03131]/60 font-semibold shadow-sm shadow-red-950">
                             ✓ En CompuTrabajo
                           </span>
                         )}
                         {place.contactEmail && (
-                          <span className="px-2 py-0.5 rounded bg-blue-950/60 text-blue-300 border border-blue-800/60 font-semibold">
+                          <span className="px-2 py-0.5 rounded bg-blue-950/70 text-blue-300 border border-blue-500/60 font-semibold shadow-sm shadow-blue-950">
                             ✓ Correo RRHH
                           </span>
                         )}
@@ -1089,7 +1098,7 @@ export default function HomePage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-300 font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                          className="px-2 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-blue-300 border border-blue-500/40 hover:border-blue-400 font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
                           title="Abrir ruta a pie en Google Maps"
                         >
                           <Navigation className="w-3 h-3 text-blue-400" />
@@ -1102,10 +1111,10 @@ export default function HomePage() {
                             setSelectedPlace(place);
                             setIsCalculatorOpen(true);
                           }}
-                          className="px-2 py-1 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                          className="px-2 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/70 text-emerald-300 border border-emerald-500/50 hover:border-emerald-400 font-medium text-[11px] flex items-center gap-1 transition cursor-pointer shadow-[0_0_8px_rgba(16,185,129,0.15)]"
                           title="Calcular cuánto dinero te ahorras en pasajes"
                         >
-                          <DollarSign className="w-3 h-3 text-emerald-400" />
+                          <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
                           <span>Ahorro</span>
                         </button>
 
@@ -1114,7 +1123,7 @@ export default function HomePage() {
                             e.stopPropagation();
                             setReportTargetPlace(place);
                           }}
-                          className="p-1 px-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-amber-300 text-[11px] transition cursor-pointer"
+                          className="p-1 px-2 rounded-lg bg-slate-900/90 hover:bg-amber-950/60 text-slate-300 hover:text-amber-300 border border-slate-800 hover:border-amber-500/40 text-[11px] transition cursor-pointer"
                           title="Fui a preguntar / Aportar dato"
                         >
                           📢 Aportar
@@ -1126,7 +1135,7 @@ export default function HomePage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950 cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
                           >
                             <MessageCircle className="w-3.5 h-3.5 fill-current" />
                             <span>WhatsApp</span>
