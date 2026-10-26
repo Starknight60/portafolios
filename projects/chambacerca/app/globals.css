@@ -197,6 +197,30 @@
   filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.95)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.9));
 }
 
+/* =========================================================================
+   ESTILOS DE IMPRESIÓN Y PDF PARA SÍNTESIS CURRICULAR (1 PÁGINA)
+   ========================================================================= */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-cv-sheet, #printable-cv-sheet * {
+    visibility: visible;
+  }
+  #printable-cv-sheet {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 15mm;
+    box-shadow: none !important;
+    border: none !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+  }
+}
+
 /* Clases Utilitarias de Animación */
 .animate-radar-pulse {
   animation: radar-pulse 2.2s infinite ease-in-out;

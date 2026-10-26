@@ -11,12 +11,14 @@ import EmployerModal from '@/components/EmployerModal';
 import AuthModal from '@/components/AuthModal';
 import LoginGatekeeper from '@/components/LoginGatekeeper';
 import SavingsCalculatorModal from '@/components/SavingsCalculatorModal';
+import CurriculumBuilderModal from '@/components/CurriculumBuilderModal';
+import { playSonarPing, playSuccessChime, playTacticalClick, initSoundState, setSoundEnabled } from '@/lib/audio';
 import { 
   Compass, MapPin, Navigation, Search, Filter, RefreshCw, 
   Briefcase, MessageCircle, DollarSign, Clock, Users, ArrowUpRight, 
   ExternalLink, ChevronRight, Layers, ShieldCheck, HeartHandshake,
   AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn,
-  Radio, Zap, X, SlidersHorizontal
+  Radio, Zap, X, SlidersHorizontal, Volume2, VolumeX, FileText
 } from 'lucide-react';
 
 // Carga dinámica del mapa de Google Maps sin SSR para evitar errores de hidratación
@@ -65,6 +67,23 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [quickFilter, setQuickFilter] = useState<'all' | 'walk' | 'salary200' | 'immediate'>('all');
   const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
+  const [isCvBuilderOpen, setIsCvBuilderOpen] = useState<boolean>(false);
+  const [soundOn, setSoundOn] = useState<boolean>(false);
+
+  // Inicializar estado de sonido
+  useEffect(() => {
+    const active = initSoundState();
+    setSoundOn(active);
+  }, []);
+
+  const handleToggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundEnabled(next);
+    if (next) {
+      playSuccessChime();
+    }
+  };
 
   // Verificar sesión actual al cargar
   async function checkSession() {
@@ -147,6 +166,7 @@ export default function HomePage() {
       if (data.success && Array.isArray(data.places)) {
         setPlaces(data.places);
         setSummary(data.summary);
+        playSonarPing();
       }
     } catch (err) {
       console.error('Error fetching places:', err);
@@ -333,12 +353,41 @@ export default function HomePage() {
 
             {/* Botón Calculadora de Ahorro */}
             <button
-              onClick={() => setIsCalculatorOpen(true)}
+              onClick={() => {
+                setIsCalculatorOpen(true);
+                playTacticalClick();
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 hover:border-emerald-400 transition shadow-sm cursor-pointer"
             >
               <DollarSign className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
               <span className="hidden md:inline">Calculadora de Ahorro</span>
               <span className="md:hidden">Ahorro</span>
+            </button>
+
+            {/* Botón Generador de CV Rápido */}
+            <button
+              onClick={() => {
+                setIsCvBuilderOpen(true);
+                playTacticalClick();
+              }}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 transition shadow-sm cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Generar CV (1 Pág)</span>
+            </button>
+
+            {/* Toggle de Sonido Sonar Táctico */}
+            <button
+              onClick={handleToggleSound}
+              className={`p-1.5 px-2 rounded-xl text-xs font-bold border transition flex items-center gap-1 cursor-pointer ${
+                soundOn
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                  : 'bg-slate-900/80 text-slate-500 border-slate-800 hover:text-slate-300'
+              }`}
+              title={soundOn ? 'Sonido sonar activo (clic para silenciar)' : 'Activar efectos de sonido de radar táctico'}
+            >
+              {soundOn ? <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
+              <span className="hidden xl:inline text-[10px] font-mono">{soundOn ? 'AUDIO ON' : 'AUDIO OFF'}</span>
             </button>
 
             {/* Estado de Sesión del Usuario */}
@@ -970,11 +1019,18 @@ export default function HomePage() {
         onClose={() => setSelectedPlace(null)}
         onOpenReport={(p) => setReportTargetPlace(p)}
         onOpenCalculator={() => setIsCalculatorOpen(true)}
+        onOpenCvBuilder={() => setIsCvBuilderOpen(true)}
       />
 
       <SavingsCalculatorModal
         isOpen={isCalculatorOpen}
         onClose={() => setIsCalculatorOpen(false)}
+        selectedPlace={selectedPlace}
+      />
+
+      <CurriculumBuilderModal
+        isOpen={isCvBuilderOpen}
+        onClose={() => setIsCvBuilderOpen(false)}
         selectedPlace={selectedPlace}
       />
 

@@ -14,9 +14,10 @@ interface VacancyDetailModalProps {
   onClose: () => void;
   onOpenReport: (place: PlaceResultItem) => void;
   onOpenCalculator?: () => void;
+  onOpenCvBuilder?: () => void;
 }
 
-export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpenCalculator }: VacancyDetailModalProps) {
+export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpenCalculator, onOpenCvBuilder }: VacancyDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'requirements' | 'apply' | 'safety'>('info');
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -352,6 +353,25 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
                     <span><strong>Manipulación de Alimentos:</strong> Certificado de salud y manipulación (para perecederos y cocina).</span>
                   </div>
                 </div>
+
+                {/* Llamado a Acción: Generador Rápido de CV */}
+                {onOpenCvBuilder && (
+                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-3 flex-wrap bg-cyan-950/20 p-3 rounded-xl border border-cyan-800/30">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-cyan-400" />
+                      <span className="text-xs text-slate-200">
+                        ¿No tienes tu currículum listo para llevar o enviar?
+                      </span>
+                    </div>
+                    <button
+                      onClick={onOpenCvBuilder}
+                      className="px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-cyan-950 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Generar CV (1 Página) Ahora</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
