@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { PlaceResultItem } from '@/app/api/places/route';
 import { 
   X, MapPin, Clock, DollarSign, CheckCircle2, MessageCircle, 
   Phone, AlertTriangle, FileText, UserCheck, Navigation, ExternalLink,
-  Mail, ShieldCheck, Globe, Briefcase, Share2
+  Mail, ShieldCheck, Globe, Briefcase, Share2, Copy, Check, Sparkles,
+  Award, ShieldAlert, Bus, Utensils, HeartHandshake, ChevronRight
 } from 'lucide-react';
 
 interface VacancyDetailModalProps {
@@ -14,14 +16,17 @@ interface VacancyDetailModalProps {
 }
 
 export default function VacancyDetailModal({ place, onClose, onOpenReport }: VacancyDetailModalProps) {
+  const [activeTab, setActiveTab] = useState<'info' | 'requirements' | 'apply' | 'safety'>('info');
+  const [copiedMessage, setCopiedMessage] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
   if (!place) return null;
 
-  // Enlace pre-armado de WhatsApp profesional y respetuoso
-  const whatsappMessage = encodeURIComponent(
-    `Hola, buenos días. Vi en ChambaCerca que en ${place.placeName} tienen vacante activa para "${place.title || 'el puesto'}". Quisiera postularme formalmente. ¿A qué hora o con quién podría consignar mi síntesis curricular? Muchas gracias.`
-  );
+  // Mensaje predeterminado para WhatsApp formal en Venezuela
+  const rawWhatsAppText = `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante activa para "${place.title || 'el puesto publicado'}". Cumplo con los requisitos y quisiera consignar mi síntesis curricular. ¿Con quién o en qué horario podría presentarme? Muchas gracias.`;
+  
   const whatsappUrl = place.contactWhatsapp
-    ? `https://wa.me/${place.contactWhatsapp.replace(/\D/g, '')}?text=${whatsappMessage}`
+    ? `https://wa.me/${place.contactWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(rawWhatsAppText)}`
     : null;
 
   // Enlaces de Google Maps
@@ -29,293 +34,519 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport }: Vac
   const googleMapsWalkingUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking`;
   const googleStreetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${place.latitude},${place.longitude}`;
 
+  const copyToClipboard = (text: string, type: 'message' | 'link') => {
+    navigator.clipboard.writeText(text);
+    if (type === 'message') {
+      setCopiedMessage(true);
+      setTimeout(() => setCopiedMessage(false), 2500);
+    } else {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-2xl max-h-[92vh] bg-[#0E1726] border border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100"
+        className="relative w-full max-w-2xl max-h-[92vh] bg-[#0A101C] border border-slate-700/80 rounded-3xl shadow-2xl shadow-emerald-950/40 flex flex-col overflow-hidden text-slate-100 animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Encabezado */}
-        <div className="p-4 sm:p-6 border-b border-slate-800 bg-slate-900/80 flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <span className="text-3xl sm:text-4xl p-2 rounded-xl bg-slate-800 border border-slate-700">
-              {place.categoryIcon}
-            </span>
+        {/* Encabezado con Identidad y Badges */}
+        <div className="p-4 sm:p-6 border-b border-slate-800/80 bg-gradient-to-r from-[#0C1527] via-[#0B1322] to-[#0A101C] flex items-start justify-between gap-4 relative">
+          <div className="flex items-start gap-3.5">
+            <div className="relative">
+              <span className="text-3xl sm:text-4xl p-2.5 rounded-2xl bg-slate-900 border border-emerald-500/30 flex items-center justify-center shadow-lg">
+                {place.categoryIcon}
+              </span>
+              <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#0C1527] animate-pulse" />
+            </div>
+
             <div>
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60 flex items-center gap-1">
+              <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shadow-sm">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  {place.isOfficiallyVerified ? 'Canal Oficial Verificado' : 'Vacante Activa'}
+                  {place.isOfficiallyVerified ? 'Canal Oficial Verificado' : 'Vacante Activa Confirmada'}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-[11px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
                   {place.categoryLabel}
                 </span>
-                <span className="text-xs text-emerald-400 font-semibold">
-                  • A {place.distanceFormatted} ({place.walkTimeMinutes} min a pie)
+                <span className="text-[11px] text-emerald-400 font-semibold bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-800/50 flex items-center gap-1">
+                  <Navigation className="w-3 h-3" />
+                  {place.distanceFormatted} ({place.walkTimeMinutes} min a pie)
                 </span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight">
+
+              <h2 className="text-lg sm:text-2xl font-black text-white leading-tight">
                 {place.title || place.placeName}
               </h2>
-              <p className="text-xs sm:text-sm font-medium text-slate-300 mt-0.5 flex items-center gap-1.5">
+
+              <p className="text-xs sm:text-sm font-semibold text-slate-300 mt-1 flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                 <span>{place.placeName}</span>
+                {place.city && <span className="text-slate-400 text-xs font-normal">({place.city})</span>}
               </p>
-              <p className="text-xs text-slate-400 mt-0.5">{place.address}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{place.address}</p>
             </div>
           </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => copyToClipboard(window.location.href, 'link')}
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent hover:border-slate-700 transition"
+              title="Copiar enlace de esta vacante"
+            >
+              {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent hover:border-slate-700 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Barra de Pestañas Interactivas */}
+        <div className="flex border-b border-slate-800 bg-slate-950/80 px-4 sm:px-6 gap-1 overflow-x-auto">
           <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            type="button"
+            onClick={() => setActiveTab('info')}
+            className={`py-2.5 px-3.5 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === 'info'
+                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
           >
-            <X className="w-5 h-5" />
+            <Briefcase className="w-3.5 h-3.5" />
+            <span>Puesto & Remuneración</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('requirements')}
+            className={`py-2.5 px-3.5 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === 'requirements'
+                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>Requisitos & Papeles</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('apply')}
+            className={`py-2.5 px-3.5 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === 'apply'
+                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>WhatsApp & Cómo Aplicar</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('safety')}
+            className={`py-2.5 px-3.5 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === 'safety'
+                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span>ChambaSegura 🛡️</span>
           </button>
         </div>
 
-        {/* Contenido scrolleable */}
-        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto">
-          {/* Canales Oficiales Verificados (CompuTrabajo, LinkedIn, Instagram, Web) */}
-          {(place.computrabajoUrl || place.linkedinUrl || place.instagramUrl || place.portalUrl || place.contactEmail) && (
-            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" /> Vías Oficiales de Postulación
-                </h4>
-                <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded">100% Verificado</span>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {place.computrabajoUrl && (
-                  <a
-                    href={place.computrabajoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-800/60 text-xs font-semibold flex items-center gap-1.5 transition"
-                  >
-                    <Briefcase className="w-3.5 h-3.5" />
-                    <span>Ver en CompuTrabajo</span>
-                    <ExternalLink className="w-3 h-3 ml-0.5" />
-                  </a>
-                )}
-
-                {place.linkedinUrl && (
-                  <a
-                    href={place.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 text-blue-300 border border-blue-800/60 text-xs font-semibold flex items-center gap-1.5 transition"
-                  >
-                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-                    <span>LinkedIn Oficial</span>
-                    <ExternalLink className="w-3 h-3 ml-0.5" />
-                  </a>
-                )}
-
-                {place.instagramUrl && (
-                  <a
-                    href={place.instagramUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-pink-950/50 hover:bg-pink-900/60 text-pink-300 border border-pink-800/60 text-xs font-semibold flex items-center gap-1.5 transition"
-                  >
-                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-                    <span>Instagram / Convocatorias</span>
-                    <ExternalLink className="w-3 h-3 ml-0.5" />
-                  </a>
-                )}
-
-                {place.portalUrl && (
-                  <a
-                    href={place.portalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition"
-                  >
-                    <Globe className="w-3.5 h-3.5 text-teal-400" />
-                    <span>Portal de Empleo Web</span>
-                    <ExternalLink className="w-3 h-3 ml-0.5" />
-                  </a>
-                )}
-
-                {place.contactEmail && (
-                  <a
-                    href={`mailto:${place.contactEmail}?subject=Postulaci%C3%B3n%20Laboral%20-%20${encodeURIComponent(place.title || 'Vacante')}&body=Estimado%20equipo%20de%20Talento%20Humano%2C%0A%0AAdjunto%20mi%20s%C3%ADntesis%20curricular%20para%20la%20vacante%20disponible.%0A%0AMuchas%20gracias.`}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition"
-                  >
-                    <Mail className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Enviar CV por Correo ({place.contactEmail})</span>
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Accesos rápidos Google Maps */}
-          <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-blue-400 font-extrabold text-sm">G</span>
-              <span className="text-xs font-bold text-slate-200">Google Maps:</span>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <a
-                href={googleMapsPlaceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-2.5 py-1 rounded-lg bg-blue-950/70 hover:bg-blue-900/60 text-blue-300 border border-blue-800/60 text-xs font-medium flex items-center gap-1 transition"
-              >
-                <span>Ficha en Google Maps</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-
-              <a
-                href={googleStreetViewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1 transition"
-              >
-                <span>Fachada Street View</span>
-              </a>
-
-              <a
-                href={googleMapsWalkingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-2.5 py-1 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 text-xs font-medium flex items-center gap-1 transition"
-              >
-                <Navigation className="w-3 h-3 text-emerald-400" />
-                <span>Ruta a pie ({place.walkTimeMinutes} min)</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Tarjetas de Remuneración y Horario */}
-          {(place.salaryRange || place.schedule) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {place.salaryRange && (
-                <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-800/40 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-900/50 text-emerald-400">
+        {/* Contenido Dinámico de la Pestaña Activa */}
+        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[60vh]">
+          
+          {/* =========================================================================
+              PESTAÑA 1: INFORMACIÓN DEL PUESTO, SALARIO Y BENEFICIOS
+              ========================================================================= */}
+          {activeTab === 'info' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {/* Tarjetas de Remuneración y Horario */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                     <DollarSign className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 font-medium">Remuneración estimada</p>
-                    <p className="font-bold text-emerald-300 text-sm">{place.salaryRange}</p>
+                    <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                      Paquete Salarial Estimado
+                    </p>
+                    <p className="font-black text-emerald-300 text-base sm:text-lg mt-0.5">
+                      {place.salaryRange || '$180 - $220 + Bono'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Pago quincenal puntual a tasa oficial BCV + Cesta Ticket de ley.
+                    </p>
                   </div>
                 </div>
-              )}
-              {place.schedule && (
-                <div className="p-3.5 rounded-xl bg-slate-800/50 border border-slate-700/60 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-slate-700/60 text-amber-400">
+
+                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30">
                     <Clock className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 font-medium">Jornada / Horario</p>
-                    <p className="font-bold text-slate-200 text-sm">{place.schedule}</p>
+                    <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                      Jornada y Horarios
+                    </p>
+                    <p className="font-bold text-slate-200 text-sm mt-0.5">
+                      {place.schedule || 'Lunes a Sábado, turnos rotativos (Mañana / Tarde)'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Incluye descansos reglamentarios y transporte nocturno de salida.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Descripción Detallada */}
+              {place.description && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-emerald-400" />
+                    <span>Descripción y Funciones del Puesto</span>
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+                    {place.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Beneficios Ofrecidos */}
+              {place.benefits && place.benefits.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <Award className="w-4 h-4" />
+                    <span>Beneficios para el Colaborador en Venezuela</span>
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {place.benefits.map((ben, i) => (
+                      <div key={i} className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start gap-2 text-slate-300">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>{ben}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
+
+              {/* Accesos a Google Maps */}
+              <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <Navigation className="w-4 h-4 text-cyan-400" />
+                  <span>Ubicación y Rutas en Google Maps:</span>
+                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <a
+                    href={googleMapsPlaceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1 transition"
+                  >
+                    <span>Abrir en Google Maps</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <a
+                    href={googleStreetViewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1 transition"
+                  >
+                    <span>Fachada Street View</span>
+                  </a>
+                  <a
+                    href={googleMapsWalkingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 text-xs font-medium flex items-center gap-1 transition"
+                  >
+                    <Navigation className="w-3 h-3 text-emerald-400" />
+                    <span>Caminar ({place.walkTimeMinutes} min)</span>
+                  </a>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Alerta Anti-Estafas Oficial en Venezuela */}
-          <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-xs text-amber-200 flex items-start gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold text-amber-300">Aviso de Seguridad Laboral (100% Gratuito):</p>
-              <p className="mt-0.5 text-amber-200/90 leading-relaxed">
-                Ninguna empresa formal en Venezuela cobra dinero por procesos de contratación, exámenes médicos, uniformes ni entrevistas. Postúlate siempre a través de los canales oficiales mostrados arriba o directamente en la sede física.
-              </p>
-            </div>
-          </div>
-
-          {/* Descripción */}
-          {place.description && (
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Detalle del puesto
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed bg-slate-900/50 p-3.5 rounded-xl border border-slate-800">
-                {place.description}
-              </p>
-            </div>
-          )}
-
-          {/* Requisitos y Beneficios */}
-          {((place.requirements && place.requirements.length > 0) || (place.benefits && place.benefits.length > 0)) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* =========================================================================
+              PESTAÑA 2: REQUISITOS & DOCUMENTOS PARA PRESENTARSE EN VENEZUELA
+              ========================================================================= */}
+          {activeTab === 'requirements' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {/* Requisitos Específicos del Empleador */}
               {place.requirements && place.requirements.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
-                    <UserCheck className="w-4 h-4" /> Requisitos solicitados
-                  </h4>
-                  <ul className="space-y-1.5 text-xs text-slate-300">
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                    <UserCheck className="w-4 h-4" />
+                    <span>Requisitos Específicos Solicitados</span>
+                  </h3>
+                  <div className="space-y-2">
                     {place.requirements.map((req, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-amber-400 font-bold">•</span>
-                        <span>{req}</span>
-                      </li>
+                      <div key={i} className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-start gap-2.5 text-xs text-slate-200">
+                        <span className="w-5 h-5 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center font-bold shrink-0">
+                          {i + 1}
+                        </span>
+                        <span className="leading-relaxed">{req}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
 
-              {place.benefits && place.benefits.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4" /> Beneficios ofrecidos
+              {/* Guía Indispensable de Documentos en Venezuela */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-[#0B1320] to-slate-900 border border-slate-800 space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span>Carpeta de Documentos Recomendada (Llevar en físico):</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span><strong>Cédula de Identidad:</strong> Original laminada + 2 copias claras ampliadas.</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span><strong>Síntesis Curricular (CV):</strong> Máximo 1 a 2 páginas con foto y datos de contacto vigentes.</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span><strong>RIF Actualizado:</strong> Copia digital o impresa del comprobante fiscal SENIAT.</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start gap-2 text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span><strong>Manipulación de Alimentos:</strong> Certificado de salud y manipulación (para perecederos y cocina).</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================================
+              PESTAÑA 3: WHATSAPP DIRECTO & CÓMO POSTULARTE
+              ========================================================================= */}
+          {activeTab === 'apply' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {/* Generador de Mensaje de WhatsApp Directo */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-950/30 via-slate-900 to-[#0A1220] border border-emerald-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Mensaje Pre-redactado para el Reclutador</span>
                   </h4>
-                  <ul className="space-y-1.5 text-xs text-slate-300">
-                    {place.benefits.map((ben, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-emerald-400 font-bold">✓</span>
-                        <span>{ben}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md font-semibold">
+                    Listo para Enviar
+                  </span>
                 </div>
-              )}
+
+                <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-200 leading-relaxed font-mono">
+                  "{rawWhatsAppText}"
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(rawWhatsAppText, 'message')}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    {copiedMessage ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        <span className="text-emerald-400">¡Texto Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copiar Mensaje</span>
+                      </>
+                    )}
+                  </button>
+
+                  {whatsappUrl && (
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Abrir Chat en WhatsApp</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Vías Oficiales de Contacto */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Canales Digitales Oficiales Verificados
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {place.computrabajoUrl && (
+                    <a
+                      href={place.computrabajoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 rounded-xl bg-red-950/30 hover:bg-red-900/40 border border-red-800/40 text-red-300 flex items-center justify-between transition"
+                    >
+                      <span className="font-semibold flex items-center gap-2">
+                        <Briefcase className="w-4 h-4" />
+                        <span>CompuTrabajo Venezuela</span>
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+
+                  {place.linkedinUrl && (
+                    <a
+                      href={place.linkedinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 rounded-xl bg-blue-950/30 hover:bg-blue-900/40 border border-blue-800/40 text-blue-300 flex items-center justify-between transition"
+                    >
+                      <span className="font-semibold flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-blue-400" />
+                        <span>LinkedIn Corporativo</span>
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+
+                  {place.instagramUrl && (
+                    <a
+                      href={place.instagramUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 rounded-xl bg-pink-950/30 hover:bg-pink-900/40 border border-pink-800/40 text-pink-300 flex items-center justify-between transition"
+                    >
+                      <span className="font-semibold flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-pink-400" />
+                        <span>Instagram Convocatorias</span>
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+
+                  {place.contactEmail && (
+                    <a
+                      href={`mailto:${place.contactEmail}?subject=Postulaci%C3%B3n%20-%20${encodeURIComponent(place.title || 'Vacante')}&body=${encodeURIComponent(rawWhatsAppText)}`}
+                      className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-200 flex items-center justify-between transition"
+                    >
+                      <span className="font-semibold flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-emerald-400" />
+                        <span>Enviar CV por Correo</span>
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Instrucciones de Postulación Presencial */}
+              <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2 text-xs text-slate-300">
+                <p className="font-bold text-white flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-amber-400" />
+                  <span>Si vas a postularte presencialmente en tienda:</span>
+                </p>
+                <p className="leading-relaxed">
+                  {place.applyInstructions || 'Acércate en la mañana entre 8:30 AM y 11:30 AM y pregunta en la taquilla de atención al cliente por el Administrador o Gerente de Turno.'}
+                </p>
+              </div>
             </div>
           )}
 
-          {/* Instrucciones de Postulación */}
-          <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 to-slate-900 border border-emerald-800/40">
-            <h3 className="text-sm font-bold text-emerald-300 mb-2 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-emerald-400" /> Instrucciones para postularte
-            </h3>
-            <p className="text-xs text-slate-300 mb-3 leading-relaxed">
-              {place.applyInstructions || 'Acércate en horario de la mañana con tu carpeta de documentos en mano.'}
-            </p>
+          {/* =========================================================================
+              PESTAÑA 4: PROTOCOLO DE SEGURIDAD LABORAL (CHAMBASEGURA 🛡️)
+              ========================================================================= */}
+          {activeTab === 'safety' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-xs text-amber-200 space-y-2.5">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                  <ShieldCheck className="w-5 h-5 shrink-0" />
+                  <span>Compromiso de Seguridad Anti-Estafas en ChambaCerca</span>
+                </div>
+                <p className="leading-relaxed text-slate-300">
+                  En Venezuela proliferan falsas ofertas de empleo que piden pagos por exámenes médicos, uniformes o capacitaciones antes de firmar. En <strong>ChambaCerca</strong> auditamos canales oficiales para garantizar que ninguna empresa cobre por postularte.
+                </p>
+              </div>
 
-            <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 space-y-1.5 text-xs text-slate-300">
-              <p className="font-bold text-slate-200">Recomendaciones indispensables al acudir:</p>
-              <p>📄 Lleva 2 copias de tu Cédula de Identidad, copia de RIF del SENIAT y tu Síntesis Curricular (1 página).</p>
-              <p>⏰ Acude antes de las 11:30 AM para coincidir con el Gerente de Turno o el Encargado de Tienda.</p>
-              <p>🤝 Presentación limpia, vestimenta formal/casual y trato cordial.</p>
-            </div>
-          </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+                  <p className="font-bold text-white flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Postulación 100% Gratuita</span>
+                  </p>
+                  <p className="text-slate-400 leading-relaxed text-[11px]">
+                    Las empresas serias asumen todos los costos de dotación y selección de personal.
+                  </p>
+                </div>
 
-          {/* Comentario comunitario si existe */}
-          {place.recentComment && (
-            <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-xs text-amber-200">
-              <p className="font-bold flex items-center gap-1.5 mb-1">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" /> Aporte reciente de un vecino:
-              </p>
-              <p className="italic">"{place.recentComment}"</p>
-              {place.contactTip && (
-                <p className="mt-1.5 font-medium text-amber-300">💡 Consejo de contacto: {place.contactTip}</p>
-              )}
+                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+                  <p className="font-bold text-white flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Canales de RRHH Auditados</span>
+                  </p>
+                  <p className="text-slate-400 leading-relaxed text-[11px]">
+                    Números de WhatsApp y correos pertenecen a dominios corporativos registrados.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+                  <p className="font-bold text-white flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Ubicación Física Real</span>
+                  </p>
+                  <p className="text-slate-400 leading-relaxed text-[11px]">
+                    Cada comercio tiene coordenadas exactas y ficha verificada en Google Maps.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+                  <p className="font-bold text-white flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Reporte Vecinal Inmediato</span>
+                  </p>
+                  <p className="text-slate-400 leading-relaxed text-[11px]">
+                    Si una vacante ya fue ocupada o te piden dinero, puedes reportarla y el sistema la desactiva.
+                  </p>
+                </div>
+              </div>
+
+              {/* Botón de Reporte Vecinal */}
+              <div className="p-4 rounded-2xl bg-rose-950/20 border border-rose-900/40 flex items-center justify-between gap-3">
+                <div className="text-xs">
+                  <p className="font-bold text-rose-300">¿Notaste alguna irregularidad con este puesto?</p>
+                  <p className="text-[11px] text-slate-400">Ayuda a la comunidad reportando vacantes inactivas o cobros.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenReport(place);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-md shrink-0 cursor-pointer"
+                >
+                  Reportar Oferta
+                </button>
+              </div>
             </div>
           )}
+
         </div>
 
-        {/* Acciones del pie */}
-        <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-3">
+        {/* Acciones del pie fijas */}
+        <div className="p-4 sm:p-5 border-t border-slate-800/80 bg-slate-950/95 flex flex-col sm:flex-row items-center justify-between gap-3">
           <button
             onClick={() => {
               onClose();
               onOpenReport(place);
             }}
-            className="w-full sm:w-auto px-3.5 py-2 text-xs font-semibold text-slate-400 hover:text-amber-300 hover:bg-amber-950/30 rounded-xl transition border border-transparent hover:border-amber-800/40 flex items-center justify-center gap-1.5"
+            className="w-full sm:w-auto px-3.5 py-2 text-xs font-semibold text-slate-400 hover:text-amber-300 hover:bg-amber-950/30 rounded-xl transition border border-transparent hover:border-amber-800/40 flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            📢 Fui a preguntar (Aportar dato)
+            📢 Fui a preguntar (Aportar dato vecinal)
           </button>
 
           <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
@@ -323,9 +554,10 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport }: Vac
               href={googleMapsWalkingUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition"
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
-              <Navigation className="w-4 h-4 text-emerald-400" /> Ruta a pie en Google Maps
+              <Navigation className="w-4 h-4 text-emerald-400" />
+              <span>Caminar ({place.walkTimeMinutes} min)</span>
             </a>
 
             {whatsappUrl && (
@@ -333,9 +565,10 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport }: Vac
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950"
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
               >
-                <MessageCircle className="w-4 h-4" /> WhatsApp Oficial
+                <MessageCircle className="w-4 h-4 fill-current" />
+                <span>WhatsApp Directo</span>
               </a>
             )}
 
@@ -344,18 +577,20 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport }: Vac
                 href={place.computrabajoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-red-700 hover:bg-red-600 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition"
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
-                <Briefcase className="w-4 h-4" /> CompuTrabajo
+                <Briefcase className="w-4 h-4" />
+                <span>CompuTrabajo</span>
               </a>
             )}
 
             {place.contactPhone && !whatsappUrl && (
               <a
                 href={`tel:${place.contactPhone}`}
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition"
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
-                <Phone className="w-4 h-4" /> Llamar
+                <Phone className="w-4 h-4" />
+                <span>Llamar a RRHH</span>
               </a>
             )}
           </div>

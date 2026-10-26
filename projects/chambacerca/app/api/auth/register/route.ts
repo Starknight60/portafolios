@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { createSessionToken, COOKIE_NAME } from '@/lib/auth';
+import { checkRateLimit, getClientIp, sanitizeString } from '@/lib/security';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
@@ -18,6 +19,21 @@ const RegisterSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Verificación de Rate Limiting (Protección contra registros masivos / bots)
+    const clientIp = getClientIp(request.headers);
+    const rate = checkRateLimit(clientIp, 6, 60 * 1000); // máx 6 registros por minuto por IP
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { 
+          error: `Has realizado demasiados registros en poco tiempo. Por favor espera ${rate.retryAfterSeconds} segundos.` 
+        },
+        { 
+          status: 429,
+          headers: { 'Retry-After': String(rate.retryAfterSeconds) }
+        }
+      );
+    }
+
     const body = await request.json();
     const parsed = RegisterSchema.safeParse(body);
 
@@ -30,10 +46,16 @@ export async function POST(request: NextRequest) {
 
     const { name, email, password, role, company, phone } = parsed.data;
 
+    // Sanitización de entradas contra inyecciones XSS
+    const cleanName = sanitizeString(name);
+    const cleanCompany = company ? sanitizeString(company) : null;
+    const cleanPhone = phone ? sanitizeString(phone) : null;
+    const cleanEmail = email.toLowerCase().trim();
+
     // Verificar si el correo ya existe
     const existing = (await (sql as any).query(
       `SELECT "id" FROM chambacerca."User" WHERE "email" = $1 LIMIT 1;`,
-      [email.toLowerCase().trim()]
+      [cleanEmail]
     )) as any[];
 
     if (existing && existing.length > 0) {
@@ -51,21 +73,21 @@ export async function POST(request: NextRequest) {
       INSERT INTO chambacerca."User" ("id", "name", "email", "password", "role", "company", "phone", "isVerified")
       VALUES ($1, $2, $3, $4, $5, $6, $7, true);
       `,
-      [userId, name.trim(), email.toLowerCase().trim(), passwordHash, role, company || null, phone || null]
+      [userId, cleanName, cleanEmail, passwordHash, role, cleanCompany, cleanPhone]
     );
 
     const token = await createSessionToken({
       userId,
-      email: email.toLowerCase().trim(),
-      name: name.trim(),
+      email: cleanEmail,
+      name: cleanName,
       role,
-      company: company || null,
+      company: cleanCompany,
     });
 
     const response = NextResponse.json({
       success: true,
       message: role === 'SEEKER' ? '¡Bienvenido a ChambaCerca!' : '¡Cuenta de comercio registrada con éxito!',
-      user: { id: userId, name: name.trim(), email: email.toLowerCase().trim(), role, company },
+      user: { id: userId, name: cleanName, email: cleanEmail, role, company: cleanCompany },
     });
 
     response.cookies.set({

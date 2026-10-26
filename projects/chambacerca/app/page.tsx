@@ -14,7 +14,8 @@ import {
   Compass, MapPin, Navigation, Search, Filter, RefreshCw, 
   Briefcase, MessageCircle, DollarSign, Clock, Users, ArrowUpRight, 
   ExternalLink, ChevronRight, Layers, ShieldCheck, HeartHandshake,
-  AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn
+  AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn,
+  Radio, Zap, X, SlidersHorizontal
 } from 'lucide-react';
 
 // Carga dinámica del mapa de Google Maps sin SSR para evitar errores de hidratación
@@ -58,6 +59,10 @@ export default function HomePage() {
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [filterSavedOnly, setFilterSavedOnly] = useState<boolean>(false);
+
+  // Estados de Búsqueda y Filtros Inteligentes
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [quickFilter, setQuickFilter] = useState<'all' | 'walk' | 'salary200' | 'immediate'>('all');
 
   // Verificar sesión actual al cargar
   async function checkSession() {
@@ -194,10 +199,35 @@ export default function HomePage() {
     );
   }
 
-  // Filtrado final de lugares (incluyendo filtro de guardados)
-  const displayedPlaces = filterSavedOnly
-    ? places.filter((p) => savedIds.includes(p.id))
-    : places;
+  // Filtrado final de lugares (incluyendo guardados, búsqueda inteligente y filtros rápidos)
+  const displayedPlaces = places.filter((p) => {
+    // 1. Filtro de guardados
+    if (filterSavedOnly && !savedIds.includes(p.id)) return false;
+
+    // 2. Filtro de búsqueda en vivo (título, lugar, rubro, requisitos)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchTitle = (p.title || '').toLowerCase().includes(q);
+      const matchName = (p.placeName || '').toLowerCase().includes(q);
+      const matchCat = (p.categoryLabel || '').toLowerCase().includes(q);
+      const matchAddress = (p.address || '').toLowerCase().includes(q);
+      const matchReq = (p.requirements || []).some((r) => r.toLowerCase().includes(q));
+      if (!matchTitle && !matchName && !matchCat && !matchAddress && !matchReq) {
+        return false;
+      }
+    }
+
+    // 3. Filtro rápido de proximidad / salario / urgencia
+    if (quickFilter === 'walk' && p.distanceMeters > 1500) return false;
+    if (quickFilter === 'salary200') {
+      const salary = p.salaryRange || '';
+      const has200 = salary.includes('200') || salary.includes('220') || salary.includes('250') || salary.includes('280') || salary.includes('300') || salary.includes('350');
+      if (!has200) return false;
+    }
+    if (quickFilter === 'immediate' && p.status !== 'VERIFIED_VACANCY') return false;
+
+    return true;
+  });
 
   // Pantalla de carga mientras se verifica la sesión
   if (sessionLoading) {
@@ -241,11 +271,12 @@ export default function HomePage() {
       {/* 2. Header Principal con Autenticación de Usuario */}
       <header className="sticky top-0 z-[100] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Logo & Marca */}
+          {/* Logo & Marca con Animación de Radar */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-lg shadow-emerald-950 flex items-center justify-center">
-              <div className="w-full h-full bg-[#080D15] rounded-[10px] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-lg shadow-emerald-950 flex items-center justify-center relative">
+              <div className="w-full h-full bg-[#080D15] rounded-[10px] flex items-center justify-center overflow-hidden relative">
                 <Compass className="w-5 h-5 text-emerald-400 animate-pulse" />
+                <div className="absolute inset-0 bg-emerald-500/15 rounded-full animate-sonar-wave pointer-events-none" />
               </div>
             </div>
             <div>
@@ -253,7 +284,8 @@ export default function HomePage() {
                 <h1 className="font-extrabold text-lg sm:text-xl tracking-tight text-white flex items-center gap-1.5">
                   Chamba<span className="text-emerald-400">Cerca</span>
                 </h1>
-                <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                   Venezuela Real
                 </span>
               </div>
@@ -261,6 +293,12 @@ export default function HomePage() {
                 Radar de empleo local por GPS • Google Maps en vivo
               </p>
             </div>
+          </div>
+
+          {/* Ticker de Señal de Radar Central */}
+          <div className="hidden xl:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-emerald-500/30 text-xs font-semibold text-emerald-300 shadow-inner">
+            <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <span>Radar Activo: {displayedPlaces.length} vacantes verificadas en tu radio</span>
           </div>
 
           {/* Acciones de Cabecera & Perfil de Usuario */}
@@ -521,17 +559,103 @@ export default function HomePage() {
         {/* Columna Derecha: Feed de Oportunidades Reales */}
         <div className={`lg:col-span-5 space-y-4 ${mobileTab === 'feed' ? 'block' : 'hidden lg:block'}`}>
           {/* Banner de Ayuda al Solicitante de Empleo */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/50 via-slate-900 to-slate-900 border border-emerald-800/40 shadow-sm">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/50 via-slate-900 to-slate-900 border border-emerald-800/40 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-xl bg-emerald-900/60 text-emerald-400 shrink-0 mt-0.5">
                 <HeartHandshake className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-white">¿Buscando trabajo cerca de ti?</h3>
+                <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                  <span>¿Buscando trabajo cerca de ti?</span>
+                  <span className="text-[10px] font-extrabold px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    Cero Estafas
+                  </span>
+                </h3>
                 <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                  Mostramos vacantes verificadas en <strong className="text-emerald-400">CompuTrabajo, LinkedIn, WhatsApp corporativo y redes oficiales</strong>. Inicia sesión para guardar tus oportunidades favoritas.
+                  Vacantes verificadas de <strong className="text-emerald-400">CompuTrabajo, LinkedIn, WhatsApp corporativo y comercios oficiales</strong>. Puedes postularte directo o guardar tus opciones favoritas.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* BARRA DE BÚSQUEDA INTELIGENTE & FILTROS RÁPIDOS */}
+          <div className="p-3.5 rounded-2xl bg-[#0B131F] border border-slate-800/90 space-y-2.5 shadow-md">
+            <div className="relative">
+              <Search className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por cargo, comercio o requisito (ej: cajero, farmacia, panadero, ventas)..."
+                className="w-full pl-10 pr-9 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-2.5 text-slate-500 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Filtros Rápidos */}
+            <div className="flex items-center gap-1.5 flex-wrap text-xs">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mr-1">
+                Filtros:
+              </span>
+              <button
+                type="button"
+                onClick={() => setQuickFilter(quickFilter === 'walk' ? 'all' : 'walk')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                  quickFilter === 'walk'
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/30'
+                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <span>🚶‍♂️ A pie (&lt; 1.5 km)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickFilter(quickFilter === 'immediate' ? 'all' : 'immediate')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                  quickFilter === 'immediate'
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/30'
+                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <span>⚡ Inmediata</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickFilter(quickFilter === 'salary200' ? 'all' : 'salary200')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                  quickFilter === 'salary200'
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/30'
+                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <span>💰 &gt; $200/mes</span>
+              </button>
+
+              <span className="text-slate-700 mx-1">|</span>
+
+              {/* Chips de Búsqueda Rápida */}
+              {['Cajero', 'Panadería', 'Farmacia', 'Ventas', 'Almacén', 'Seguridad'].map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => setSearchQuery(searchQuery.toLowerCase() === chip.toLowerCase() ? '' : chip)}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition cursor-pointer ${
+                    searchQuery.toLowerCase() === chip.toLowerCase()
+                      ? 'bg-teal-500/25 text-teal-300 border border-teal-500/50 font-bold'
+                      : 'text-slate-500 hover:text-slate-300 bg-slate-900/60'
+                  }`}
+                >
+                  #{chip}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -596,33 +720,39 @@ export default function HomePage() {
                 const isCommunity = place.status === 'COMMUNITY_HIRING';
                 const isPotential = place.status === 'POTENTIAL_PLACE';
                 const isSaved = savedIds.includes(place.id);
+                const isWalkable = place.distanceMeters <= 1500;
 
                 return (
                   <div
                     key={place.id}
                     onClick={() => setSelectedPlace(place)}
-                    className={`p-4 rounded-2xl border transition cursor-pointer relative overflow-hidden group ${
+                    className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer relative overflow-hidden group hover:-translate-y-1 ${
                       isSelected
-                        ? 'bg-slate-800/90 border-emerald-500 shadow-xl shadow-emerald-950/30 ring-1 ring-emerald-500'
-                        : 'bg-[#0E1726] border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
+                        ? 'bg-slate-800/95 border-emerald-500 shadow-2xl shadow-emerald-950/50 ring-2 ring-emerald-500/80'
+                        : 'bg-[#0E1726] border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800/60 hover:shadow-xl hover:shadow-emerald-950/20'
                     }`}
                   >
                     {/* Badge Superior */}
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {isVerified && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3" />
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 flex items-center gap-1 shadow-sm">
+                            <ShieldCheck className="w-3 h-3 text-emerald-400" />
                             {place.isOfficiallyVerified ? 'Canal Oficial Verificado' : 'Vacante Activa'}
                           </span>
                         )}
+                        {isWalkable && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-950/80 text-teal-300 border border-teal-700/60 flex items-center gap-1">
+                            🚶‍♂️ A pie ({place.walkTimeMinutes} min)
+                          </span>
+                        )}
                         {isCommunity && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-950 text-amber-400 border border-amber-800">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-950 text-amber-300 border border-amber-800">
                             📢 Reporte Vecinal
                           </span>
                         )}
                         {isPotential && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-950 text-blue-400 border border-blue-900/80">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-950 text-blue-300 border border-blue-900/80">
                             🏬 Comercio Real
                           </span>
                         )}
@@ -637,7 +767,7 @@ export default function HomePage() {
                             e.stopPropagation();
                             handleToggleSave(place.id);
                           }}
-                          className={`p-1 rounded-lg border transition ${
+                          className={`p-1.5 rounded-lg border transition cursor-pointer ${
                             isSaved
                               ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
                               : 'bg-slate-900/80 border-slate-800 text-slate-500 hover:text-amber-300'
@@ -666,9 +796,9 @@ export default function HomePage() {
 
                     {/* Fila de Salario / Horario */}
                     {(place.salaryRange || place.schedule) && (
-                      <div className="mt-2.5 pt-2.5 border-t border-slate-800 flex items-center gap-3 text-xs">
+                      <div className="mt-2.5 pt-2.5 border-t border-slate-800/80 flex items-center gap-3 text-xs flex-wrap">
                         {place.salaryRange && (
-                          <span className="font-semibold text-emerald-400 flex items-center gap-1">
+                          <span className="font-bold text-emerald-400 flex items-center gap-1 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/30">
                             <DollarSign className="w-3.5 h-3.5" /> {place.salaryRange}
                           </span>
                         )}
@@ -684,8 +814,9 @@ export default function HomePage() {
                     {(place.computrabajoUrl || place.contactWhatsapp || place.contactEmail) && (
                       <div className="mt-2 flex items-center gap-2 flex-wrap text-[11px]">
                         {place.contactWhatsapp && (
-                          <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-semibold">
-                            ✓ WhatsApp de Selección
+                          <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-semibold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            WhatsApp de Selección
                           </span>
                         )}
                         {place.computrabajoUrl && (
@@ -702,15 +833,16 @@ export default function HomePage() {
                     )}
 
                     {/* Acciones Rápidas */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2 flex-wrap">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedPlace(place);
                         }}
-                        className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                        className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
                       >
-                        Ver cómo postular <ChevronRight className="w-3.5 h-3.5" />
+                        <span>Ver cómo postular</span>
+                        <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                       </button>
 
                       <div className="flex items-center gap-2">
@@ -719,8 +851,8 @@ export default function HomePage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-300 font-medium text-[11px] flex items-center gap-1 transition"
-                          title="Abrir ruta en Google Maps"
+                          className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-300 font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                          title="Abrir ruta a pie en Google Maps"
                         >
                           <Navigation className="w-3 h-3 text-blue-400" />
                           <span>Google Maps</span>
@@ -731,7 +863,7 @@ export default function HomePage() {
                             e.stopPropagation();
                             setReportTargetPlace(place);
                           }}
-                          className="p-1 px-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-amber-300 text-[11px] transition"
+                          className="p-1 px-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-amber-300 text-[11px] transition cursor-pointer"
                           title="Fui a preguntar / Aportar dato"
                         >
                           📢 Aportar
@@ -739,13 +871,14 @@ export default function HomePage() {
 
                         {place.contactWhatsapp && (
                           <a
-                            href={`https://wa.me/${place.contactWhatsapp.replace(/\D/g, '')}`}
+                            href={`https://wa.me/${place.contactWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante para "${place.title || 'el puesto'}". Quisiera postularme formalmente. Gracias.`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1 transition"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950 cursor-pointer"
                           >
-                            <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                            <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                            <span>WhatsApp</span>
                           </a>
                         )}
 
@@ -755,9 +888,10 @@ export default function HomePage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="px-2.5 py-1 rounded-lg bg-red-700 hover:bg-red-600 text-white font-semibold text-[11px] flex items-center gap-1 transition"
+                            className="px-2.5 py-1 rounded-lg bg-red-700 hover:bg-red-600 text-white font-semibold text-[11px] flex items-center gap-1 transition cursor-pointer"
                           >
-                            <Briefcase className="w-3.5 h-3.5" /> CompuTrabajo
+                            <Briefcase className="w-3.5 h-3.5" />
+                            <span>CompuTrabajo</span>
                           </a>
                         )}
                       </div>

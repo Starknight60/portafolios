@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { createSessionToken, COOKIE_NAME } from '@/lib/auth';
+import { checkRateLimit, getClientIp } from '@/lib/security';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
@@ -14,6 +15,21 @@ const LoginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Verificación de Rate Limiting (Protección contra fuerza bruta)
+    const clientIp = getClientIp(request.headers);
+    const rate = checkRateLimit(clientIp, 10, 60 * 1000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { 
+          error: `Demasiados intentos de acceso fallidos desde tu red. Por favor espera ${rate.retryAfterSeconds} segundos.` 
+        },
+        { 
+          status: 429,
+          headers: { 'Retry-After': String(rate.retryAfterSeconds) }
+        }
+      );
+    }
+
     const body = await request.json();
     const parsed = LoginSchema.safeParse(body);
 
