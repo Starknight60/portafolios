@@ -66,7 +66,7 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
       "Publicación gratuita para propietarios particulares sin comisiones intermediarias",
     ],
     githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/zonahogar",
-    demoUrl: "http://localhost:3006",
+    demoUrl: "http://localhost:3000",
   },
   {
     id: "chambacerca",
