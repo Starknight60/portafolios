@@ -601,6 +601,25 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
           </button>
 
           <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+            {/* Botón Avisar a un Pana por WhatsApp */}
+            <button
+              type="button"
+              onClick={() => {
+                const title = place.title || 'esta vacante';
+                const name = place.placeName;
+                const address = place.address || '';
+                const salary = place.salaryRange ? `Pagan *${place.salaryRange}*` : 'Excelente paquete en $ USD';
+                const walk = place.walkTimeMinutes ? `Queda a *${place.walkTimeMinutes} min a pie*` : '';
+                const message = `¡Epa chamo! 👋 En ChambaCerca vi esta oportunidad de trabajo:\n\n💼 *${title}*\n🏬 *${name}* (${address})\n💰 ${salary}\n🚶‍♂️ ${walk}\n\nRevisa los detalles aquí 👇\nhttps://portafolios-rho.vercel.app`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+              }}
+              className="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition border border-slate-700/80 cursor-pointer"
+              title="Compartir vacante con un amigo o familiar por WhatsApp"
+            >
+              <Share2 className="w-4 h-4 text-emerald-400" />
+              <span>Avisar a un pana</span>
+            </button>
+
             <a
               href={googleMapsWalkingUrl}
               target="_blank"

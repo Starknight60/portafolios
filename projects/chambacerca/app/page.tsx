@@ -19,7 +19,8 @@ import {
   Briefcase, MessageCircle, DollarSign, Clock, Users, ArrowUpRight, 
   ExternalLink, ChevronRight, ChevronDown, Layers, ShieldCheck, HeartHandshake,
   AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn,
-  Radio, Zap, X, SlidersHorizontal, Volume2, VolumeX, FileText, Sun, Utensils, Bus, GraduationCap
+  Radio, Zap, X, SlidersHorizontal, Volume2, VolumeX, FileText, Sun, Utensils, Bus, GraduationCap,
+  Maximize2, Minimize2, Share2, CheckCircle2, ClipboardList, TrendingUp
 } from 'lucide-react';
 
 // Carga dinámica del mapa de Google Maps sin SSR para evitar errores de hidratación
@@ -76,7 +77,14 @@ export default function HomePage() {
   const [sunlightMode, setSunlightMode] = useState<boolean>(false);
   const [selectedHub, setSelectedHub] = useState<string | null>(null);
 
-  // Inicializar estado de sonido y modo sol de calle
+  // Nuevas Mejoras: Radar Pantalla Completa, Mi Ruta de Chamba & Tracker
+  const [isFullscreenMap, setIsFullscreenMap] = useState<boolean>(false);
+  const [applicationStatuses, setApplicationStatuses] = useState<{
+    [id: string]: 'pending_visit' | 'cv_delivered' | 'interview_called';
+  }>({});
+  const [filterRouteOnly, setFilterRouteOnly] = useState<boolean>(false);
+
+  // Inicializar estado de sonido, modo sol de calle y estado de postulaciones
   useEffect(() => {
     const active = initSoundState();
     setSoundOn(active);
@@ -84,9 +92,75 @@ export default function HomePage() {
       if (typeof window !== 'undefined') {
         const savedSun = localStorage.getItem('chambacerca_sunlight_mode');
         setSunlightMode(savedSun === '1');
+
+        const savedStatuses = localStorage.getItem('chambacerca_application_statuses');
+        if (savedStatuses) {
+          setApplicationStatuses(JSON.parse(savedStatuses));
+        }
       }
     } catch {}
   }, []);
+
+  // Función para actualizar el estado de postulación de una vacante
+  const updateApplicationStatus = (
+    placeId: string,
+    status: 'pending_visit' | 'cv_delivered' | 'interview_called' | 'none'
+  ) => {
+    playTacticalClick();
+    setApplicationStatuses((prev) => {
+      const next = { ...prev };
+      if (status === 'none') {
+        delete next[placeId];
+      } else {
+        next[placeId] = status;
+      }
+      try {
+        localStorage.setItem('chambacerca_application_statuses', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Función para compartir vacante por WhatsApp a un pana
+  const handleShareToWhatsApp = (place: PlaceResultItem) => {
+    playTacticalClick();
+    const title = place.title || 'esta vacante';
+    const name = place.placeName;
+    const address = place.address || '';
+    const salary = place.salaryRange ? `Pagan *${place.salaryRange}*` : 'Excelente paquete en $ USD';
+    const walk = place.walkTimeMinutes ? `Queda a *${place.walkTimeMinutes} min a pie* (~${place.distanceFormatted})` : `Distancia: ${place.distanceFormatted}`;
+    const message = `¡Epa chamo! 👋 En ChambaCerca vi esta oportunidad de trabajo cerca:\n\n💼 *${title}*\n🏬 *${name}* (${address})\n💰 ${salary}\n🚶‍♂️ ${walk}\n\nRevisa los detalles aquí 👇\nhttps://portafolios-rho.vercel.app`;
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
+  // Función para calcular salario neto aproximado restando camionetica
+  const getNetSalaryEstimate = (place: PlaceResultItem) => {
+    const isWalkable = place.distanceMeters <= 1500;
+    const match = (place.salaryRange || '').match(/\$?(\d{2,3})/);
+    const baseSalary = match ? parseInt(match[1]) : 210;
+
+    if (isWalkable) {
+      return {
+        netAmount: baseSalary,
+        transitCost: 0,
+        label: `~$${baseSalary} limpios / mes`,
+        sublabel: 'Vas a pie • $0 en pasaje',
+        isWalkable: true,
+      };
+    } else {
+      // 24 días laborables * ~$1.00 diario = ~$24 en camionetica
+      const transitCost = 24;
+      const net = Math.max(baseSalary - transitCost, 0);
+      return {
+        netAmount: net,
+        transitCost,
+        label: `~$${net} limpios / mes`,
+        sublabel: `-$${transitCost} en pasaje (${place.distanceFormatted})`,
+        isWalkable: false,
+      };
+    }
+  };
 
   const handleToggleSound = () => {
     const next = !soundOn;
@@ -247,6 +321,9 @@ export default function HomePage() {
     // 1. Filtro de guardados
     if (filterSavedOnly && !savedIds.includes(p.id)) return false;
 
+    // 1.1 Filtro de Mi Ruta de Postulaciones activa
+    if (filterRouteOnly && !applicationStatuses[p.id]) return false;
+
     // 2. Filtro de búsqueda en vivo (título, lugar, rubro, requisitos)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -320,6 +397,22 @@ export default function HomePage() {
       />
     );
   }
+
+  // Métricas analíticas del radar en tiempo real
+  const walkableCount = displayedPlaces.filter((p) => p.distanceMeters <= 1500).length;
+  const verifiedCount = displayedPlaces.filter((p) => p.status === 'VERIFIED_VACANCY').length;
+  const routeCount = Object.keys(applicationStatuses).length;
+
+  const totalSalaries = displayedPlaces.reduce((acc, p) => {
+    const match = (p.salaryRange || '').match(/\$?(\d{2,3})/);
+    if (match) acc.push(parseInt(match[1]));
+    return acc;
+  }, [] as number[]);
+
+  const avgSalary =
+    totalSalaries.length > 0
+      ? Math.round(totalSalaries.reduce((a, b) => a + b, 0) / totalSalaries.length)
+      : 215;
 
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${sunlightMode ? 'street-sunlight-mode' : 'bg-[#080D15] text-slate-100'} relative overflow-hidden`}>
@@ -710,7 +803,7 @@ export default function HomePage() {
       {/* 5. Contenedor Principal: Radar Panorámico Arriba y Ofertas Debajo (Cero Espacio Vacío) */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6">
         {/* SECCIÓN 1: Radar Panorámico Superior con Google Maps */}
-        <section className="w-full space-y-2">
+        <section className={`w-full space-y-2.5 ${isFullscreenMap ? 'fixed inset-0 z-[200] bg-[#080D15] p-3 sm:p-4 flex flex-col h-screen' : ''}`}>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 bg-slate-900/80 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-800">
@@ -726,14 +819,37 @@ export default function HomePage() {
                 Radar satelital en vivo • Rutas a pie con minutos y pasos calculados
               </span>
             </div>
+
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-mono font-bold text-emerald-300 bg-gradient-to-r from-emerald-950/90 to-teal-950/90 px-2.5 py-1 rounded-lg border border-emerald-500/40 shadow-sm">
                 {displayedPlaces.length} Comercios en Radio
               </span>
+
+              {/* Botón ⛶ Pantalla Completa del Radar */}
+              <button
+                onClick={() => {
+                  setIsFullscreenMap(!isFullscreenMap);
+                  playTacticalClick();
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 hover:border-emerald-500/50 transition cursor-pointer"
+                title={isFullscreenMap ? 'Salir de pantalla completa' : 'Expandir radar a pantalla completa'}
+              >
+                {isFullscreenMap ? (
+                  <>
+                    <Minimize2 className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Reducir</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="hidden sm:inline">Pantalla Completa</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
-          <div className="w-full h-[360px] sm:h-[420px] lg:h-[480px] rounded-2xl overflow-hidden border border-slate-800/90 shadow-2xl relative">
+          <div className={`w-full rounded-2xl overflow-hidden border border-slate-800/90 shadow-2xl relative ${isFullscreenMap ? 'flex-1 h-full' : 'h-[360px] sm:h-[420px] lg:h-[480px]'}`}>
             <MapViewer
               center={[coords.lat, coords.lng]}
               radiusMeters={radius}
@@ -743,6 +859,81 @@ export default function HomePage() {
               userLocation={userLocation}
             />
           </div>
+
+          {/* BARRA DE MÉTRICAS ANALÍTICAS DEL RADAR EN TIEMPO REAL */}
+          {!isFullscreenMap && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+              {/* Métrica 1: Caminables */}
+              <button
+                type="button"
+                onClick={() => setQuickFilter(quickFilter === 'walk' ? 'all' : 'walk')}
+                className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                  quickFilter === 'walk'
+                    ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                    : 'bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-300'
+                }`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
+                  <span className="text-base">🚶‍♂️</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white flex items-center gap-1">
+                    <span>{walkableCount} a pie</span>
+                    <span className="text-[10px] text-emerald-400 font-normal">(&lt;1.5km)</span>
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">$0 en camionetica</p>
+                </div>
+              </button>
+
+              {/* Métrica 2: Salario Promedio */}
+              <div className="p-2.5 rounded-xl border border-slate-800/80 bg-slate-900/80 text-left flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-teal-500/20 border border-teal-500/40 flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-4 h-4 text-teal-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white font-mono flex items-center gap-1">
+                    <span>${avgSalary} USD</span>
+                    <span className="text-[9px] text-teal-400 font-sans font-semibold">promedio</span>
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">Sueldo en el radio</p>
+                </div>
+              </div>
+
+              {/* Métrica 3: Canales Auditados */}
+              <div className="p-2.5 rounded-xl border border-slate-800/80 bg-slate-900/80 text-left flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/40 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-4 h-4 text-blue-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white flex items-center gap-1">
+                    <span>{verifiedCount} auditadas</span>
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">Cero estafas ni gestores</p>
+                </div>
+              </div>
+
+              {/* Métrica 4: Mi Ruta de Chamba */}
+              <button
+                type="button"
+                onClick={() => setFilterRouteOnly(!filterRouteOnly)}
+                className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                  filterRouteOnly
+                    ? 'bg-amber-950/80 border-amber-500 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                    : 'bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-300'
+                }`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+                  <ClipboardList className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white flex items-center gap-1">
+                    <span>Mi Ruta ({routeCount})</span>
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">{filterRouteOnly ? 'Viendo activas' : 'Tus postulaciones'}</p>
+                </div>
+              </button>
+            </div>
+          )}
         </section>
 
         {/* SECCIÓN 2: Ofertas de Empleo Organizadas Directamente Debajo del Radar */}
@@ -1043,6 +1234,29 @@ export default function HomePage() {
                       </div>
                     )}
 
+                    {/* Cálculo Inteligente de Salario Neto Estimado (Sueldo - Pasajes de Camionetica) */}
+                    {(() => {
+                      const net = getNetSalaryEstimate(place);
+                      return (
+                        <div className="mt-2 px-2.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between text-xs">
+                          <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1">
+                            <span className="text-emerald-400">💵</span>
+                            <span className="hidden xs:inline">Neto:</span>
+                            <strong className="text-emerald-300 font-mono">{net.label}</strong>
+                          </span>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-md font-medium ${
+                              net.isWalkable
+                                ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                            }`}
+                          >
+                            {net.sublabel}
+                          </span>
+                        </div>
+                      );
+                    })()}
+
                     {/* Canales Reales Detectados con Colores Oficiales Mejorados */}
                     {(place.computrabajoUrl || place.contactWhatsapp || place.contactEmail) && (
                       <div className="mt-2 flex items-center gap-2 flex-wrap text-[11px]">
@@ -1065,8 +1279,79 @@ export default function HomePage() {
                       </div>
                     )}
 
+                    {/* Mini-Tracker de Estado de Postulación ("Mi Ruta de Chamba") */}
+                    {(() => {
+                      const currentStatus = applicationStatuses[place.id];
+                      return (
+                        <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1 text-[11px]">
+                          <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 shrink-0">
+                            <ClipboardList className="w-3 h-3 text-slate-400" />
+                            <span>Mi Ruta:</span>
+                          </span>
+                          <div className="flex items-center gap-1 flex-wrap justify-end">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateApplicationStatus(
+                                  place.id,
+                                  currentStatus === 'pending_visit' ? 'none' : 'pending_visit'
+                                );
+                              }}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition cursor-pointer ${
+                                currentStatus === 'pending_visit'
+                                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                                  : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-amber-300'
+                              }`}
+                              title="Marcar como pendiente por llevar currículum impreso"
+                            >
+                              🟡 1. Por ir
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateApplicationStatus(
+                                  place.id,
+                                  currentStatus === 'cv_delivered' ? 'none' : 'cv_delivered'
+                                );
+                              }}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition cursor-pointer ${
+                                currentStatus === 'cv_delivered'
+                                  ? 'bg-blue-500 text-white shadow-sm'
+                                  : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-blue-300'
+                              }`}
+                              title="Marcar como currículum ya entregado en tienda"
+                            >
+                              🔵 2. Entregado
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateApplicationStatus(
+                                  place.id,
+                                  currentStatus === 'interview_called' ? 'none' : 'interview_called'
+                                );
+                              }}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition cursor-pointer ${
+                                currentStatus === 'interview_called'
+                                  ? 'bg-emerald-500 text-slate-950 shadow-sm font-black'
+                                  : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-emerald-300'
+                              }`}
+                              title="Marcar que ya te llamaron para entrevista"
+                            >
+                              🟢 3. Entrevista
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* Acciones Rápidas */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-1.5 flex-wrap">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1074,11 +1359,25 @@ export default function HomePage() {
                         }}
                         className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
                       >
-                        <span>Ver cómo postular</span>
+                        <span>Ver detalle</span>
                         <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                       </button>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {/* Botón Avisar a un Pana por WhatsApp */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShareToWhatsApp(place);
+                          }}
+                          className="px-2 py-1 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer shadow-sm"
+                          title="Compartir oferta preformateada por WhatsApp a un amigo o familiar"
+                        >
+                          <Share2 className="w-3 h-3 text-emerald-400" />
+                          <span className="hidden sm:inline">Avisar a un pana</span>
+                        </button>
+
                         <a
                           href={`https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking`}
                           target="_blank"
@@ -1088,7 +1387,7 @@ export default function HomePage() {
                           title="Abrir ruta a pie en Google Maps"
                         >
                           <Navigation className="w-3 h-3 text-blue-400" />
-                          <span>Google Maps</span>
+                          <span>Mapa</span>
                         </a>
 
                         <button
@@ -1102,17 +1401,6 @@ export default function HomePage() {
                         >
                           <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
                           <span>Ahorro</span>
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setReportTargetPlace(place);
-                          }}
-                          className="p-1 px-2 rounded-lg bg-slate-900/90 hover:bg-amber-950/60 text-slate-300 hover:text-amber-300 border border-slate-800 hover:border-amber-500/40 text-[11px] transition cursor-pointer"
-                          title="Fui a preguntar / Aportar dato"
-                        >
-                          📢 Aportar
                         </button>
 
                         {place.contactWhatsapp && (
