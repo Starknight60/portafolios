@@ -50,6 +50,25 @@ interface ProjectItem {
 
 const DEFAULT_PROJECTS: ProjectItem[] = [
   {
+    id: "zonahogar",
+    category: "fullstack",
+    title: "ZonaHogar Radar",
+    badge: "PropTech & Trato Directo",
+    gradient: "from-amber-500 via-orange-500 to-emerald-600",
+    description:
+      "Radar geoespacial y plataforma de alquiler de habitaciones, anexos y monoambientes económicos en Venezuela (Caracas, Valencia, Maracay, Maracaibo, Barquisimeto). Conexión 100% directa con propietarios particulares por WhatsApp (0% comisiones abusivas), mapa panorámico interactivo con Google Maps (calles y satélite), filtros indispensables de supervivencia (tanque de agua, planta eléctrica, fibra óptica) y calculadora interactiva del costo total de entrada y flete.",
+    tech: ["Next.js 16", "React 19", "Leaflet & Google Maps", "Lucide React", "Web Audio API", "Tailwind CSS"],
+    features: [
+      "Radar panorámico interactivo con Google Maps y pines de precios en $ USD",
+      "Filtros de servicios vitales (tanque de agua, planta eléctrica, fibra óptica)",
+      "Calculadora interactiva de mudanza & costo total de entrada (ahorro de $200-$500)",
+      "Contacto directo con dueños por WhatsApp con mensaje estructurado",
+      "Publicación gratuita para propietarios particulares sin comisiones intermediarias",
+    ],
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/zonahogar",
+    demoUrl: "http://localhost:3006",
+  },
+  {
     id: "chambacerca",
     category: "fullstack",
     title: "ChambaCerca Radar",
