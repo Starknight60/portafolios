@@ -84,7 +84,7 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
       "Portal para empleadores con publicación inmediata en la nube",
     ],
     githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/chambacerca",
-    demoUrl: "https://chambacerca.vercel.app/",
+    demoUrl: "https://chambacerca-nine.vercel.app/",
   },
   {
     id: "menupulse",
