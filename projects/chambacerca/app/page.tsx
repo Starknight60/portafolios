@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { PlaceResultItem } from '@/app/api/places/route';
 import { CATEGORIES, BASE_CATEGORIES } from '@/lib/categories';
@@ -316,58 +316,60 @@ export default function HomePage() {
     );
   }
 
-  // Filtrado final de lugares (incluyendo guardados, búsqueda inteligente y filtros rápidos)
-  const displayedPlaces = places.filter((p) => {
-    // 1. Filtro de guardados
-    if (filterSavedOnly && !savedIds.includes(p.id)) return false;
+  // Filtrado final de lugares memorizado (60 FPS: evita recalcular en cada tick o re-render)
+  const displayedPlaces = useMemo(() => {
+    return places.filter((p) => {
+      // 1. Filtro de guardados
+      if (filterSavedOnly && !savedIds.includes(p.id)) return false;
 
-    // 1.1 Filtro de Mi Ruta de Postulaciones activa
-    if (filterRouteOnly && !applicationStatuses[p.id]) return false;
+      // 1.1 Filtro de Mi Ruta de Postulaciones activa
+      if (filterRouteOnly && !applicationStatuses[p.id]) return false;
 
-    // 2. Filtro de búsqueda en vivo (título, lugar, rubro, requisitos)
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      const matchTitle = (p.title || '').toLowerCase().includes(q);
-      const matchName = (p.placeName || '').toLowerCase().includes(q);
-      const matchCat = (p.categoryLabel || '').toLowerCase().includes(q);
-      const matchAddress = (p.address || '').toLowerCase().includes(q);
-      const matchReq = (p.requirements || []).some((r) => r.toLowerCase().includes(q));
-      if (!matchTitle && !matchName && !matchCat && !matchAddress && !matchReq) {
-        return false;
+      // 2. Filtro de búsqueda en vivo (título, lugar, rubro, requisitos)
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchTitle = (p.title || '').toLowerCase().includes(q);
+        const matchName = (p.placeName || '').toLowerCase().includes(q);
+        const matchCat = (p.categoryLabel || '').toLowerCase().includes(q);
+        const matchAddress = (p.address || '').toLowerCase().includes(q);
+        const matchReq = (p.requirements || []).some((r) => r.toLowerCase().includes(q));
+        if (!matchTitle && !matchName && !matchCat && !matchAddress && !matchReq) {
+          return false;
+        }
       }
-    }
 
-    // 3. Filtro rápido de proximidad / beneficios en Venezuela
-    if (quickFilter === 'walk' && p.distanceMeters > 1500) return false;
-    if (quickFilter === 'salary200') {
-      const salary = p.salaryRange || '';
-      const has200 = salary.includes('200') || salary.includes('220') || salary.includes('250') || salary.includes('280') || salary.includes('300') || salary.includes('350');
-      if (!has200) return false;
-    }
-    if (quickFilter === 'immediate' && p.status !== 'VERIFIED_VACANCY') return false;
-    if (quickFilter === 'firstJob') {
-      const text = `${p.title} ${(p.requirements || []).join(' ')} ${p.description}`.toLowerCase();
-      const isFirstJobFriendly = text.includes('sin experiencia') || text.includes('primer empleo') || text.includes('aprender') || text.includes('pasillero') || text.includes('auxiliar') || text.includes('ayudante') || (p.requirements || []).length <= 2;
-      if (!isFirstJobFriendly) return false;
-    }
-    if (quickFilter === 'nightTransit') {
-      const text = `${(p.benefits || []).join(' ')} ${p.description} ${p.schedule}`.toLowerCase();
-      const hasTransit = text.includes('transporte') || text.includes('nocturno') || text.includes('salida') || text.includes('ruta');
-      if (!hasTransit) return false;
-    }
-    if (quickFilter === 'lunch') {
-      const text = `${(p.benefits || []).join(' ')} ${p.description}`.toLowerCase();
-      const hasLunch = text.includes('almuerzo') || text.includes('comida') || text.includes('refrigerio') || text.includes('alimentación') || text.includes('cesta ticket') || text.includes('cestaticket');
-      if (!hasLunch) return false;
-    }
-    if (quickFilter === 'dayShift') {
-      const text = `${p.schedule} ${p.description}`.toLowerCase();
-      const isDayShift = text.includes('mañana') || text.includes('diurno') || text.includes('fijo') || text.includes('7am') || text.includes('8am');
-      if (!isDayShift) return false;
-    }
+      // 3. Filtro rápido de proximidad / beneficios en Venezuela
+      if (quickFilter === 'walk' && p.distanceMeters > 1500) return false;
+      if (quickFilter === 'salary200') {
+        const salary = p.salaryRange || '';
+        const has200 = salary.includes('200') || salary.includes('220') || salary.includes('250') || salary.includes('280') || salary.includes('300') || salary.includes('350');
+        if (!has200) return false;
+      }
+      if (quickFilter === 'immediate' && p.status !== 'VERIFIED_VACANCY') return false;
+      if (quickFilter === 'firstJob') {
+        const text = `${p.title} ${(p.requirements || []).join(' ')} ${p.description}`.toLowerCase();
+        const isFirstJobFriendly = text.includes('sin experiencia') || text.includes('primer empleo') || text.includes('aprender') || text.includes('pasillero') || text.includes('auxiliar') || text.includes('ayudante') || (p.requirements || []).length <= 2;
+        if (!isFirstJobFriendly) return false;
+      }
+      if (quickFilter === 'nightTransit') {
+        const text = `${(p.benefits || []).join(' ')} ${p.description} ${p.schedule}`.toLowerCase();
+        const hasTransit = text.includes('transporte') || text.includes('nocturno') || text.includes('salida') || text.includes('ruta');
+        if (!hasTransit) return false;
+      }
+      if (quickFilter === 'lunch') {
+        const text = `${(p.benefits || []).join(' ')} ${p.description}`.toLowerCase();
+        const hasLunch = text.includes('almuerzo') || text.includes('comida') || text.includes('refrigerio') || text.includes('alimentación') || text.includes('cesta ticket') || text.includes('cestaticket');
+        if (!hasLunch) return false;
+      }
+      if (quickFilter === 'dayShift') {
+        const text = `${p.schedule} ${p.description}`.toLowerCase();
+        const isDayShift = text.includes('mañana') || text.includes('diurno') || text.includes('fijo') || text.includes('7am') || text.includes('8am');
+        if (!isDayShift) return false;
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [places, filterSavedOnly, savedIds, filterRouteOnly, applicationStatuses, searchQuery, quickFilter]);
 
   // Pantalla de carga mientras se verifica la sesión
   if (sessionLoading) {
@@ -398,31 +400,44 @@ export default function HomePage() {
     );
   }
 
-  // Métricas analíticas del radar en tiempo real
-  const walkableCount = displayedPlaces.filter((p) => p.distanceMeters <= 1500).length;
-  const verifiedCount = displayedPlaces.filter((p) => p.status === 'VERIFIED_VACANCY').length;
+  // Métricas analíticas del radar memorizadas (60 FPS: cálculo instantáneo O(1) en re-renders)
+  const { walkableCount, verifiedCount, avgSalary } = useMemo(() => {
+    let walkable = 0;
+    let verified = 0;
+    const salaries: number[] = [];
+
+    for (let i = 0; i < displayedPlaces.length; i++) {
+      const p = displayedPlaces[i];
+      if (p.distanceMeters <= 1500) walkable++;
+      if (p.status === 'VERIFIED_VACANCY') verified++;
+      const match = (p.salaryRange || '').match(/\$?(\d{2,3})/);
+      if (match) salaries.push(parseInt(match[1]));
+    }
+
+    const calculatedAvgSalary =
+      salaries.length > 0
+        ? Math.round(salaries.reduce((a, b) => a + b, 0) / salaries.length)
+        : 215;
+
+    return {
+      walkableCount: walkable,
+      verifiedCount: verified,
+      avgSalary: calculatedAvgSalary,
+    };
+  }, [displayedPlaces]);
+
   const routeCount = Object.keys(applicationStatuses).length;
-
-  const totalSalaries = displayedPlaces.reduce((acc, p) => {
-    const match = (p.salaryRange || '').match(/\$?(\d{2,3})/);
-    if (match) acc.push(parseInt(match[1]));
-    return acc;
-  }, [] as number[]);
-
-  const avgSalary =
-    totalSalaries.length > 0
-      ? Math.round(totalSalaries.reduce((a, b) => a + b, 0) / totalSalaries.length)
-      : 215;
 
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${sunlightMode ? 'street-sunlight-mode' : 'bg-[#080D15] text-slate-100'} relative overflow-hidden`}>
-      {/* Orbes de Iluminación Ambiental de Fondo (Mantiene los colores originales con mayor riqueza y profundidad) */}
+      {/* Iluminación Ambiental Optimizada por Gradiente Nativo (Mantiene idéntica estética sin la sobrecarga GPU de blur gaussianos) */}
       {!sunlightMode && (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-          <div className="absolute -top-32 -left-32 w-96 h-96 bg-emerald-500/[0.08] rounded-full blur-[130px]" />
-          <div className="absolute top-1/3 -right-32 w-96 h-96 bg-cyan-500/[0.06] rounded-full blur-[140px]" />
-          <div className="absolute -bottom-32 left-1/3 w-[500px] h-[350px] bg-blue-600/[0.05] rounded-full blur-[160px]" />
-        </div>
+        <div 
+          className="fixed inset-0 pointer-events-none z-0" 
+          style={{
+            background: 'radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.08), transparent 45%), radial-gradient(circle at 90% 40%, rgba(6, 182, 212, 0.06), transparent 45%), radial-gradient(circle at 50% 90%, rgba(37, 99, 235, 0.05), transparent 50%)'
+          }} 
+        />
       )}
 
       {/* Header Principal Compacto y Elegante */}

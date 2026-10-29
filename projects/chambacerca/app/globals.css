@@ -19,16 +19,24 @@
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    touch-action: pan-x pan-y;
   }
 }
 
-/* Leaflet Map Overrides */
+/* Leaflet Map Overrides con aceleración GPU nativa */
 .leaflet-container {
   width: 100%;
   height: 100%;
   background: #0B131F !important;
   font-family: inherit;
   z-index: 1;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.custom-map-pin {
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .leaflet-popup-content-wrapper {

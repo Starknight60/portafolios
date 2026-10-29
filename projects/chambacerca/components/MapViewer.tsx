@@ -178,6 +178,27 @@ function createCustomPin(item: PlaceResultItem, isSelected: boolean) {
   });
 }
 
+// Caché de íconos para evitar recrear DOM en cada render (Optimización 60fps)
+const pinIconCache = new Map<string, L.DivIcon>();
+
+function getCustomPin(item: PlaceResultItem, isSelected: boolean): L.DivIcon {
+  const key = `${item.id}_${item.status}_${isSelected ? '1' : '0'}`;
+  let icon = pinIconCache.get(key);
+  if (!icon) {
+    icon = createCustomPin(item, isSelected);
+    pinIconCache.set(key, icon);
+  }
+  return icon;
+}
+
+let cachedUserLocationPin: L.DivIcon | null = null;
+function getUserLocationPin(): L.DivIcon {
+  if (!cachedUserLocationPin) {
+    cachedUserLocationPin = createUserLocationPin();
+  }
+  return cachedUserLocationPin;
+}
+
 function createUserLocationPin() {
   const html = `
     <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;">
@@ -252,7 +273,7 @@ export default function MapViewer({
       
       {/* Telemetría Militar Táctica en Vivo (Esquina Superior Izquierda) */}
       <div className="absolute top-3 left-3 z-[1000] pointer-events-none flex flex-col gap-1.5">
-        <div className="bg-slate-950/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-emerald-500/40 shadow-2xl flex items-center gap-2">
+        <div className="bg-[#0B131F]/95 px-3 py-1.5 rounded-xl border border-emerald-500/40 shadow-2xl flex items-center gap-2">
           <span className="relative flex h-2 w-2">
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
           </span>
@@ -264,7 +285,7 @@ export default function MapViewer({
           </span>
         </div>
 
-        <div className="bg-slate-950/75 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-slate-800 text-[9px] font-mono text-slate-300 flex items-center gap-2 shadow">
+        <div className="bg-[#080D15]/95 px-2.5 py-1 rounded-lg border border-slate-800 text-[9px] font-mono text-slate-300 flex items-center gap-2 shadow">
           <Compass className="w-2.5 h-2.5 text-cyan-400" />
           <span>{center[0].toFixed(4)}°N, {Math.abs(center[1]).toFixed(4)}°W</span>
           <span className="text-emerald-400 font-bold">R={radiusMeters}m</span>
@@ -272,7 +293,7 @@ export default function MapViewer({
 
         {/* Ticker de Ruta Activa Trazada */}
         {selectedPlace && (
-          <div className="bg-emerald-950/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-emerald-400/80 text-[10px] font-mono text-emerald-300 flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
+          <div className="bg-[#062419]/95 px-3 py-1.5 rounded-xl border border-emerald-400/80 text-[10px] font-mono text-emerald-300 flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
             <Footprints className="w-3.5 h-3.5 text-emerald-300 animate-bounce shrink-0" />
             <span className="truncate max-w-[200px] sm:max-w-[280px]">
               RUTA: <strong>{selectedPlace.placeName}</strong> ({selectedPlace.distanceFormatted} • {selectedPlace.walkTimeMinutes} min)
@@ -287,19 +308,19 @@ export default function MapViewer({
         {/* Toggle para Activar/Desactivar el Haz de Sonar */}
         <button
           onClick={() => setShowRadarHud(!showRadarHud)}
-          title="Alternar haz de radar sonar 360°"
-          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 backdrop-blur-md border shadow-xl cursor-pointer ${
+          title="Alternar retícula de distancia de radar"
+          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-xl cursor-pointer ${
             showRadarHud
               ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
               : 'bg-slate-900/90 text-slate-400 border-slate-700 hover:text-white'
           }`}
         >
-          <Radio className={`w-3.5 h-3.5 ${showRadarHud ? 'text-emerald-400 animate-pulse' : 'text-slate-400'}`} />
-          <span className="hidden sm:inline">{showRadarHud ? 'Haz Sonar ON' : 'Haz Sonar OFF'}</span>
+          <Radio className={`w-3.5 h-3.5 ${showRadarHud ? 'text-emerald-400' : 'text-slate-400'}`} />
+          <span className="hidden sm:inline">{showRadarHud ? 'Retícula ON' : 'Retícula OFF'}</span>
         </button>
 
         {/* Selector de Tipo de Capa Google Maps */}
-        <div className="bg-slate-950/90 backdrop-blur-md rounded-xl p-1 border border-slate-700 shadow-xl flex items-center gap-1">
+        <div className="bg-[#0B131F]/95 rounded-xl p-1 border border-slate-700 shadow-xl flex items-center gap-1">
           <button
             onClick={() => setMapType('roadmap')}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
@@ -444,7 +465,7 @@ export default function MapViewer({
 
         {/* Pin de ubicación del usuario */}
         {userLocation && (
-          <Marker position={userLocation} icon={createUserLocationPin()}>
+          <Marker position={userLocation} icon={getUserLocationPin()}>
             <Popup>
               <div className="p-1 text-slate-800">
                 <p className="font-semibold text-xs flex items-center gap-1 text-blue-600">
@@ -466,7 +487,7 @@ export default function MapViewer({
             <Marker
               key={place.id}
               position={[place.latitude, place.longitude]}
-              icon={createCustomPin(place, isSelected)}
+              icon={getCustomPin(place, isSelected)}
               eventHandlers={{
                 click: () => onSelectPlace(place),
               }}
