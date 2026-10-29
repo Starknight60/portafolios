@@ -371,6 +371,34 @@ export default function HomePage() {
     });
   }, [places, filterSavedOnly, savedIds, filterRouteOnly, applicationStatuses, searchQuery, quickFilter]);
 
+  // Métricas analíticas del radar memorizadas (60 FPS: cálculo instantáneo O(1) en re-renders, respetando las reglas de Hooks)
+  const { walkableCount, verifiedCount, avgSalary } = useMemo(() => {
+    let walkable = 0;
+    let verified = 0;
+    const salaries: number[] = [];
+
+    for (let i = 0; i < displayedPlaces.length; i++) {
+      const p = displayedPlaces[i];
+      if (p.distanceMeters <= 1500) walkable++;
+      if (p.status === 'VERIFIED_VACANCY') verified++;
+      const match = (p.salaryRange || '').match(/\$?(\d{2,3})/);
+      if (match) salaries.push(parseInt(match[1]));
+    }
+
+    const calculatedAvgSalary =
+      salaries.length > 0
+        ? Math.round(salaries.reduce((a, b) => a + b, 0) / salaries.length)
+        : 215;
+
+    return {
+      walkableCount: walkable,
+      verifiedCount: verified,
+      avgSalary: calculatedAvgSalary,
+    };
+  }, [displayedPlaces]);
+
+  const routeCount = Object.keys(applicationStatuses).length;
+
   // Pantalla de carga mientras se verifica la sesión
   if (sessionLoading) {
     return (
@@ -399,34 +427,6 @@ export default function HomePage() {
       />
     );
   }
-
-  // Métricas analíticas del radar memorizadas (60 FPS: cálculo instantáneo O(1) en re-renders)
-  const { walkableCount, verifiedCount, avgSalary } = useMemo(() => {
-    let walkable = 0;
-    let verified = 0;
-    const salaries: number[] = [];
-
-    for (let i = 0; i < displayedPlaces.length; i++) {
-      const p = displayedPlaces[i];
-      if (p.distanceMeters <= 1500) walkable++;
-      if (p.status === 'VERIFIED_VACANCY') verified++;
-      const match = (p.salaryRange || '').match(/\$?(\d{2,3})/);
-      if (match) salaries.push(parseInt(match[1]));
-    }
-
-    const calculatedAvgSalary =
-      salaries.length > 0
-        ? Math.round(salaries.reduce((a, b) => a + b, 0) / salaries.length)
-        : 215;
-
-    return {
-      walkableCount: walkable,
-      verifiedCount: verified,
-      avgSalary: calculatedAvgSalary,
-    };
-  }, [displayedPlaces]);
-
-  const routeCount = Object.keys(applicationStatuses).length;
 
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${sunlightMode ? 'street-sunlight-mode' : 'bg-[#080D15] text-slate-100'} relative overflow-hidden`}>
