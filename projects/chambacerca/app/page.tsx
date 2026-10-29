@@ -573,6 +573,69 @@ export default function HomePage() {
 
                     <div className="my-1 border-t border-slate-800" />
 
+                    {/* Controles de Preferencias en Móvil */}
+                    <div className="sm:hidden px-2.5 py-1 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                      Preferencias
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        handleToggleSound();
+                      }}
+                      className="sm:hidden w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-emerald-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${
+                          soundOn ? 'bg-emerald-950/80 border-emerald-800/60' : 'bg-slate-900 border-slate-700'
+                        }`}>
+                          {soundOn ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
+                        </div>
+                        <span className="font-semibold text-slate-100">Sonido de Radar</span>
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-400">{soundOn ? 'Activo' : 'Mudo'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        toggleSunlightMode();
+                      }}
+                      className="sm:hidden w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-amber-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${
+                          sunlightMode ? 'bg-amber-950/80 border-amber-800/60' : 'bg-slate-900 border-slate-700'
+                        }`}>
+                          <Sun className="w-3.5 h-3.5 text-amber-400" />
+                        </div>
+                        <span className="font-semibold text-slate-100">Modo Sol de Calle</span>
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-400">{sunlightMode ? 'Activo' : 'Oscuro'}</span>
+                    </button>
+
+                    {/* Cerrar Sesión en menú de Herramientas */}
+                    {currentUser && (
+                      <>
+                        <div className="my-1 border-t border-slate-800" />
+                        <button
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            handleLogout();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-xl transition text-left cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-rose-950/60 border border-rose-800/60 flex items-center justify-center shrink-0">
+                            <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-rose-300">Cerrar Sesión</p>
+                            <p className="text-[10px] text-slate-400 truncate max-w-[170px]">{currentUser.name}</p>
+                          </div>
+                        </button>
+                      </>
+                    )}
+
+                    <div className="my-1 border-t border-slate-800" />
+
                     <a
                       href="https://portafolios-rho.vercel.app"
                       target="_blank"
@@ -590,10 +653,10 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Toggle de Sonido Sonar Táctico (Icono Compacto de 32x32px) */}
+            {/* Toggle de Sonido Sonar Táctico (En pantallas >= sm) */}
             <button
               onClick={handleToggleSound}
-              className={`w-8 h-8 rounded-lg text-xs font-bold border transition flex items-center justify-center cursor-pointer shrink-0 ${
+              className={`hidden sm:flex w-8 h-8 rounded-lg text-xs font-bold border transition items-center justify-center cursor-pointer shrink-0 ${
                 soundOn
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
                   : 'bg-slate-900/80 text-slate-500 border-slate-800 hover:text-slate-300'
@@ -603,10 +666,10 @@ export default function HomePage() {
               {soundOn ? <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" /> : <VolumeX className="w-4 h-4" />}
             </button>
 
-            {/* Toggle de Modo Sol de Calle (Icono Compacto de 32x32px) */}
+            {/* Toggle de Modo Sol de Calle (En pantallas >= sm) */}
             <button
               onClick={toggleSunlightMode}
-              className={`w-8 h-8 rounded-lg text-xs font-bold border transition flex items-center justify-center cursor-pointer shrink-0 ${
+              className={`hidden sm:flex w-8 h-8 rounded-lg text-xs font-bold border transition items-center justify-center cursor-pointer shrink-0 ${
                 sunlightMode
                   ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-md font-black'
                   : 'bg-slate-900/80 text-amber-300 border-slate-800 hover:text-white hover:border-amber-500/50'
@@ -616,19 +679,22 @@ export default function HomePage() {
               <Sun className={`w-4 h-4 ${sunlightMode ? 'fill-current text-slate-950' : 'text-amber-400'}`} />
             </button>
 
-            {/* Estado de Sesión del Usuario (Esbelto y Compacto) */}
+            {/* Estado de Sesión del Usuario (Siempre visible, sin desbordamiento) */}
             {currentUser ? (
-              <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 pl-2 rounded-xl border border-slate-800 shrink-0">
-                <div className="w-6 h-6 rounded-md bg-emerald-600 text-white font-extrabold text-[11px] flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 bg-slate-900/90 p-1 pl-1.5 sm:pl-2 rounded-xl border border-slate-800 shrink-0">
+                <div 
+                  className="w-6 h-6 rounded-md bg-emerald-600 text-white font-extrabold text-[11px] flex items-center justify-center shrink-0 shadow-sm"
+                  title={currentUser.name}
+                >
                   {currentUser.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="hidden md:block text-left pr-1 max-w-[100px]">
+                <div className="hidden md:block text-left pr-1 max-w-[90px]">
                   <p className="text-xs font-bold text-slate-100 truncate leading-tight">{currentUser.name}</p>
                 </div>
 
                 <button
                   onClick={() => setFilterSavedOnly(!filterSavedOnly)}
-                  className={`p-1 rounded-md text-xs font-semibold flex items-center gap-0.5 transition ${
+                  className={`hidden sm:flex p-1 rounded-md text-xs font-semibold items-center gap-0.5 transition ${
                     filterSavedOnly ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-amber-300'
                   }`}
                   title="Ver oportunidades guardadas"
@@ -639,10 +705,12 @@ export default function HomePage() {
 
                 <button
                   onClick={handleLogout}
-                  className="p-1 rounded-md text-slate-400 hover:text-rose-400 transition"
+                  className="flex items-center gap-1 px-1.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 hover:text-rose-200 border border-rose-800/40 transition cursor-pointer"
                   title="Cerrar sesión"
+                  aria-label="Cerrar sesión"
                 >
                   <LogOut className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-bold text-rose-300">Salir</span>
                 </button>
               </div>
             ) : (
