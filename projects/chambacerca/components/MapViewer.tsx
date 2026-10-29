@@ -130,18 +130,6 @@ function createCustomPin(item: PlaceResultItem, isSelected: boolean) {
 
   const html = `
     <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);">
-      <!-- Onda de eco de radar expansiva -->
-      <div style="
-        position: absolute;
-        top: 2px;
-        width: 100%;
-        height: 28px;
-        border-radius: 9999px;
-        background: ${glowColor};
-        animation: radar-pulse 2.2s infinite ease-out;
-        z-index: 0;
-      "></div>
-
       <!-- Tarjeta Pin Principal -->
       <div style="
         position: relative;
@@ -192,24 +180,15 @@ function createCustomPin(item: PlaceResultItem, isSelected: boolean) {
 
 function createUserLocationPin() {
   const html = `
-    <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
-      <!-- Ondas concéntricas de pulso GPS -->
+    <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;">
+      <!-- Halo GPS Estático Ligero -->
       <div style="
         position: absolute;
-        width: 44px;
-        height: 44px;
+        width: 32px;
+        height: 32px;
         border-radius: 9999px;
-        background: rgba(66, 133, 244, 0.25);
-        border: 1px solid rgba(66, 133, 244, 0.6);
-        animation: sonar-wave-expand 2.5s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
-      "></div>
-      <div style="
-        position: absolute;
-        width: 28px;
-        height: 28px;
-        border-radius: 9999px;
-        background: rgba(66, 133, 244, 0.45);
-        animation: radar-pulse 1.8s infinite ease-out;
+        background: rgba(59, 130, 246, 0.2);
+        border: 1.5px solid rgba(59, 130, 246, 0.5);
       "></div>
       <!-- Núcleo central del GPS -->
       <div style="
@@ -218,7 +197,7 @@ function createUserLocationPin() {
         border-radius: 9999px;
         background: #3B82F6;
         border: 2.5px solid #ffffff;
-        box-shadow: 0 0 12px #3B82F6, 0 2px 8px rgba(0,0,0,0.6);
+        box-shadow: 0 0 10px #3B82F6, 0 2px 8px rgba(0,0,0,0.6);
         z-index: 2;
       "></div>
     </div>
@@ -227,8 +206,8 @@ function createUserLocationPin() {
   return L.divIcon({
     html,
     className: 'user-location-pin',
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
   });
 }
 
@@ -242,7 +221,7 @@ export default function MapViewer({
 }: MapViewerProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [mapType, setMapType] = useState<'roadmap' | 'hybrid' | 'traffic'>('roadmap');
-  const [showRadarHud, setShowRadarHud] = useState(true);
+  const [showRadarHud, setShowRadarHud] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -274,12 +253,11 @@ export default function MapViewer({
       {/* Telemetría Militar Táctica en Vivo (Esquina Superior Izquierda) */}
       <div className="absolute top-3 left-3 z-[1000] pointer-events-none flex flex-col gap-1.5">
         <div className="bg-slate-950/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-emerald-500/40 shadow-2xl flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
+          <span className="relative flex h-2 w-2">
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
           </span>
           <span className="text-[10px] font-black tracking-widest text-emerald-300 font-mono uppercase">
-            SONAR 360° ACTIVO
+            RADAR GPS ACTIVO
           </span>
           <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
             • {places.length} ECOS
@@ -356,14 +334,10 @@ export default function MapViewer({
       </div>
 
       {/* =========================================================================
-          CAPA HUD NOVEDOSA: HAZ DE RADAR SONAR 360° Y RETÍCULA TÁCTICA
+          CAPA HUD NOVEDOSA: RETÍCULA TÁCTICA LIGERA (SIN ANIMACIONES PESADAS)
           ========================================================================= */}
       {showRadarHud && (
         <div className="absolute inset-0 z-[500] pointer-events-none overflow-hidden flex items-center justify-center">
-          
-          {/* Línea de Escaneo Táctico Dinámico */}
-          <div className="animate-scanline" />
-
           {/* Anillos Concéntricos de Distancia Militares */}
           <div className="relative w-[340px] h-[340px] sm:w-[460px] sm:h-[460px] rounded-full border border-emerald-500/25 flex items-center justify-center">
             
@@ -384,16 +358,6 @@ export default function MapViewer({
             <span className="absolute right-2 text-[9px] font-mono font-bold text-emerald-400/80 bg-slate-950/60 px-1 rounded">E 090°</span>
             <span className="absolute bottom-2 text-[9px] font-mono font-bold text-emerald-400/80 bg-slate-950/60 px-1 rounded">S 180°</span>
             <span className="absolute left-2 text-[9px] font-mono font-bold text-emerald-400/80 bg-slate-950/60 px-1 rounded">W 270°</span>
-
-            {/* Haz Cónico Giratorio de Radar Sonar */}
-            <div 
-              className="absolute inset-0 rounded-full animate-sonar-beam pointer-events-none"
-              style={{
-                background: 'conic-gradient(from 0deg, rgba(16, 185, 129, 0) 0deg, rgba(16, 185, 129, 0) 275deg, rgba(16, 185, 129, 0.16) 335deg, rgba(52, 211, 153, 0.45) 360deg)',
-                borderRight: '1.5px solid rgba(110, 231, 183, 0.8)',
-                boxShadow: '0 0 16px rgba(16, 185, 129, 0.3)',
-              }}
-            />
           </div>
         </div>
       )}

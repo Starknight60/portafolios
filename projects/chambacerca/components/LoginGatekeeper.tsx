@@ -298,9 +298,6 @@ export default function LoginGatekeeper({
                     }}
                   />
 
-                  {/* Línea de Escaneo Táctica */}
-                  <div className="animate-scanline" />
-
                   {/* Anillos Concéntricos Militares */}
                   <div className="relative w-36 h-36 xs:w-44 xs:h-44 sm:w-48 sm:h-48 rounded-full border border-emerald-500/30 flex items-center justify-center">
                     {/* Anillo de 1 km */}
@@ -320,15 +317,6 @@ export default function LoginGatekeeper({
                     <span className="absolute -right-3 text-[8px] font-mono font-bold text-emerald-400/80">090°</span>
                     <span className="absolute -bottom-3 text-[8px] font-mono font-bold text-emerald-400/80">180°</span>
                     <span className="absolute -left-3 text-[8px] font-mono font-bold text-emerald-400/80">270°</span>
-
-                    {/* Haz Cónico Giratorio de Sonar */}
-                    <div 
-                      className="absolute inset-0 rounded-full animate-sonar-beam pointer-events-none"
-                      style={{
-                        background: 'conic-gradient(from 0deg, rgba(16, 185, 129, 0) 0deg, rgba(16, 185, 129, 0) 270deg, rgba(16, 185, 129, 0.15) 330deg, rgba(52, 211, 153, 0.55) 360deg)',
-                        borderRight: '1.5px solid rgba(52, 211, 153, 0.8)',
-                      }}
-                    />
 
                     {/* Pin Central: Tu Ubicación GPS */}
                     <div className="absolute z-10 flex flex-col items-center">

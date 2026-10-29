@@ -432,8 +432,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2.5 shrink-0">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-md shadow-emerald-950/60 flex items-center justify-center relative">
               <div className="w-full h-full bg-[#080D15] rounded-[9px] flex items-center justify-center overflow-hidden relative">
-                <Compass className="w-4 h-4 text-emerald-400 animate-compass-spin" />
-                <div className="absolute inset-0 bg-emerald-500/15 rounded-full animate-sonar-wave pointer-events-none" />
+                <Compass className="w-4 h-4 text-emerald-400" />
               </div>
             </div>
             <div>

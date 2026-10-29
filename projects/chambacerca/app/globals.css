@@ -266,12 +266,11 @@
 }
 
 .animate-sonar-beam {
-  animation: sonar-beam-sweep 3.6s linear infinite;
-  transform-origin: center center;
+  display: none !important;
 }
 
 .animate-sonar-wave {
-  animation: sonar-wave-expand 3s cubic-bezier(0.15, 0.85, 0.35, 1) infinite;
+  display: none !important;
 }
 
 .animate-liquid-shimmer {
@@ -285,14 +284,7 @@
 }
 
 .animate-scanline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.8), transparent);
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.9);
-  animation: scanline-sweep 4s ease-in-out infinite;
-  pointer-events: none;
+  display: none !important;
 }
 
 .animate-holo-float {
