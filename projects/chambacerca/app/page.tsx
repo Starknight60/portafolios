@@ -84,6 +84,9 @@ export default function HomePage() {
   }>({});
   const [filterRouteOnly, setFilterRouteOnly] = useState<boolean>(false);
 
+  // Selector de simulación de rotación de 24 horas (0 = Hoy, 1 = Mañana, 2 = Pasado Mañana)
+  const [dayOffset, setDayOffset] = useState<number>(0);
+
   // Inicializar estado de sonido, modo sol de calle y estado de postulaciones
   useEffect(() => {
     const active = initSoundState();
@@ -282,11 +285,21 @@ export default function HomePage() {
     }
   }
 
-  // Consulta de lugares a la API
-  async function fetchPlaces() {
+  // Consulta de lugares a la API (con soporte de rotación diaria)
+  async function fetchPlaces(forcedOffset?: number) {
     setLoading(true);
     try {
-      const url = `/api/places?lat=${coords.lat}&lng=${coords.lng}&radius=${radius}&category=${selectedCategory}`;
+      const activeOffset = typeof forcedOffset === 'number' ? forcedOffset : dayOffset;
+      let dateQuery = '';
+      if (activeOffset !== 0) {
+        const target = new Date();
+        target.setDate(target.getDate() + activeOffset);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const isoDate = `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}`;
+        dateQuery = `&date=${isoDate}`;
+      }
+
+      const url = `/api/places?lat=${coords.lat}&lng=${coords.lng}&radius=${radius}&category=${selectedCategory}${dateQuery}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success && Array.isArray(data.places)) {
@@ -299,6 +312,12 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSelectDayOffset(offset: number) {
+    playTacticalClick();
+    setDayOffset(offset);
+    fetchPlaces(offset);
   }
 
   // Solicitar ubicación GPS automáticamente al cargar
@@ -1252,7 +1271,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400 px-1 py-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-slate-200 text-sm flex items-center gap-2">
-                    <span>Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || '30 de Octubre'})</span>
+                    <span>Convocatorias: {summary?.dailyCycle?.formattedDate || '30 de Octubre'}</span>
                     <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-xs border border-emerald-500/40">
                       {displayedPlaces.length} ofertas
                     </span>
@@ -1263,11 +1282,64 @@ export default function HomePage() {
                     <span>Nuevas vacantes en: <strong>{summary?.dailyCycle?.hoursRemaining ?? 23}h {summary?.dailyCycle?.minutesRemaining ?? 59}m</strong></span>
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <span className="hidden md:inline">🛡️ Vacantes con postulación se pausan 24h para evaluación</span>
-                  <span>🚶 Caminata (80m/min)</span>
+
+                {/* Selector Interactivo de Días del Ciclo (Probar Rotación Diaria) */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] text-slate-500 font-semibold uppercase">Rotación 24h:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectDayOffset(0)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                      dayOffset === 0
+                        ? 'bg-emerald-600 text-white shadow-sm font-black'
+                        : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <span>📅 Hoy ({summary?.dailyCycle?.dayShort || '30 Oct'})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectDayOffset(1)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                      dayOffset === 1
+                        ? 'bg-teal-600 text-white shadow-sm font-black'
+                        : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
+                    }`}
+                    title="Simular las nuevas ofertas que saldrán mañana automáticamente"
+                  >
+                    <span>⚡ Mañana (Ver nuevas ofertas)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectDayOffset(2)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                      dayOffset === 2
+                        ? 'bg-cyan-600 text-white shadow-sm font-black'
+                        : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
+                    }`}
+                    title="Simular las nuevas vacantes de pasado mañana"
+                  >
+                    <span>⚡ Pasado Mañana</span>
+                  </button>
                 </div>
               </div>
+
+              {/* Banner informativo cuando se está simulando un día posterior */}
+              {dayOffset > 0 && (
+                <div className="p-2.5 rounded-xl bg-teal-950/40 border border-teal-500/40 text-teal-300 text-xs flex items-center justify-between gap-2 shadow-sm">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-teal-400 shrink-0" />
+                    <span><strong>Modo Vista Futura (Ciclo de 24 Horas):</strong> Mostrando el catálogo de nuevas vacantes que se publicará el <strong>{summary?.dailyCycle?.formattedDate}</strong>.</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectDayOffset(0)}
+                    className="px-2.5 py-1 rounded-md bg-teal-800 hover:bg-teal-700 text-white text-[11px] font-bold cursor-pointer"
+                  >
+                    Volver a Hoy
+                  </button>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {displayedPlaces.map((place) => {
