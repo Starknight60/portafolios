@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const dateParam = searchParams.get('date');
 
     // Información del día actual en Venezuela (rotación dinámica de 24 horas)
-    const dayInfo = getVenezuelaDayInfo(dateParam ? new Date(dateParam) : undefined);
+    const dayInfo = getVenezuelaDayInfo(dateParam || undefined);
 
     // Ubicación por defecto: Caracas (Plaza Altamira / Chacao)
     const userLat = latParam ? parseFloat(latParam) : 10.4960;

@@ -28,17 +28,23 @@ const SPANISH_MONTHS = [
 /**
  * Obtiene la información exacta del día actual en hora local de Venezuela (UTC-4)
  */
-export function getVenezuelaDayInfo(referenceDate?: Date): DailyDayInfo {
-  const now = referenceDate || new Date();
-  
-  // Ajuste a zona horaria de Venezuela (UTC - 4)
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const venezuelaTime = new Date(utc - (4 * 3600000));
+export function getVenezuelaDayInfo(referenceInput?: Date | string): DailyDayInfo {
+  let venezuelaTime: Date;
 
-  const year = venezuelaTime.getFullYear();
-  const month = venezuelaTime.getMonth() + 1;
-  const day = venezuelaTime.getDate();
-  const dayOfWeek = venezuelaTime.getDay();
+  if (typeof referenceInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(referenceInput)) {
+    const [y, m, d] = referenceInput.split('-').map(Number);
+    venezuelaTime = new Date(Date.UTC(y, m - 1, d, 16, 0, 0)); // 12:00 PM Venezuela (16:00 UTC)
+  } else {
+    const now = referenceInput instanceof Date ? referenceInput : new Date();
+    // Ajuste a zona horaria de Venezuela (UTC - 4)
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    venezuelaTime = new Date(utc - (4 * 3600000));
+  }
+
+  const year = venezuelaTime.getUTCFullYear();
+  const month = venezuelaTime.getUTCMonth() + 1;
+  const day = venezuelaTime.getUTCDate();
+  const dayOfWeek = venezuelaTime.getUTCDay();
 
   const pad = (n: number) => n.toString().padStart(2, '0');
   const dateKey = `${year}-${pad(month)}-${pad(day)}`;
@@ -49,9 +55,9 @@ export function getVenezuelaDayInfo(referenceDate?: Date): DailyDayInfo {
   const formattedShort = `${day} de ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}`;
 
   // Próxima medianoche de Venezuela
-  const nextMidnight = new Date(venezuelaTime);
-  nextMidnight.setHours(24, 0, 0, 0);
-  const msRemaining = Math.max(0, nextMidnight.getTime() - venezuelaTime.getTime());
+  const nextMidnight = new Date(Date.UTC(year, month - 1, day + 1, 4, 0, 0)); // 00:00 Venezuela = 04:00 UTC
+  const nowUtc = new Date().getTime();
+  const msRemaining = Math.max(0, nextMidnight.getTime() - nowUtc);
   const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
   const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
 
