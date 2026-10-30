@@ -88,6 +88,12 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
                 <span className="text-[11px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
                   {place.categoryLabel}
                 </span>
+                {place.dayFormatted && (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 flex items-center gap-1 shadow-sm">
+                    <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                    Convocatoria de Hoy ({place.dayFormatted})
+                  </span>
+                )}
                 <span className="text-[11px] text-emerald-400 font-semibold bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-800/50 flex items-center gap-1">
                   <Navigation className="w-3 h-3" />
                   {place.distanceFormatted} ({place.walkTimeMinutes} min a pie)
@@ -98,10 +104,15 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
                 {place.title || place.placeName}
               </h2>
 
-              <p className="text-xs sm:text-sm font-semibold text-slate-300 mt-1 flex items-center gap-1.5">
+              <p className="text-xs sm:text-sm font-semibold text-slate-300 mt-1 flex items-center gap-1.5 flex-wrap">
                 <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                 <span>{place.placeName}</span>
                 {place.city && <span className="text-slate-400 text-xs font-normal">({place.city})</span>}
+                <span className="text-slate-600">•</span>
+                <span className="text-emerald-400 text-xs font-medium flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                  Publicada hoy: {place.dayFormatted || '30 de Octubre'}{place.publishedTime ? ` a las ${place.publishedTime}` : ''}
+                </span>
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">{place.address}</p>
             </div>

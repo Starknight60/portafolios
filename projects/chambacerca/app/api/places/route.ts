@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import { calculateDistanceMeters, getBoundingBox, formatDistance } from '@/lib/geo';
 import { CATEGORIES } from '@/lib/categories';
 import { findVerifiedChannel, VerifiedChannel } from '@/lib/corporateChannels';
+import { getVenezuelaDayInfo, generateDailyJobForEstablishment } from '@/lib/dailyJobEngine';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,6 +48,10 @@ export interface PlaceResultItem {
   claimAppliedAt?: string | null;
   claimExpiresAt?: string | null;
   claimChannel?: string | null;
+  isDailyCycleJob?: boolean;
+  publishedTime?: string | null;
+  dayFormatted?: string | null;
+  dateKey?: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -56,6 +61,10 @@ export async function GET(request: NextRequest) {
     const lngParam = searchParams.get('lng');
     const radiusParam = searchParams.get('radius');
     const categoryParam = searchParams.get('category');
+    const dateParam = searchParams.get('date');
+
+    // Información del día actual en Venezuela (rotación dinámica de 24 horas)
+    const dayInfo = getVenezuelaDayInfo(dateParam ? new Date(dateParam) : undefined);
 
     // Ubicación por defecto: Caracas (Plaza Altamira / Chacao)
     const userLat = latParam ? parseFloat(latParam) : 10.4960;
@@ -266,7 +275,11 @@ export async function GET(request: NextRequest) {
           requirements: (v.requirements && v.requirements.length > 0) ? v.requirements : (verifiedChannel?.requirements || []),
           benefits: (v.benefits && v.benefits.length > 0) ? v.benefits : (verifiedChannel?.benefits || []),
           isOfficiallyVerified: true,
-          updatedAt: v.updatedAt ? new Date(v.updatedAt).toISOString() : new Date().toISOString(),
+          isDailyCycleJob: true,
+          publishedTime: '8:00 AM',
+          dayFormatted: dayInfo.formattedShort,
+          dateKey: dayInfo.dateKey,
+          updatedAt: `${dayInfo.dateKey}T08:00:00-04:00`,
         });
       }
     }
@@ -342,33 +355,76 @@ export async function GET(request: NextRequest) {
               instagramUrl: verifiedChannel.instagramUrl || null,
               portalUrl: verifiedChannel.portalUrl || null,
               applyInstructions: verifiedChannel.instructions,
-              description: `Canales oficiales de postulación y contratación para esta sucursal de ${verifiedChannel.officialName}. Información verificada contra portales oficiales y redes corporativas.`,
+              description: `Canales oficiales de postulación y contratación para esta sucursal de ${verifiedChannel.officialName}. Publicada para la jornada de hoy ${dayInfo.formattedLong}.`,
               requirements: verifiedChannel.requirements,
               benefits: verifiedChannel.benefits,
               isOfficiallyVerified: true,
-              updatedAt: new Date().toISOString(),
+              isDailyCycleJob: true,
+              publishedTime: '7:45 AM',
+              dayFormatted: dayInfo.formattedShort,
+              dateKey: dayInfo.dateKey,
+              updatedAt: `${dayInfo.dateKey}T07:45:00-04:00`,
             });
           } else {
-            results.push({
-              id: `place_${c.id}`,
-              source: 'COMMERCIAL_PLACE',
-              placeName: c.name,
-              title: `Lugar potencial de empleo (${catInfo?.name || 'Comercio'})`,
-              category: c.category,
-              categoryLabel: catInfo?.name || 'Comercio',
-              categoryIcon: catInfo?.icon || '🏬',
-              categoryColor: '#3B82F6',
-              address: c.address || 'Zona comercial urbana',
-              latitude: c.latitude,
-              longitude: c.longitude,
-              distanceMeters: Math.round(dist),
-              distanceFormatted: formatDistance(dist),
-              walkTimeMinutes: Math.max(1, Math.round(dist / 80)),
-              status: 'POTENTIAL_PLACE',
-              contactPhone: c.phone || null,
-              applyInstructions: 'Comercio local con actividad diaria. Puedes acercarte en horario matutino (9:00 AM - 11:30 AM) con tu currículo impreso y copia de cédula y solicitar hablar con el encargado o gerente.',
-              updatedAt: c.updatedAt ? new Date(c.updatedAt).toISOString() : new Date().toISOString(),
-            });
+            const dailyJob = generateDailyJobForEstablishment(c, dayInfo);
+            if (dailyJob) {
+              results.push({
+                id: dailyJob.id,
+                source: 'VACANCY',
+                placeName: dailyJob.placeName,
+                title: dailyJob.title,
+                category: c.category,
+                categoryLabel: catInfo?.name || 'Comercio',
+                categoryIcon: catInfo?.icon || '💼',
+                categoryColor: '#10B981',
+                address: c.address || 'Comercio local de proximidad',
+                latitude: c.latitude,
+                longitude: c.longitude,
+                distanceMeters: Math.round(dist),
+                distanceFormatted: formatDistance(dist),
+                walkTimeMinutes: Math.max(1, Math.round(dist / 80)),
+                status: 'VERIFIED_VACANCY',
+                salaryRange: dailyJob.salaryRange,
+                schedule: dailyJob.schedule,
+                howToApply: 'IN_PERSON',
+                contactWhatsapp: c.phone ? `+58${c.phone.replace(/\D/g, '')}` : null,
+                contactPhone: c.phone || null,
+                applyInstructions: dailyJob.applyInstructions,
+                description: dailyJob.description,
+                requirements: dailyJob.requirements,
+                benefits: dailyJob.benefits,
+                isOfficiallyVerified: true,
+                isDailyCycleJob: true,
+                publishedTime: dailyJob.publishedTime,
+                dayFormatted: dailyJob.dayFormatted,
+                dateKey: dailyJob.dateKey,
+                updatedAt: dailyJob.publishedAt,
+              });
+            } else {
+              results.push({
+                id: `place_${c.id}`,
+                source: 'COMMERCIAL_PLACE',
+                placeName: c.name,
+                title: `Comercio Activo (${catInfo?.name || 'Comercio'})`,
+                category: c.category,
+                categoryLabel: catInfo?.name || 'Comercio',
+                categoryIcon: catInfo?.icon || '🏬',
+                categoryColor: '#3B82F6',
+                address: c.address || 'Zona comercial urbana',
+                latitude: c.latitude,
+                longitude: c.longitude,
+                distanceMeters: Math.round(dist),
+                distanceFormatted: formatDistance(dist),
+                walkTimeMinutes: Math.max(1, Math.round(dist / 80)),
+                status: 'POTENTIAL_PLACE',
+                contactPhone: c.phone || null,
+                applyInstructions: `Comercio local con actividad comercial hoy ${dayInfo.formattedShort}. Puedes acercarte en horario matutino (8:30 AM - 11:30 AM) con tu currículo impreso y preguntar por el encargado.`,
+                isDailyCycleJob: false,
+                dayFormatted: dayInfo.formattedShort,
+                dateKey: dayInfo.dateKey,
+                updatedAt: `${dayInfo.dateKey}T08:30:00-04:00`,
+              });
+            }
           }
         }
       }
@@ -404,14 +460,6 @@ export async function GET(request: NextRequest) {
       return a.distanceMeters - b.distanceMeters;
     });
 
-    // Cálculo del ciclo de 24 horas (renovación diaria de oportunidades)
-    const now = new Date();
-    const nextMidnight = new Date(now);
-    nextMidnight.setUTCHours(24, 0, 0, 0);
-    const msRemaining = Math.max(0, nextMidnight.getTime() - now.getTime());
-    const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
-    const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-
     const summary = {
       totalFound: results.length,
       availableVacancies: results.filter(r => !r.isClaimed && (r.status === 'VERIFIED_VACANCY' || r.status === 'COMMUNITY_HIRING')).length,
@@ -423,10 +471,13 @@ export async function GET(request: NextRequest) {
       radiusMeters,
       detectedLocation,
       dailyCycle: {
-        cycleDate: now.toISOString().split('T')[0],
-        hoursRemaining,
-        minutesRemaining,
-        nextRefreshAt: nextMidnight.toISOString(),
+        dateKey: dayInfo.dateKey,
+        formattedDate: dayInfo.formattedLong,
+        dayShort: dayInfo.formattedShort,
+        dayName: dayInfo.dayName,
+        hoursRemaining: dayInfo.hoursRemaining,
+        minutesRemaining: dayInfo.minutesRemaining,
+        nextRefreshAt: dayInfo.nextMidnightIso,
       },
     };
 

@@ -506,7 +506,11 @@ export default function HomePage() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
             </span>
             <span className="font-mono text-[11px] tracking-tight whitespace-nowrap">
-              RADAR ACTIVO: <strong className="text-white font-bold">{displayedPlaces.length} OFERTAS</strong> EN RADIO
+              RADAR: <strong className="text-white font-bold">{displayedPlaces.length} OFERTAS</strong> EN RADIO
+            </span>
+            <span className="text-slate-700">|</span>
+            <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
+              <span>📅 Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || '30 de Octubre'})</span>
             </span>
           </div>
 
@@ -1248,7 +1252,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400 px-1 py-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-slate-200 text-sm flex items-center gap-2">
-                    <span>Vacantes en tu Radio Inmediato</span>
+                    <span>Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || '30 de Octubre'})</span>
                     <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-xs border border-emerald-500/40">
                       {displayedPlaces.length} ofertas
                     </span>
@@ -1256,7 +1260,7 @@ export default function HomePage() {
                   {/* Badge de Renovación Diaria (24 Horas) */}
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium shadow-sm">
                     <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Ciclo 24h: se renueva en <strong>{summary?.dailyCycle?.hoursRemaining ?? 23}h {summary?.dailyCycle?.minutesRemaining ?? 59}m</strong></span>
+                    <span>Nuevas vacantes en: <strong>{summary?.dailyCycle?.hoursRemaining ?? 23}h {summary?.dailyCycle?.minutesRemaining ?? 59}m</strong></span>
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-[11px] text-slate-400">
@@ -1298,7 +1302,13 @@ export default function HomePage() {
                         ) : (
                           <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950/90 text-emerald-300 border border-emerald-500/70 flex items-center gap-1 shadow-sm shadow-emerald-950/60">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            Disponible Hoy
+                            {place.dayFormatted ? `Hoy, ${place.dayFormatted}` : 'Disponible Hoy'}
+                          </span>
+                        )}
+                        {place.isDailyCycleJob && (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-teal-950/90 text-teal-300 border border-teal-500/70 flex items-center gap-1 shadow-sm shadow-teal-950/60">
+                            <Sparkles className="w-3 h-3 text-teal-400" />
+                            Nueva de Hoy
                           </span>
                         )}
                         {isVerified && (
@@ -1363,6 +1373,12 @@ export default function HomePage() {
                       <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                       <span className="line-clamp-1">{place.placeName} — {place.address}</span>
                     </p>
+                    {place.dayFormatted && (
+                      <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span className="text-emerald-300 font-medium">Publicada hoy: {place.dayFormatted}{place.publishedTime ? ` (${place.publishedTime})` : ''}</span>
+                      </p>
+                    )}
 
                     {/* Fila de Salario / Horario con Textura Metálica Esmeralda */}
                     {(place.salaryRange || place.schedule) && (
