@@ -43,6 +43,10 @@ export interface PlaceResultItem {
   contactTip?: string | null;
   isOfficiallyVerified?: boolean;
   updatedAt: string;
+  isClaimed?: boolean;
+  claimAppliedAt?: string | null;
+  claimExpiresAt?: string | null;
+  claimChannel?: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -207,6 +211,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 4.1. Consultar postulaciones activas en las últimas 24 horas (Ciclo diario de selección)
+    const activeApplications = await (sql as any).query(`
+      SELECT "placeId", "appliedAt", "expiresAt", "channel"
+      FROM chambacerca."JobApplication"
+      WHERE "expiresAt" > NOW();
+    `).catch(() => []);
+
+    const applicationMap = new Map<string, any>();
+    if (Array.isArray(activeApplications)) {
+      for (const app of activeApplications) {
+        applicationMap.set(app.placeId, app);
+      }
+    }
+
     // 5. Unificación y enriquecimiento con canales 100% reales de reclutamiento corporativo
     const results: PlaceResultItem[] = [];
 
@@ -356,6 +374,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Asociar estado de postulación de 24 horas a cada lugar
+    for (const item of results) {
+      const app = applicationMap.get(item.id);
+      if (app) {
+        item.isClaimed = true;
+        item.claimAppliedAt = app.appliedAt ? new Date(app.appliedAt).toISOString() : null;
+        item.claimExpiresAt = app.expiresAt ? new Date(app.expiresAt).toISOString() : null;
+        item.claimChannel = app.channel;
+      } else {
+        item.isClaimed = false;
+      }
+    }
+
     const statusPriority: Record<string, number> = {
       VERIFIED_VACANCY: 1,
       COMMUNITY_HIRING: 2,
@@ -364,19 +395,39 @@ export async function GET(request: NextRequest) {
     };
 
     results.sort((a, b) => {
+      // Las vacantes no solicitadas (disponibles) tienen prioridad sobre las que ya tienen solicitud enviada hoy
+      if (a.isClaimed !== b.isClaimed) {
+        return a.isClaimed ? 1 : -1;
+      }
       const pDiff = (statusPriority[a.status] || 99) - (statusPriority[b.status] || 99);
       if (pDiff !== 0) return pDiff;
       return a.distanceMeters - b.distanceMeters;
     });
 
+    // Cálculo del ciclo de 24 horas (renovación diaria de oportunidades)
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setUTCHours(24, 0, 0, 0);
+    const msRemaining = Math.max(0, nextMidnight.getTime() - now.getTime());
+    const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
+    const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+
     const summary = {
       totalFound: results.length,
+      availableVacancies: results.filter(r => !r.isClaimed && (r.status === 'VERIFIED_VACANCY' || r.status === 'COMMUNITY_HIRING')).length,
+      claimedCount: results.filter(r => r.isClaimed).length,
       verifiedVacancies: results.filter(r => r.status === 'VERIFIED_VACANCY').length,
       communityReports: results.filter(r => r.status === 'COMMUNITY_HIRING' || r.status === 'COMMUNITY_NOT_HIRING').length,
       potentialPlaces: results.filter(r => r.status === 'POTENTIAL_PLACE').length,
       center: { lat: userLat, lng: userLng },
       radiusMeters,
       detectedLocation,
+      dailyCycle: {
+        cycleDate: now.toISOString().split('T')[0],
+        hoursRemaining,
+        minutesRemaining,
+        nextRefreshAt: nextMidnight.toISOString(),
+      },
     };
 
     return NextResponse.json({

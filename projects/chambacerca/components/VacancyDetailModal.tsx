@@ -15,14 +15,23 @@ interface VacancyDetailModalProps {
   onOpenReport: (place: PlaceResultItem) => void;
   onOpenCalculator?: () => void;
   onOpenCvBuilder?: () => void;
+  onApplyJob?: (place: PlaceResultItem, channel: string) => void;
 }
 
-export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpenCalculator, onOpenCvBuilder }: VacancyDetailModalProps) {
+export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpenCalculator, onOpenCvBuilder, onApplyJob }: VacancyDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'requirements' | 'apply' | 'safety'>('info');
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   if (!place) return null;
+
+  const isClaimed = Boolean(place.isClaimed);
+
+  const handleApplyClick = (channel: string = 'WHATSAPP') => {
+    if (onApplyJob && place) {
+      onApplyJob(place, channel);
+    }
+  };
 
   // Mensaje predeterminado para WhatsApp formal en Venezuela
   const rawWhatsAppText = `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante activa para "${place.title || 'el puesto publicado'}". Cumplo con los requisitos y quisiera consignar mi síntesis curricular. ¿Con quién o en qué horario podría presentarme? Muchas gracias.`;
@@ -65,10 +74,17 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
 
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shadow-sm">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  {place.isOfficiallyVerified ? 'Canal Oficial Verificado' : 'Vacante Activa Confirmada'}
-                </span>
+                {isClaimed ? (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 flex items-center gap-1 shadow-sm">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    En Selección (Pausada 24h)
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shadow-sm">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    {place.isOfficiallyVerified ? 'Canal Oficial Verificado' : 'Vacante Activa Confirmada'}
+                  </span>
+                )}
                 <span className="text-[11px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
                   {place.categoryLabel}
                 </span>
@@ -107,6 +123,21 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
             </button>
           </div>
         </div>
+
+        {/* Banner de Aviso de Postulación en Proceso (Ciclo 24h) */}
+        {isClaimed && (
+          <div className="mx-4 sm:mx-6 mt-3 p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/50 flex items-start gap-3 text-amber-200 text-xs shadow-md">
+            <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-bold text-amber-300 flex items-center gap-1.5">
+                <span>⚠️ Oferta Pausada por 24 Horas (En Evaluación de Solicitud)</span>
+              </p>
+              <p className="text-slate-300 leading-relaxed text-[11px]">
+                Un candidato ya envió su síntesis curricular a este comercio hoy. Para no saturar al empleador ni hacerte perder el tiempo, la vacante queda reservada en evaluación durante 24 horas. Si el empleador no concreta la contratación, volverá a habilitarse automáticamente al renovarse el ciclo diario.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Barra de Pestañas Interactivas */}
         <div className="flex border-b border-slate-800 bg-slate-950/80 px-4 sm:px-6 gap-1 overflow-x-auto">
@@ -416,16 +447,28 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
                     )}
                   </button>
 
-                  {whatsappUrl && (
-                    <a
-                      href={whatsappUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                  {isClaimed ? (
+                    <button
+                      disabled
+                      className="px-4 py-2 rounded-xl bg-slate-800 text-amber-400/80 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-90"
+                      title="Postulación en revisión de 24 horas"
                     >
-                      <MessageCircle className="w-4 h-4" />
-                      <span>Abrir Chat en WhatsApp</span>
-                    </a>
+                      <Clock className="w-4 h-4 text-amber-400" />
+                      <span>Postulación Enviada Hoy (Pausada 24h)</span>
+                    </button>
+                  ) : (
+                    whatsappUrl && (
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => handleApplyClick('WHATSAPP')}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>Abrir Chat en WhatsApp</span>
+                      </a>
+                    )
                   )}
                 </div>
               </div>
@@ -630,16 +673,28 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
               <span>Caminar ({place.walkTimeMinutes} min)</span>
             </a>
 
-            {whatsappUrl && (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+            {isClaimed ? (
+              <button
+                disabled
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-800 text-amber-400/80 border border-amber-500/30 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-90"
+                title="Vacante en evaluación durante 24h para no saturar al comercio"
               >
-                <MessageCircle className="w-4 h-4 fill-current" />
-                <span>WhatsApp Directo</span>
-              </a>
+                <Clock className="w-4 h-4 text-amber-400" />
+                <span>En Revisión (24h)</span>
+              </button>
+            ) : (
+              whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => handleApplyClick('WHATSAPP')}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4 fill-current" />
+                  <span>WhatsApp Directo</span>
+                </a>
+              )
             )}
 
             {place.computrabajoUrl && (
