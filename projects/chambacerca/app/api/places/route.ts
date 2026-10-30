@@ -277,7 +277,7 @@ export async function GET(request: NextRequest) {
           isOfficiallyVerified: true,
           isDailyCycleJob: true,
           publishedTime: '8:00 AM',
-          dayFormatted: dayInfo.formattedShort,
+          dayFormatted: `${dayInfo.relativeLabel}, ${dayInfo.formattedShort}`,
           dateKey: dayInfo.dateKey,
           updatedAt: `${dayInfo.dateKey}T08:00:00-04:00`,
         });
@@ -361,7 +361,7 @@ export async function GET(request: NextRequest) {
               isOfficiallyVerified: true,
               isDailyCycleJob: true,
               publishedTime: '7:45 AM',
-              dayFormatted: dayInfo.formattedShort,
+              dayFormatted: `${dayInfo.relativeLabel}, ${dayInfo.formattedShort}`,
               dateKey: dayInfo.dateKey,
               updatedAt: `${dayInfo.dateKey}T07:45:00-04:00`,
             });
@@ -474,6 +474,7 @@ export async function GET(request: NextRequest) {
         dateKey: dayInfo.dateKey,
         formattedDate: dayInfo.formattedLong,
         dayShort: dayInfo.formattedShort,
+        relativeLabel: dayInfo.relativeLabel,
         dayName: dayInfo.dayName,
         hoursRemaining: dayInfo.hoursRemaining,
         minutesRemaining: dayInfo.minutesRemaining,

@@ -14,6 +14,7 @@ export interface DailyDayInfo {
   monthName: string;         // "octubre"
   formattedLong: string;     // "Viernes, 30 de octubre de 2026"
   formattedShort: string;    // "30 de Octubre"
+  relativeLabel: string;     // "Hoy", "Ayer", "Antes de ayer"
   hoursRemaining: number;
   minutesRemaining: number;
   nextMidnightIso: string;
@@ -54,6 +55,30 @@ export function getVenezuelaDayInfo(referenceInput?: Date | string): DailyDayInf
   const formattedLong = `${dayName}, ${day} de ${monthName} de ${year}`;
   const formattedShort = `${day} de ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}`;
 
+  // Calcular etiqueta relativa (Hoy, Ayer, Antes de ayer)
+  const todayUtc = new Date().getTime() + (new Date().getTimezoneOffset() * 60000);
+  const todayVzla = new Date(todayUtc - (4 * 3600000));
+  const todayYear = todayVzla.getUTCFullYear();
+  const todayMonth = todayVzla.getUTCMonth();
+  const todayDay = todayVzla.getUTCDate();
+
+  const diffDays = Math.round(
+    (Date.UTC(year, month - 1, day) - Date.UTC(todayYear, todayMonth, todayDay)) / 86400000
+  );
+
+  let relativeLabel = 'Hoy';
+  if (diffDays === -1) {
+    relativeLabel = 'Ayer';
+  } else if (diffDays === -2) {
+    relativeLabel = 'Antes de ayer';
+  } else if (diffDays < -2) {
+    relativeLabel = `Hace ${Math.abs(diffDays)} días`;
+  } else if (diffDays === 1) {
+    relativeLabel = 'Mañana';
+  } else if (diffDays > 1) {
+    relativeLabel = `En ${diffDays} días`;
+  }
+
   // Próxima medianoche de Venezuela
   const nextMidnight = new Date(Date.UTC(year, month - 1, day + 1, 4, 0, 0)); // 00:00 Venezuela = 04:00 UTC
   const nowUtc = new Date().getTime();
@@ -71,6 +96,7 @@ export function getVenezuelaDayInfo(referenceInput?: Date | string): DailyDayInf
     monthName,
     formattedLong,
     formattedShort,
+    relativeLabel,
     hoursRemaining,
     minutesRemaining,
     nextMidnightIso: nextMidnight.toISOString(),
@@ -370,7 +396,7 @@ export function generateDailyJobForEstablishment(
     howToApply: 'IN_PERSON_OR_WHATSAPP',
     contactWhatsapp: place.phone ? place.phone : null,
     contactPhone: place.phone ? place.phone : null,
-    applyInstructions: `Convocatoria de hoy (${dayInfo.formattedShort}): Acércate al comercio con tu síntesis curricular en físico, copia de cédula laminada y RIF vigente en horario de mañana (8:30 AM a 11:30 AM) y pregunta en caja por el encargado o administrador.`,
+    applyInstructions: `Convocatoria (${dayInfo.relativeLabel}, ${dayInfo.formattedShort}): Acércate al comercio con tu síntesis curricular en físico, copia de cédula laminada y RIF vigente en horario de mañana (8:30 AM a 11:30 AM) y pregunta en caja por el encargado o administrador.`,
     description: `${template.description} Publicada para la jornada del ${dayInfo.formattedLong}.`,
     requirements: template.requirements,
     benefits: template.benefits,
@@ -378,7 +404,8 @@ export function generateDailyJobForEstablishment(
     isDailyCycleJob: true,
     publishedAt: publishedAtIso,
     publishedTime: publishTime,
-    dayFormatted: dayInfo.formattedShort,
+    dayFormatted: `${dayInfo.relativeLabel}, ${dayInfo.formattedShort}`,
+    relativeLabel: dayInfo.relativeLabel,
     dateKey: dayInfo.dateKey,
   };
 }

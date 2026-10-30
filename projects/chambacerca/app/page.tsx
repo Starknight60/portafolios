@@ -448,6 +448,24 @@ export default function HomePage() {
     };
   }, [displayedPlaces]);
 
+  // Etiquetas dinámicas para selector de rotación 24h (Hoy, Ayer y Antes de ayer)
+  const { todayLabel, yesterdayLabel, beforeYesterdayLabel } = useMemo(() => {
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const now = new Date();
+
+    const yest = new Date(now);
+    yest.setDate(now.getDate() - 1);
+
+    const bYest = new Date(now);
+    bYest.setDate(now.getDate() - 2);
+
+    return {
+      todayLabel: `${now.getDate()} de ${months[now.getMonth()]}`,
+      yesterdayLabel: `${yest.getDate()} de ${months[yest.getMonth()]}`,
+      beforeYesterdayLabel: `${bYest.getDate()} de ${months[bYest.getMonth()]}`,
+    };
+  }, []);
+
   const routeCount = Object.keys(applicationStatuses).length;
 
   // Pantalla de carga mientras se verifica la sesión
@@ -1283,7 +1301,7 @@ export default function HomePage() {
                   </span>
                 </div>
 
-                {/* Selector Interactivo de Días del Ciclo (Probar Rotación Diaria) */}
+                {/* Selector Interactivo de Días del Ciclo (Hoy, Ayer, Antes de ayer) */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[10px] text-slate-500 font-semibold uppercase">Rotación 24h:</span>
                   <button
@@ -1295,46 +1313,48 @@ export default function HomePage() {
                         : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
                     }`}
                   >
-                    <span>📅 Hoy ({summary?.dailyCycle?.dayShort || '30 Oct'})</span>
+                    <span>📅 Hoy ({todayLabel})</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleSelectDayOffset(1)}
+                    onClick={() => handleSelectDayOffset(-1)}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
-                      dayOffset === 1
-                        ? 'bg-teal-600 text-white shadow-sm font-black'
+                      dayOffset === -1
+                        ? 'bg-amber-600 text-white shadow-sm font-black'
                         : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
                     }`}
-                    title="Simular las nuevas ofertas que saldrán mañana automáticamente"
+                    title="Ver vacantes publicadas ayer (hace 24 horas)"
                   >
-                    <span>⚡ Mañana (Ver nuevas ofertas)</span>
+                    <span>🕒 Ayer ({yesterdayLabel})</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleSelectDayOffset(2)}
+                    onClick={() => handleSelectDayOffset(-2)}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
-                      dayOffset === 2
-                        ? 'bg-cyan-600 text-white shadow-sm font-black'
+                      dayOffset === -2
+                        ? 'bg-blue-600 text-white shadow-sm font-black'
                         : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
                     }`}
-                    title="Simular las nuevas vacantes de pasado mañana"
+                    title="Ver vacantes publicadas antes de ayer (hace 48 horas)"
                   >
-                    <span>⚡ Pasado Mañana</span>
+                    <span>🕒 Antes de ayer ({beforeYesterdayLabel})</span>
                   </button>
                 </div>
               </div>
 
-              {/* Banner informativo cuando se está simulando un día posterior */}
-              {dayOffset > 0 && (
-                <div className="p-2.5 rounded-xl bg-teal-950/40 border border-teal-500/40 text-teal-300 text-xs flex items-center justify-between gap-2 shadow-sm">
+              {/* Banner informativo cuando se está viendo un día previo */}
+              {dayOffset < 0 && (
+                <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs flex items-center justify-between gap-2 shadow-sm">
                   <span className="flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-teal-400 shrink-0" />
-                    <span><strong>Modo Vista Futura (Ciclo de 24 Horas):</strong> Mostrando el catálogo de nuevas vacantes que se publicará el <strong>{summary?.dailyCycle?.formattedDate}</strong>.</span>
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      Mostrando vacantes publicadas <strong>{summary?.dailyCycle?.relativeLabel?.toLowerCase() || 'anteriormente'} ({summary?.dailyCycle?.formattedDate})</strong> que siguen disponibles para postularte.
+                    </span>
                   </span>
                   <button
                     type="button"
                     onClick={() => handleSelectDayOffset(0)}
-                    className="px-2.5 py-1 rounded-md bg-teal-800 hover:bg-teal-700 text-white text-[11px] font-bold cursor-pointer"
+                    className="px-2.5 py-1 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold cursor-pointer"
                   >
                     Volver a Hoy
                   </button>
