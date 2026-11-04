@@ -55,6 +55,22 @@ function isValidLatLng(lat: any, lng: any): boolean {
   );
 }
 
+// Cálculo de distancia geodésica en kilómetros para evitar rutas imposibles entre países o continentes
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  if (!Number.isFinite(lat1) || !Number.isFinite(lon1) || !Number.isFinite(lat2) || !Number.isFinite(lon2)) {
+    return Infinity;
+  }
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 function MapController({ 
   center, 
   zoom, 
@@ -113,14 +129,25 @@ function MapController({
       const hasValidUser = userLocation && isValidLatLng(userLocation[0], userLocation[1]);
       const hasValidSelected = selectedPlace && isValidLatLng(selectedPlace.latitude, selectedPlace.longitude);
 
-      if (hasValidSelected && hasValidUser) {
-        map.flyToBounds(
-          [
+      if (hasValidSelected) {
+        const placeLat = Number(selectedPlace.latitude);
+        const placeLng = Number(selectedPlace.longitude);
+        const distKm = hasValidUser ? getDistanceKm(Number(userLocation[0]), Number(userLocation[1]), placeLat, placeLng) : Infinity;
+
+        // Si el usuario está a distancia caminable/urbana (<15 km), encuadrar ambos
+        if (hasValidUser && distKm <= 15) {
+          const bounds = L.latLngBounds(
             [Number(userLocation[0]), Number(userLocation[1])],
-            [Number(selectedPlace.latitude), Number(selectedPlace.longitude)],
-          ],
-          { padding: [50, 50], duration: 1.0 }
-        );
+            [placeLat, placeLng]
+          );
+          if (bounds.isValid()) {
+            map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 17, duration: 1.0 });
+            return;
+          }
+        }
+
+        // Si el usuario está lejos (otra ciudad o emulador GPS en EE.UU.), enfocar directamente el comercio seleccionado
+        map.flyTo([placeLat, placeLng], 16, { duration: 1.0 });
       } else if (center && isValidLatLng(center[0], center[1])) {
         map.flyTo([Number(center[0]), Number(center[1])], zoom, { duration: 1.0 });
       }
@@ -341,7 +368,12 @@ export default function MapViewer({
   const zoom = safeRadius <= 600 ? 16 : safeRadius <= 1500 ? 15 : safeRadius <= 3500 ? 14 : 13;
   const currentLayer = GOOGLE_MAPS_LAYERS[mapType];
   const selectedPlace = validPlaces.find((p) => p.id === selectedPlaceId) || null;
-  const hasSelectedRoute = selectedPlace && safeUserLocation && isValidLatLng(selectedPlace.latitude, selectedPlace.longitude);
+  const isWalkingDistance = Boolean(
+    selectedPlace &&
+    safeUserLocation &&
+    getDistanceKm(safeUserLocation[0], safeUserLocation[1], Number(selectedPlace.latitude), Number(selectedPlace.longitude)) <= 15
+  );
+  const hasSelectedRoute = Boolean(selectedPlace && safeUserLocation && isWalkingDistance);
 
   return (
     <div className="relative w-full h-full min-h-[360px] sm:min-h-[420px] rounded-2xl overflow-hidden border border-slate-700/80 shadow-[0_0_35px_rgba(0,0,0,0.7)] group">
