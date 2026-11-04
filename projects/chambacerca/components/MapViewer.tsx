@@ -96,6 +96,9 @@ function MapController({
         try {
           if (container.clientWidth > 0 && container.clientHeight > 0) {
             map.invalidateSize();
+            if (center && isValidLatLng(center[0], center[1])) {
+              map.setView([Number(center[0]), Number(center[1])], zoom);
+            }
           }
         } catch {}
       });
@@ -126,6 +129,12 @@ function MapController({
     if (!map) return;
     try {
       map.invalidateSize();
+      const size = map.getSize();
+      // Si el contenedor está oculto en móvil (ancho o alto = 0), no ejecutar animaciones flyTo para evitar división por cero en Leaflet (NaN, NaN)
+      if (!size || size.x <= 0 || size.y <= 0) {
+        return;
+      }
+
       const hasValidUser = userLocation && isValidLatLng(userLocation[0], userLocation[1]);
       const hasValidSelected = selectedPlace && isValidLatLng(selectedPlace.latitude, selectedPlace.longitude);
 
