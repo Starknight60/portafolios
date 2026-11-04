@@ -47,8 +47,25 @@
 /* Optimización de lista de alto rendimiento en móviles (GPU content-visibility) */
 .virtual-gpu-card {
   content-visibility: auto;
-  contain-intrinsic-size: 0 180px;
+  contain-intrinsic-size: 0 200px;
   transform: translateZ(0);
+}
+
+/* Animación Shimmer para Skeletons ultrarrápidos (cero parpadeo y cero Cumulative Layout Shift) */
+@keyframes shimmerPulse {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(14, 23, 38, 0.9) 0%,
+    rgba(30, 46, 72, 0.6) 50%,
+    rgba(14, 23, 38, 0.9) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmerPulse 1.6s ease-in-out infinite;
 }
 
 /* Leaflet Map Overrides con aceleración GPU nativa */

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import dynamic from 'next/dynamic';
 import { PlaceResultItem } from '@/app/api/places/route';
 import { CATEGORIES, BASE_CATEGORIES } from '@/lib/categories';
@@ -67,8 +67,11 @@ export default function HomePage() {
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [filterSavedOnly, setFilterSavedOnly] = useState<boolean>(false);
 
-  // Estados de Búsqueda y Filtros Inteligentes
+  // Estados de Búsqueda y Filtros Inteligentes (Optimizado con useDeferredValue para 120Hz sin retraso al teclear)
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const [visibleCount, setVisibleCount] = useState<number>(18);
+  const [isOnline, setIsOnline] = useState<boolean>(true);
   const [quickFilter, setQuickFilter] = useState<
     'all' | 'available' | 'walk' | 'firstJob' | 'nightTransit' | 'lunch' | 'dayShift' | 'salary200' | 'immediate'
   >('all');
@@ -136,6 +139,11 @@ export default function HomePage() {
       }
     } catch {}
   }, []);
+
+  // Reajustar lote de vacantes visibles al cambiar filtros o búsqueda para mantener 60 FPS
+  useEffect(() => {
+    setVisibleCount(18);
+  }, [selectedCategory, quickFilter, deferredSearchQuery, dayOffset, filterSavedOnly, filterRouteOnly]);
 
   // Función para enfocar el radar en vivo y trazar la ruta a pie hacia un comercio
   const handleFocusOnRadar = (place: PlaceResultItem) => {
@@ -448,9 +456,9 @@ export default function HomePage() {
       // 1.1 Filtro de Mi Ruta de Postulaciones activa
       if (filterRouteOnly && !applicationStatuses[p.id]) return false;
 
-      // 2. Filtro de búsqueda en vivo (título, lugar, rubro, requisitos)
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
+      // 2. Filtro de búsqueda en vivo (con deferredSearchQuery para que el teclado responda a 120 FPS sin trabarse)
+      if (deferredSearchQuery.trim()) {
+        const q = deferredSearchQuery.toLowerCase().trim();
         const matchTitle = (p.title || '').toLowerCase().includes(q);
         const matchName = (p.placeName || '').toLowerCase().includes(q);
         const matchCat = (p.categoryLabel || '').toLowerCase().includes(q);
@@ -493,7 +501,7 @@ export default function HomePage() {
 
       return true;
     });
-  }, [places, filterSavedOnly, savedIds, filterRouteOnly, applicationStatuses, searchQuery, quickFilter]);
+  }, [places, filterSavedOnly, savedIds, filterRouteOnly, applicationStatuses, deferredSearchQuery, quickFilter]);
 
   // Métricas analíticas del radar memorizadas (60 FPS: cálculo instantáneo O(1) en re-renders, respetando las reglas de Hooks)
   const { walkableCount, verifiedCount, avgSalary } = useMemo(() => {
@@ -619,9 +627,16 @@ export default function HomePage() {
               RADAR: <strong className="text-white font-bold">{displayedPlaces.length} OFERTAS</strong> EN RADIO
             </span>
             <span className="text-slate-700">|</span>
-            <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
-              <span>📅 Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || '30 de Octubre'})</span>
-            </span>
+            {isOfflineMode ? (
+              <span className="text-amber-400 font-bold text-[11px] flex items-center gap-1 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/40 animate-pulse">
+                <WifiOff className="w-3 h-3 text-amber-400" />
+                <span>Modo Callejero Offline</span>
+              </span>
+            ) : (
+              <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
+                <span>📅 Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || '30 de Octubre'})</span>
+              </span>
+            )}
           </div>
 
           {/* Acciones de Cabecera: Botones Primarios, Herramientas y Toggles */}
@@ -1215,12 +1230,35 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Estado de Carga */}
+          {/* Estado de Carga con Skeletons Shimmer (Cero salto de pantalla y carga ultrafluida) */}
           {loading ? (
-            <div className="p-12 text-center space-y-3 bg-[#0E1726] rounded-2xl border border-slate-800">
-              <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin mx-auto" />
-              <p className="text-sm font-semibold text-slate-200">Consultando oportunidades reales...</p>
-              <p className="text-xs text-slate-400">Conectando con Neon PostgreSQL y servicios de proximidad en Venezuela</p>
+            <div className="space-y-3.5">
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-emerald-400 animate-spin" />
+                  <span>Sincronizando convocatorias en vivo con PostgreSQL y Radar GPS...</span>
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800/60">
+                  ⚡ 60 FPS
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="p-4 rounded-2xl border border-slate-800/80 bg-[#0E1726]/80 space-y-3 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="w-24 h-4 rounded-lg skeleton-shimmer" />
+                      <div className="w-16 h-4 rounded-lg skeleton-shimmer" />
+                    </div>
+                    <div className="w-3/4 h-5 rounded-lg skeleton-shimmer" />
+                    <div className="w-1/2 h-3.5 rounded-lg skeleton-shimmer" />
+                    <div className="w-full h-9 rounded-xl skeleton-shimmer" />
+                    <div className="pt-2 flex justify-between items-center">
+                      <div className="w-20 h-4 rounded-lg skeleton-shimmer" />
+                      <div className="w-24 h-7 rounded-xl skeleton-shimmer" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : displayedPlaces.length === 0 ? (
             /* Estado Vacío */
@@ -1339,7 +1377,7 @@ export default function HomePage() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {displayedPlaces.map((place) => {
+                {displayedPlaces.slice(0, visibleCount).map((place) => {
                 const isSelected = selectedPlace?.id === place.id;
                 const isVerified = place.status === 'VERIFIED_VACANCY';
                 const isCommunity = place.status === 'COMMUNITY_HIRING';
@@ -1710,6 +1748,23 @@ export default function HomePage() {
                 );
               })}
               </div>
+
+              {/* Botón de Cargar Más Ofertas (Paginación Virtual Progresiva para Mantener 60 FPS) */}
+              {displayedPlaces.length > visibleCount && (
+                <div className="pt-4 pb-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVisibleCount((prev) => prev + 18);
+                      playTacticalClick();
+                    }}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#0E1726] via-slate-900 to-[#0E1726] hover:from-slate-800 hover:to-slate-800 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition shadow-xl shadow-emerald-950/40 flex items-center justify-center gap-2 mx-auto active:scale-95 cursor-pointer group"
+                  >
+                    <span>Mostrar más vacantes (+{Math.min(18, displayedPlaces.length - visibleCount)} de {displayedPlaces.length - visibleCount} restantes)</span>
+                    <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>
