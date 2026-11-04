@@ -145,6 +145,19 @@ export default function HomePage() {
     setVisibleCount(18);
   }, [selectedCategory, quickFilter, deferredSearchQuery, dayOffset, filterSavedOnly, filterRouteOnly]);
 
+  // Forzar redimensionado inmediato del mapa al alternar pestañas en móvil (resuelve el bug de mapa negro / tiles lentos)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('resize'));
+      const t1 = setTimeout(() => window.dispatchEvent(new Event('resize')), 80);
+      const t2 = setTimeout(() => window.dispatchEvent(new Event('resize')), 250);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [mobileTab, isFullscreenMap]);
+
   // Función para enfocar el radar en vivo y trazar la ruta a pie hacia un comercio
   const handleFocusOnRadar = (place: PlaceResultItem) => {
     playTacticalClick();

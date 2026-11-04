@@ -15,23 +15,23 @@ interface MapViewerProps {
   userLocation: [number, number] | null;
 }
 
-// Capas oficiales de Google Maps en alta resolución
+// Capas oficiales de Google Maps en alta resolución (distribuidas en subdominios mt0-mt3 para carga paralela ultrarrápida)
 const GOOGLE_MAPS_LAYERS = {
   roadmap: {
     name: 'Google Maps Calles',
-    url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
     maxZoom: 20,
   },
   hybrid: {
     name: 'Google Maps Satélite',
-    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
     maxZoom: 20,
   },
   traffic: {
     name: 'Google Maps Tráfico',
-    url: 'https://mt1.google.com/vt/lyrs=m,trafficinfo&x={x}&y={y}&z={z}',
+    url: 'https://{s}.google.com/vt/lyrs=m,trafficinfo&x={x}&y={y}&z={z}',
     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
     maxZoom: 20,
   },
@@ -67,9 +67,34 @@ function MapController({
   userLocation?: [number, number] | null;
 }) {
   const map = useMap();
+
+  // Forzar redimensionado inmediato e incremental de Leaflet (resuelve el bug de mapa negro / tiles en blanco)
+  useEffect(() => {
+    if (!map) return;
+    map.invalidateSize();
+    const t1 = setTimeout(() => map.invalidateSize(), 80);
+    const t2 = setTimeout(() => map.invalidateSize(), 250);
+    const t3 = setTimeout(() => map.invalidateSize(), 600);
+
+    const onResize = () => {
+      try {
+        map.invalidateSize();
+      } catch {}
+    };
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [map]);
+
   useEffect(() => {
     if (!map) return;
     try {
+      map.invalidateSize();
       const hasValidUser = userLocation && isValidLatLng(userLocation[0], userLocation[1]);
       const hasValidSelected = selectedPlace && isValidLatLng(selectedPlace.latitude, selectedPlace.longitude);
 
@@ -433,13 +458,16 @@ export default function MapViewer({
       >
         <MapController center={safeCenter} zoom={zoom} selectedPlace={selectedPlace} userLocation={safeUserLocation} />
 
-        {/* Capa Oficial de Google Maps */}
+        {/* Capa Oficial de Google Maps con precarga acelerada en paralelo */}
         <TileLayer
           key={mapType}
           attribution='&copy; Google Maps'
           url={currentLayer.url}
           subdomains={currentLayer.subdomains}
           maxZoom={currentLayer.maxZoom}
+          keepBuffer={8}
+          updateWhenIdle={false}
+          updateWhenZooming={false}
         />
 
         {/* Círculo visual del radio de proximidad a pie con pulso */}
