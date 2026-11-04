@@ -37,6 +37,24 @@ const GOOGLE_MAPS_LAYERS = {
   },
 };
 
+// Validación estricta de coordenadas geográficas para prevenir errores fatales de Leaflet en WebView/móvil
+function isValidLatLng(lat: any, lng: any): boolean {
+  const nLat = Number(lat);
+  const nLng = Number(lng);
+  return (
+    typeof nLat === 'number' &&
+    typeof nLng === 'number' &&
+    Number.isFinite(nLat) &&
+    Number.isFinite(nLng) &&
+    !isNaN(nLat) &&
+    !isNaN(nLng) &&
+    nLat >= -90 &&
+    nLat <= 90 &&
+    nLng >= -180 &&
+    nLng <= 180
+  );
+}
+
 function MapController({ 
   center, 
   zoom, 
@@ -50,16 +68,24 @@ function MapController({
 }) {
   const map = useMap();
   useEffect(() => {
-    if (selectedPlace && userLocation) {
-      map.flyToBounds(
-        [
-          userLocation,
-          [selectedPlace.latitude, selectedPlace.longitude],
-        ],
-        { padding: [70, 70], duration: 1.2 }
-      );
-    } else {
-      map.flyTo(center, zoom, { duration: 1.2 });
+    if (!map) return;
+    try {
+      const hasValidUser = userLocation && isValidLatLng(userLocation[0], userLocation[1]);
+      const hasValidSelected = selectedPlace && isValidLatLng(selectedPlace.latitude, selectedPlace.longitude);
+
+      if (hasValidSelected && hasValidUser) {
+        map.flyToBounds(
+          [
+            [Number(userLocation[0]), Number(userLocation[1])],
+            [Number(selectedPlace.latitude), Number(selectedPlace.longitude)],
+          ],
+          { padding: [70, 70], duration: 1.2 }
+        );
+      } else if (center && isValidLatLng(center[0], center[1])) {
+        map.flyTo([Number(center[0]), Number(center[1])], zoom, { duration: 1.2 });
+      }
+    } catch (err) {
+      console.warn('MapController fly error suppressed:', err);
     }
   }, [center, zoom, selectedPlace, userLocation, map]);
   return null;
@@ -260,9 +286,22 @@ export default function MapViewer({
     );
   }
 
-  const zoom = radiusMeters <= 600 ? 16 : radiusMeters <= 1500 ? 15 : radiusMeters <= 3500 ? 14 : 13;
+  const safeCenter: [number, number] = (center && isValidLatLng(center[0], center[1]))
+    ? [Number(center[0]), Number(center[1])]
+    : [10.4960, -66.8520];
+
+  const safeUserLocation: [number, number] | null = (userLocation && isValidLatLng(userLocation[0], userLocation[1]))
+    ? [Number(userLocation[0]), Number(userLocation[1])]
+    : null;
+
+  const safeRadius = (Number.isFinite(radiusMeters) && radiusMeters > 0) ? radiusMeters : 2500;
+
+  const validPlaces = (places || []).filter(p => p && isValidLatLng(p.latitude, p.longitude));
+
+  const zoom = safeRadius <= 600 ? 16 : safeRadius <= 1500 ? 15 : safeRadius <= 3500 ? 14 : 13;
   const currentLayer = GOOGLE_MAPS_LAYERS[mapType];
-  const selectedPlace = places.find((p) => p.id === selectedPlaceId) || null;
+  const selectedPlace = validPlaces.find((p) => p.id === selectedPlaceId) || null;
+  const hasSelectedRoute = selectedPlace && safeUserLocation && isValidLatLng(selectedPlace.latitude, selectedPlace.longitude);
 
   return (
     <div className="relative w-full h-full min-h-[460px] rounded-2xl overflow-hidden border border-slate-700/80 shadow-[0_0_35px_rgba(0,0,0,0.7)] group">
@@ -387,12 +426,12 @@ export default function MapViewer({
           CONTENEDOR DEL MAPA LEAFLET + GOOGLE MAPS TILES
           ========================================================================= */}
       <MapContainer
-        center={center}
+        center={safeCenter}
         zoom={zoom}
         scrollWheelZoom={true}
         style={{ width: '100%', height: '100%', minHeight: '460px' }}
       >
-        <MapController center={center} zoom={zoom} selectedPlace={selectedPlace} userLocation={userLocation} />
+        <MapController center={safeCenter} zoom={zoom} selectedPlace={selectedPlace} userLocation={safeUserLocation} />
 
         {/* Capa Oficial de Google Maps */}
         <TileLayer
@@ -405,8 +444,8 @@ export default function MapViewer({
 
         {/* Círculo visual del radio de proximidad a pie con pulso */}
         <Circle
-          center={center}
-          radius={radiusMeters}
+          center={safeCenter}
+          radius={safeRadius}
           pathOptions={{
             color: '#10B981',
             fillColor: '#10B981',
@@ -416,16 +455,14 @@ export default function MapViewer({
           }}
         />
 
-        {/* =========================================================================
-            RUTA A PIE ANIMADA DIRECTA ENTRE TU GPS Y LA VACANTE SELECCIONADA
-            ========================================================================= */}
-        {selectedPlace && userLocation && (
+        {/* RUTA A PIE ANIMADA DIRECTA ENTRE TU GPS Y LA VACANTE SELECCIONADA */}
+        {hasSelectedRoute && selectedPlace && safeUserLocation && (
           <>
             {/* Halo Neón Esmeralda Grueso de Base */}
             <Polyline
               positions={[
-                userLocation,
-                [selectedPlace.latitude, selectedPlace.longitude],
+                safeUserLocation,
+                [Number(selectedPlace.latitude), Number(selectedPlace.longitude)],
               ]}
               pathOptions={{
                 color: '#10B981',
@@ -440,8 +477,8 @@ export default function MapViewer({
             <Polyline
               className="leaflet-walking-path"
               positions={[
-                userLocation,
-                [selectedPlace.latitude, selectedPlace.longitude],
+                safeUserLocation,
+                [Number(selectedPlace.latitude), Number(selectedPlace.longitude)],
               ]}
               pathOptions={{
                 color: '#34D399',
@@ -455,8 +492,8 @@ export default function MapViewer({
             {/* Badge Flotante en el Punto Medio de la Ruta */}
             <Marker
               position={[
-                (userLocation[0] + selectedPlace.latitude) / 2,
-                (userLocation[1] + selectedPlace.longitude) / 2,
+                (safeUserLocation[0] + Number(selectedPlace.latitude)) / 2,
+                (safeUserLocation[1] + Number(selectedPlace.longitude)) / 2,
               ]}
               icon={createWalkingBadgeIcon(selectedPlace.walkTimeMinutes, selectedPlace.distanceMeters)}
             />
@@ -464,8 +501,8 @@ export default function MapViewer({
         )}
 
         {/* Pin de ubicación del usuario */}
-        {userLocation && (
-          <Marker position={userLocation} icon={getUserLocationPin()}>
+        {safeUserLocation && (
+          <Marker position={safeUserLocation} icon={getUserLocationPin()}>
             <Popup>
               <div className="p-1 text-slate-800">
                 <p className="font-semibold text-xs flex items-center gap-1 text-blue-600">
@@ -478,7 +515,7 @@ export default function MapViewer({
         )}
 
         {/* Marcadores de oportunidades reales con efectos de sonar */}
-        {places.map((place) => {
+        {validPlaces.map((place) => {
           const isSelected = selectedPlaceId === place.id;
           const googleMapsPlaceUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.placeName} ${place.address}`)}`;
           const googleMapsWalkingUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking`;
@@ -486,7 +523,7 @@ export default function MapViewer({
           return (
             <Marker
               key={place.id}
-              position={[place.latitude, place.longitude]}
+              position={[Number(place.latitude), Number(place.longitude)]}
               icon={getCustomPin(place, isSelected)}
               eventHandlers={{
                 click: () => onSelectPlace(place),

@@ -401,21 +401,24 @@ export default function HomePage() {
     fetchPlaces(offset);
   }
 
-  // Solicitar ubicación GPS automáticamente al cargar
+  // Solicitar ubicación GPS automáticamente al cargar (con validación estricta de números finitos para evitar crashes de Leaflet)
   useEffect(() => {
     checkSession();
 
-    if (navigator.geolocation) {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const newCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setCoords(newCoords);
-          setUserLocation([newCoords.lat, newCoords.lng]);
+          const lat = Number(pos?.coords?.latitude);
+          const lng = Number(pos?.coords?.longitude);
+          if (Number.isFinite(lat) && Number.isFinite(lng) && !isNaN(lat) && !isNaN(lng)) {
+            setCoords({ lat, lng });
+            setUserLocation([lat, lng]);
+          }
         },
         () => {
           // Fallback silencioso a coordenadas por defecto
         },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
       );
     }
   }, []);
@@ -425,7 +428,7 @@ export default function HomePage() {
   }, [coords, radius, selectedCategory]);
 
   function handleRequestLocation() {
-    if (!navigator.geolocation) {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
       alert('Tu navegador no soporta geolocalización. Elige tu ciudad en la barra superior.');
       return;
     }
@@ -433,9 +436,12 @@ export default function HomePage() {
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const newCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setCoords(newCoords);
-        setUserLocation([newCoords.lat, newCoords.lng]);
+        const lat = Number(pos?.coords?.latitude);
+        const lng = Number(pos?.coords?.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lng) && !isNaN(lat) && !isNaN(lng)) {
+          setCoords({ lat, lng });
+          setUserLocation([lat, lng]);
+        }
         setGpsLoading(false);
       },
       (err) => {
@@ -443,7 +449,7 @@ export default function HomePage() {
         setGpsLoading(false);
         alert('No se pudo acceder al GPS. Asegúrate de permitir el acceso o selecciona tu ciudad en la lista.');
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
     );
   }
 
