@@ -149,11 +149,17 @@ export default function HomePage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('resize'));
-      const t1 = setTimeout(() => window.dispatchEvent(new Event('resize')), 80);
-      const t2 = setTimeout(() => window.dispatchEvent(new Event('resize')), 250);
+      const raf = requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
+      const t1 = setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
+      const t2 = setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
+      const t3 = setTimeout(() => window.dispatchEvent(new Event('resize')), 450);
       return () => {
+        cancelAnimationFrame(raf);
         clearTimeout(t1);
         clearTimeout(t2);
+        clearTimeout(t3);
       };
     }
   }, [mobileTab, isFullscreenMap]);

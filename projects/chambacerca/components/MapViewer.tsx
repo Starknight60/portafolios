@@ -68,13 +68,27 @@ function MapController({
 }) {
   const map = useMap();
 
-  // Forzar redimensionado inmediato e incremental de Leaflet (resuelve el bug de mapa negro / tiles en blanco)
+  // Forzar redimensionado inmediato con ResizeObserver nativo (garantiza render al 100% sin franjas negras al cambiar de tab)
   useEffect(() => {
     if (!map) return;
     map.invalidateSize();
-    const t1 = setTimeout(() => map.invalidateSize(), 80);
-    const t2 = setTimeout(() => map.invalidateSize(), 250);
-    const t3 = setTimeout(() => map.invalidateSize(), 600);
+
+    const container = map.getContainer();
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      resizeObserver = new ResizeObserver(() => {
+        try {
+          if (container.clientWidth > 0 && container.clientHeight > 0) {
+            map.invalidateSize();
+          }
+        } catch {}
+      });
+      resizeObserver.observe(container);
+    }
+
+    const t1 = setTimeout(() => { try { map.invalidateSize(); } catch {} }, 60);
+    const t2 = setTimeout(() => { try { map.invalidateSize(); } catch {} }, 200);
+    const t3 = setTimeout(() => { try { map.invalidateSize(); } catch {} }, 500);
 
     const onResize = () => {
       try {
@@ -84,6 +98,7 @@ function MapController({
     window.addEventListener('resize', onResize);
 
     return () => {
+      if (resizeObserver) resizeObserver.disconnect();
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
@@ -104,10 +119,10 @@ function MapController({
             [Number(userLocation[0]), Number(userLocation[1])],
             [Number(selectedPlace.latitude), Number(selectedPlace.longitude)],
           ],
-          { padding: [70, 70], duration: 1.2 }
+          { padding: [50, 50], duration: 1.0 }
         );
       } else if (center && isValidLatLng(center[0], center[1])) {
-        map.flyTo([Number(center[0]), Number(center[1])], zoom, { duration: 1.2 });
+        map.flyTo([Number(center[0]), Number(center[1])], zoom, { duration: 1.0 });
       }
     } catch (err) {
       console.warn('MapController fly error suppressed:', err);
@@ -329,37 +344,37 @@ export default function MapViewer({
   const hasSelectedRoute = selectedPlace && safeUserLocation && isValidLatLng(selectedPlace.latitude, selectedPlace.longitude);
 
   return (
-    <div className="relative w-full h-full min-h-[460px] rounded-2xl overflow-hidden border border-slate-700/80 shadow-[0_0_35px_rgba(0,0,0,0.7)] group">
+    <div className="relative w-full h-full min-h-[360px] sm:min-h-[420px] rounded-2xl overflow-hidden border border-slate-700/80 shadow-[0_0_35px_rgba(0,0,0,0.7)] group">
       
       {/* =========================================================================
           HUD SUPERIOR: TELEMETRÍA EN VIVO Y SELECTORES FLOTANTES
           ========================================================================= */}
       
       {/* Telemetría Militar Táctica en Vivo (Esquina Superior Izquierda) */}
-      <div className="absolute top-3 left-3 z-[1000] pointer-events-none flex flex-col gap-1.5">
-        <div className="bg-[#0B131F]/95 px-3 py-1.5 rounded-xl border border-emerald-500/40 shadow-2xl flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
+      <div className="absolute top-2.5 left-2.5 z-[1000] pointer-events-none flex flex-col gap-1 max-w-[48%] sm:max-w-none">
+        <div className="bg-[#0B131F]/95 px-2.5 py-1 rounded-xl border border-emerald-500/40 shadow-2xl flex items-center gap-1.5 backdrop-blur-sm">
+          <span className="relative flex h-2 w-2 shrink-0">
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
           </span>
-          <span className="text-[10px] font-black tracking-widest text-emerald-300 font-mono uppercase">
-            RADAR GPS ACTIVO
+          <span className="text-[10px] font-black tracking-wider text-emerald-300 font-mono uppercase truncate">
+            RADAR GPS
           </span>
           <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-            • {places.length} ECOS
+            • {validPlaces.length} ECOS
           </span>
         </div>
 
-        <div className="bg-[#080D15]/95 px-2.5 py-1 rounded-lg border border-slate-800 text-[9px] font-mono text-slate-300 flex items-center gap-2 shadow">
-          <Compass className="w-2.5 h-2.5 text-cyan-400" />
-          <span>{center[0].toFixed(4)}°N, {Math.abs(center[1]).toFixed(4)}°W</span>
-          <span className="text-emerald-400 font-bold">R={radiusMeters}m</span>
+        <div className="bg-[#080D15]/95 px-2 py-0.5 rounded-lg border border-slate-800 text-[9px] font-mono text-slate-300 flex items-center gap-1.5 shadow backdrop-blur-sm">
+          <Compass className="w-2.5 h-2.5 text-cyan-400 shrink-0" />
+          <span className="truncate">{safeCenter[0].toFixed(3)}°N, {Math.abs(safeCenter[1]).toFixed(3)}°W</span>
+          <span className="text-emerald-400 font-bold shrink-0">R={safeRadius >= 1000 ? `${(safeRadius/1000).toFixed(1)}k` : `${safeRadius}m`}</span>
         </div>
 
         {/* Ticker de Ruta Activa Trazada */}
         {selectedPlace && (
-          <div className="bg-[#062419]/95 px-3 py-1.5 rounded-xl border border-emerald-400/80 text-[10px] font-mono text-emerald-300 flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
+          <div className="bg-[#062419]/95 px-2.5 py-1 rounded-xl border border-emerald-400/80 text-[10px] font-mono text-emerald-300 flex items-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
             <Footprints className="w-3.5 h-3.5 text-emerald-300 animate-bounce shrink-0" />
-            <span className="truncate max-w-[200px] sm:max-w-[280px]">
+            <span className="truncate max-w-[140px] sm:max-w-[280px]">
               RUTA: <strong>{selectedPlace.placeName}</strong> ({selectedPlace.distanceFormatted} • {selectedPlace.walkTimeMinutes} min)
             </span>
           </div>
@@ -367,13 +382,13 @@ export default function MapViewer({
       </div>
 
       {/* Selector Flotante de Capa & Toggle Sonar (Esquina Superior Derecha) */}
-      <div className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5">
+      <div className="absolute top-2.5 right-2.5 z-[1000] flex items-center gap-1">
         
         {/* Toggle para Activar/Desactivar el Haz de Sonar */}
         <button
           onClick={() => setShowRadarHud(!showRadarHud)}
           title="Alternar retícula de distancia de radar"
-          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-xl cursor-pointer ${
+          className={`px-2 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 border shadow-xl cursor-pointer ${
             showRadarHud
               ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
               : 'bg-slate-900/90 text-slate-400 border-slate-700 hover:text-white'
@@ -384,10 +399,10 @@ export default function MapViewer({
         </button>
 
         {/* Selector de Tipo de Capa Google Maps */}
-        <div className="bg-[#0B131F]/95 rounded-xl p-1 border border-slate-700 shadow-xl flex items-center gap-1">
+        <div className="bg-[#0B131F]/95 rounded-xl p-0.5 border border-slate-700 shadow-xl flex items-center gap-0.5">
           <button
             onClick={() => setMapType('roadmap')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
               mapType === 'roadmap'
                 ? 'bg-blue-600 text-white shadow'
                 : 'text-slate-300 hover:bg-slate-800'
@@ -397,7 +412,7 @@ export default function MapViewer({
           </button>
           <button
             onClick={() => setMapType('hybrid')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
               mapType === 'hybrid'
                 ? 'bg-blue-600 text-white shadow'
                 : 'text-slate-300 hover:bg-slate-800'
@@ -407,7 +422,7 @@ export default function MapViewer({
           </button>
           <button
             onClick={() => setMapType('traffic')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
               mapType === 'traffic'
                 ? 'bg-blue-600 text-white shadow'
                 : 'text-slate-300 hover:bg-slate-800'
@@ -454,7 +469,7 @@ export default function MapViewer({
         center={safeCenter}
         zoom={zoom}
         scrollWheelZoom={true}
-        style={{ width: '100%', height: '100%', minHeight: '460px' }}
+        style={{ width: '100%', height: '100%' }}
       >
         <MapController center={safeCenter} zoom={zoom} selectedPlace={selectedPlace} userLocation={safeUserLocation} />
 
@@ -465,7 +480,7 @@ export default function MapViewer({
           url={currentLayer.url}
           subdomains={currentLayer.subdomains}
           maxZoom={currentLayer.maxZoom}
-          keepBuffer={8}
+          keepBuffer={4}
           updateWhenIdle={false}
           updateWhenZooming={false}
         />
