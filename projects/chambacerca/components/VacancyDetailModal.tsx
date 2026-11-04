@@ -83,11 +83,14 @@ export default function VacancyDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[1200] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-2xl max-h-[92vh] bg-[#0A101C] border border-slate-700/80 rounded-3xl shadow-2xl shadow-emerald-950/40 flex flex-col overflow-hidden text-slate-100 animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-2xl max-h-[92vh] bg-[#0A101C] border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-3xl shadow-2xl shadow-emerald-950/40 flex flex-col overflow-hidden text-slate-100 animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Manija de Arrastre Táctil para Móviles (Bottom Sheet Ergonómico) */}
+        <div className="w-12 h-1.5 rounded-full bg-slate-700/80 mx-auto mt-2.5 mb-0.5 sm:hidden shrink-0" />
+
         {/* Encabezado con Identidad y Badges */}
         <div className="p-4 sm:p-6 border-b border-slate-800/80 bg-gradient-to-r from-[#0C1527] via-[#0B1322] to-[#0A101C] flex items-start justify-between gap-4 relative">
           <div className="flex items-start gap-3.5">
@@ -704,8 +707,8 @@ export default function VacancyDetailModal({
 
         </div>
 
-        {/* Acciones del pie fijas */}
-        <div className="p-4 sm:p-5 border-t border-slate-800/80 bg-slate-950/95 flex flex-col sm:flex-row items-center justify-between gap-3">
+        {/* Acciones del pie fijas (Con protección de barra de gestos de Android) */}
+        <div className="p-4 sm:p-5 border-t border-slate-800/80 bg-slate-950/95 safe-area-bottom flex flex-col sm:flex-row items-center justify-between gap-3">
           <button
             onClick={() => {
               onClose();

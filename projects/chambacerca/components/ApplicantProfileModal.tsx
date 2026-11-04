@@ -114,11 +114,14 @@ Vi en ChambaCerca que tienen vacante para *Panadería / Comercio*. Cuento con ex
 ¿En qué horario podría consignar mi síntesis curricular en físico o comunicarme con RRHH? Quedo a su orden al *${phone || 'mi teléfono'}*. ¡Muchas gracias!`;
 
   return (
-    <div className="fixed inset-0 z-[1400] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[1400] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-xl max-h-[92vh] bg-[#0A101C] border border-emerald-500/40 rounded-3xl shadow-[0_0_40px_rgba(16,185,129,0.25)] flex flex-col overflow-hidden text-slate-100 animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-xl max-h-[92vh] bg-[#0A101C] border-t sm:border border-emerald-500/40 rounded-t-3xl sm:rounded-3xl shadow-[0_0_40px_rgba(16,185,129,0.25)] flex flex-col overflow-hidden text-slate-100 animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Manija de Arrastre Táctil para Móviles */}
+        <div className="w-12 h-1.5 rounded-full bg-slate-700/80 mx-auto mt-2.5 mb-0.5 sm:hidden shrink-0" />
+
         {/* Cabecera */}
         <div className="p-4 sm:p-5 border-b border-slate-800/80 bg-gradient-to-r from-emerald-950/60 via-[#0C1527] to-[#0A101C] flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -267,7 +270,7 @@ Vi en ChambaCerca que tienen vacante para *Panadería / Comercio*. Cuento con ex
         </div>
 
         {/* Footer con Botón Guardar */}
-        <div className="p-4 sm:p-5 border-t border-slate-800 bg-[#0B1320] flex items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 border-t border-slate-800 bg-[#0B1320] safe-area-bottom flex items-center justify-between gap-3">
           <p className="text-[11px] text-slate-400 flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             <span>Tus datos se guardan de forma privada en tu propio teléfono o navegador.</span>

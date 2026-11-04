@@ -636,13 +636,13 @@ export default function HomePage() {
               <span className="xs:hidden">+</span>
             </button>
 
-            {/* Botón Acceso Rápido: Mi Perfil de Postulante (Auto-llenado Inteligente) */}
+            {/* Botón Acceso Rápido: Mi Perfil de Postulante (Visible en pantallas sm+) */}
             <button
               onClick={() => {
                 setIsProfileModalOpen(true);
                 playTacticalClick();
               }}
-              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition cursor-pointer whitespace-nowrap ${
+              className={`hidden sm:flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition cursor-pointer whitespace-nowrap ${
                 applicantProfile?.fullName
                   ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/50 hover:bg-emerald-900/60'
                   : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:bg-slate-800'
@@ -656,194 +656,23 @@ export default function HomePage() {
               )}
             </button>
 
-            {/* Menú Desplegable de Herramientas (Ahorro, CV, Aporte Vecinal, Portafolio) */}
-            <div className="relative">
-              <button
-                onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-                className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition cursor-pointer whitespace-nowrap ${
-                  isToolsMenuOpen
-                    ? 'bg-slate-800 text-emerald-300 border-emerald-500/50'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700/80'
-                }`}
-                title="Herramientas adicionales de ChambaCerca"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Herramientas</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isToolsMenuOpen ? 'rotate-180 text-emerald-400' : ''}`} />
-              </button>
-
-              {isToolsMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-[105]"
-                    onClick={() => setIsToolsMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-64 bg-[#0E1726] border border-slate-700/90 rounded-2xl shadow-2xl p-2 z-[110] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2.5 py-1 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                      Herramientas de Búsqueda
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setIsToolsMenuOpen(false);
-                        setIsCalculatorOpen(true);
-                        playTacticalClick();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-emerald-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
-                    >
-                      <div className="w-7 h-7 rounded-lg bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center shrink-0">
-                        <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-100">Calculadora de Pasaje</p>
-                        <p className="text-[10px] text-slate-400">Gasto en camionetica vs salario real</p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setIsToolsMenuOpen(false);
-                        setIsCvBuilderOpen(true);
-                        playTacticalClick();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-cyan-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
-                    >
-                      <div className="w-7 h-7 rounded-lg bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center shrink-0">
-                        <FileText className="w-3.5 h-3.5 text-cyan-400" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-100">Generar CV (1 Página)</p>
-                        <p className="text-[10px] text-slate-400">PDF para imprimir y WhatsApp</p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setIsToolsMenuOpen(false);
-                        setIsProfileModalOpen(true);
-                        playTacticalClick();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-emerald-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
-                    >
-                      <div className="w-7 h-7 rounded-lg bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center shrink-0">
-                        <User className="w-3.5 h-3.5 text-emerald-400" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="font-semibold text-slate-100">Mi Perfil de Postulante</p>
-                          {applicantProfile?.fullName && (
-                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950 px-1.5 py-0.2 rounded border border-emerald-800">
-                              Activo
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-slate-400">
-                          {applicantProfile?.fullName ? applicantProfile.fullName : 'Auto-llenado para WhatsApp y CV'}
-                        </p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setIsToolsMenuOpen(false);
-                        if (places.length > 0) {
-                          setReportTargetPlace(places[0]);
-                        } else {
-                          alert('Selecciona primero un comercio para aportar tu reporte vecinal.');
-                        }
-                      }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-amber-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
-                    >
-                      <div className="w-7 h-7 rounded-lg bg-amber-950/80 border border-amber-800/60 flex items-center justify-center shrink-0">
-                        <span className="text-xs">📢</span>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-100">Fui a preguntar</p>
-                        <p className="text-[10px] text-slate-400">Aporte vecinal de vacantes vistas</p>
-                      </div>
-                    </button>
-
-                    <div className="my-1 border-t border-slate-800" />
-
-                    {/* Controles de Preferencias en Móvil */}
-                    <div className="sm:hidden px-2.5 py-1 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                      Preferencias
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        handleToggleSound();
-                      }}
-                      className="sm:hidden w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-emerald-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${
-                          soundOn ? 'bg-emerald-950/80 border-emerald-800/60' : 'bg-slate-900 border-slate-700'
-                        }`}>
-                          {soundOn ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
-                        </div>
-                        <span className="font-semibold text-slate-100">Sonido de Radar</span>
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-400">{soundOn ? 'Activo' : 'Mudo'}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        toggleSunlightMode();
-                      }}
-                      className="sm:hidden w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-amber-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${
-                          sunlightMode ? 'bg-amber-950/80 border-amber-800/60' : 'bg-slate-900 border-slate-700'
-                        }`}>
-                          <Sun className="w-3.5 h-3.5 text-amber-400" />
-                        </div>
-                        <span className="font-semibold text-slate-100">Modo Sol de Calle</span>
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-400">{sunlightMode ? 'Activo' : 'Oscuro'}</span>
-                    </button>
-
-                    {/* Cerrar Sesión en menú de Herramientas */}
-                    {currentUser && (
-                      <>
-                        <div className="my-1 border-t border-slate-800" />
-                        <button
-                          onClick={() => {
-                            setIsToolsMenuOpen(false);
-                            handleLogout();
-                          }}
-                          className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-xl transition text-left cursor-pointer"
-                        >
-                          <div className="w-7 h-7 rounded-lg bg-rose-950/60 border border-rose-800/60 flex items-center justify-center shrink-0">
-                            <LogOut className="w-3.5 h-3.5 text-rose-400" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-rose-300">Cerrar Sesión</p>
-                            <p className="text-[10px] text-slate-400 truncate max-w-[170px]">{currentUser.name}</p>
-                          </div>
-                        </button>
-                      </>
-                    )}
-
-                    <div className="my-1 border-t border-slate-800" />
-
-                    <a
-                      href="https://portafolios-rho.vercel.app"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-xl transition"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Globe className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Ver Portafolio</span>
-                      </span>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
-                    </a>
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Botón Herramientas en Cabecera (Visible en pantallas md+) */}
+            <button
+              onClick={() => {
+                setIsToolsMenuOpen(!isToolsMenuOpen);
+                playTacticalClick();
+              }}
+              className={`hidden md:flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition cursor-pointer whitespace-nowrap ${
+                isToolsMenuOpen
+                  ? 'bg-slate-800 text-emerald-300 border-emerald-500/50'
+                  : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700/80'
+              }`}
+              title="Herramientas adicionales de ChambaCerca"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>Herramientas</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isToolsMenuOpen ? 'rotate-180 text-emerald-400' : ''}`} />
+            </button>
 
             {/* Toggle de Sonido Sonar Táctico (En pantallas >= sm) */}
             <button
@@ -1094,13 +923,18 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. Selector Móvil de Vista (Feed vs Mapa) */}
-      {/* 5. Contenedor Principal: Radar Panorámico Arriba y Ofertas Debajo (Cero Espacio Vacío) */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6">
+      {/* 5. Contenedor Principal: Radar Panorámico y Ofertas Debajo con Padding Ergonómico Inferior */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 pb-24 md:pb-8">
         {/* SECCIÓN 1: Radar Panorámico Superior con Google Maps */}
         <section 
           id="radar-map-section"
-          className={`w-full space-y-2.5 ${isFullscreenMap ? 'fixed inset-0 z-[200] bg-[#080D15] p-3 sm:p-4 flex flex-col h-screen' : ''}`}
+          className={`w-full space-y-2.5 ${
+            isFullscreenMap 
+              ? 'fixed inset-0 z-[200] bg-[#080D15] p-3 sm:p-4 flex flex-col h-screen' 
+              : mobileTab === 'feed' 
+                ? 'hidden md:block' 
+                : 'block'
+          }`}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -1235,7 +1069,7 @@ export default function HomePage() {
         </section>
 
         {/* SECCIÓN 2: Ofertas de Empleo Organizadas Directamente Debajo del Radar */}
-        <section className="w-full space-y-4">
+        <section className={`w-full space-y-4 ${mobileTab === 'map' ? 'hidden md:block' : 'block'}`}>
           {/* Banner de Ayuda al Solicitante de Empleo (Colores Enriquecidos y Resplandor) */}
           <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900/90 to-slate-900 border border-emerald-500/30 shadow-lg shadow-emerald-950/30 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -1881,6 +1715,150 @@ export default function HomePage() {
         </section>
       </main>
 
+      {/* Botón Flotante Rápido de Alternancia en Móvil (1 Toque entre Radar y Ofertas) */}
+      <div className="md:hidden fixed bottom-20 right-4 z-40">
+        <button
+          type="button"
+          onClick={() => {
+            setMobileTab(mobileTab === 'feed' ? 'map' : 'feed');
+            playTacticalClick();
+          }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs shadow-xl shadow-emerald-950/80 border border-emerald-400/80 active:scale-95 transition-all cursor-pointer"
+        >
+          {mobileTab === 'feed' ? (
+            <>
+              <Compass className="w-4 h-4 animate-spin-slow" />
+              <span>🧭 Ver Radar</span>
+            </>
+          ) : (
+            <>
+              <Briefcase className="w-4 h-4" />
+              <span>💼 Ver Ofertas ({displayedPlaces.length})</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* BARRA DE NAVEGACIÓN INFERIOR MÓVIL (Bottom Navigation Bar ergonómica) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[120] bg-[#0A101D]/95 backdrop-blur-xl border-t border-slate-800/90 safe-area-bottom shadow-2xl">
+        <div className="grid grid-cols-5 h-16 items-center px-1">
+          {/* Tab 1: Ofertas (Feed) */}
+          <button
+            type="button"
+            onClick={() => {
+              setMobileTab('feed');
+              setFilterSavedOnly(false);
+              setFilterRouteOnly(false);
+              playTacticalClick();
+            }}
+            className={`flex flex-col items-center justify-center py-1 transition cursor-pointer relative ${
+              mobileTab === 'feed' && !filterSavedOnly && !filterRouteOnly
+                ? 'text-emerald-400 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <div className="relative">
+              <Briefcase className="w-5 h-5" />
+              {displayedPlaces.length > 0 && (
+                <span className="absolute -top-1 -right-2 px-1 text-[9px] font-black rounded-full bg-emerald-500 text-slate-950 leading-tight">
+                  {displayedPlaces.length > 99 ? '99+' : displayedPlaces.length}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] mt-1">Ofertas</span>
+            {mobileTab === 'feed' && !filterSavedOnly && !filterRouteOnly && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-0.5" />
+            )}
+          </button>
+
+          {/* Tab 2: Radar Satelital */}
+          <button
+            type="button"
+            onClick={() => {
+              setMobileTab('map');
+              setFilterSavedOnly(false);
+              setFilterRouteOnly(false);
+              playSonarPing();
+            }}
+            className={`flex flex-col items-center justify-center py-1 transition cursor-pointer ${
+              mobileTab === 'map'
+                ? 'text-cyan-400 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <div className="relative">
+              <Compass className={`w-5 h-5 ${mobileTab === 'map' ? 'text-cyan-400 animate-pulse' : ''}`} />
+              <span className="w-2 h-2 rounded-full bg-cyan-400 absolute -top-0.5 -right-0.5 animate-ping opacity-75" />
+            </div>
+            <span className="text-[10px] mt-1">Radar</span>
+            {mobileTab === 'map' && (
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-0.5" />
+            )}
+          </button>
+
+          {/* Tab 3: Guardadas */}
+          <button
+            type="button"
+            onClick={() => {
+              setFilterSavedOnly(!filterSavedOnly);
+              setMobileTab('feed');
+              playTacticalClick();
+            }}
+            className={`flex flex-col items-center justify-center py-1 transition cursor-pointer relative ${
+              filterSavedOnly
+                ? 'text-amber-400 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <div className="relative">
+              <Star className={`w-5 h-5 ${filterSavedOnly ? 'fill-amber-400 text-amber-400' : ''}`} />
+              {savedIds.length > 0 && (
+                <span className="absolute -top-1 -right-2 px-1 text-[9px] font-bold rounded-full bg-amber-500 text-slate-950 leading-tight">
+                  {savedIds.length}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] mt-1">Guardadas</span>
+            {filterSavedOnly && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-0.5" />
+            )}
+          </button>
+
+          {/* Tab 4: Mi Perfil Postulante */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsProfileModalOpen(true);
+              playTacticalClick();
+            }}
+            className="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-200 transition cursor-pointer"
+          >
+            <div className="relative">
+              <User className="w-5 h-5" />
+              {applicantProfile?.fullName && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5 border border-[#0A101D]" />
+              )}
+            </div>
+            <span className="text-[10px] mt-1">Mi Perfil</span>
+          </button>
+
+          {/* Tab 5: Más / Herramientas */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsToolsMenuOpen(true);
+              playTacticalClick();
+            }}
+            className={`flex flex-col items-center justify-center py-1 transition cursor-pointer ${
+              isToolsMenuOpen ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Zap className="w-5 h-5 text-amber-400" />
+            <span className="text-[10px] mt-1">Opciones</span>
+          </button>
+        </div>
+      </nav>
+
       {/* 6. Footer */}
       <footer className="mt-auto border-t border-slate-800 bg-[#0E1726] py-6 px-4 sm:px-6 text-center text-xs text-slate-400">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -1956,6 +1934,141 @@ export default function HomePage() {
           fetchSaved();
         }}
       />
+
+      {/* Modal / Bottom Sheet Global de Herramientas y Opciones */}
+      {isToolsMenuOpen && (
+        <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-150">
+          <div 
+            className="fixed inset-0"
+            onClick={() => setIsToolsMenuOpen(false)}
+          />
+          <div className="relative z-10 w-full sm:max-w-md bg-[#0E1726] border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-2xl max-h-[85vh] overflow-y-auto safe-area-bottom">
+            {/* Manija táctil en móvil */}
+            <div className="sm:hidden w-12 h-1.5 rounded-full bg-slate-700/80 mx-auto -mt-1 mb-2" />
+
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-white">Herramientas y Opciones</h3>
+                  <p className="text-[11px] text-slate-400">Funciones para optimizar tu búsqueda laboral</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsToolsMenuOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800/80 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsToolsMenuOpen(false);
+                  setIsCalculatorOpen(true);
+                  playTacticalClick();
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 transition text-left cursor-pointer group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-emerald-950/80 border border-emerald-700/60 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition">Calculadora de Pasaje</p>
+                  <p className="text-[11px] text-slate-400">Calcula tu gasto diario en camionetica vs tu sueldo real</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-0.5 transition" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsToolsMenuOpen(false);
+                  setIsCvBuilderOpen(true);
+                  playTacticalClick();
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 transition text-left cursor-pointer group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-cyan-950/80 border border-cyan-700/60 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-white group-hover:text-cyan-300 transition">Creador de CV en 1 Página</p>
+                  <p className="text-[11px] text-slate-400">Descarga tu PDF listo para imprimir y entregar en tienda</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-0.5 transition" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsToolsMenuOpen(false);
+                  setIsProfileModalOpen(true);
+                  playTacticalClick();
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 transition text-left cursor-pointer group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-indigo-950/80 border border-indigo-700/60 flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-indigo-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-white group-hover:text-indigo-300 transition">Mi Perfil de Postulante</p>
+                  <p className="text-[11px] text-slate-400">Configura nombre, oficio y mensaje WhatsApp para 1 clic</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-0.5 transition" />
+              </button>
+
+              {/* Toggles Rápidos Móviles: Sonido y Modo Sol */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleToggleSound}
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                    soundOn
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                      : 'bg-slate-900 text-slate-400 border-slate-800'
+                  }`}
+                >
+                  {soundOn ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4" />}
+                  <span>{soundOn ? 'Sonido ON' : 'Sonido OFF'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleSunlightMode}
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                    sunlightMode
+                      ? 'bg-amber-400 text-slate-950 border-amber-500 font-black'
+                      : 'bg-slate-900 text-amber-300 border-slate-800'
+                  }`}
+                >
+                  <Sun className={`w-4 h-4 ${sunlightMode ? 'fill-current text-slate-950' : 'text-amber-400'}`} />
+                  <span>{sunlightMode ? 'Modo Sol ON' : 'Modo Sol'}</span>
+                </button>
+              </div>
+
+              {/* Modo Callejero Offline */}
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <WifiOff className="w-4 h-4 text-cyan-400" />
+                  <div>
+                    <p className="font-semibold text-slate-200">Caché Callejera Offline</p>
+                    <p className="text-[10px] text-slate-400">Guardado automático si se te va la señal</p>
+                  </div>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono font-bold">
+                  Activa
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

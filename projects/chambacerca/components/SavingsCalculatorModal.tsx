@@ -66,11 +66,14 @@ Tiempo recuperado con tu familia: ${monthlyHoursInTraffic} horas al mes libres d
   };
 
   return (
-    <div className="fixed inset-0 z-[1300] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[1300] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-2xl max-h-[92vh] bg-[#0A101C] border border-emerald-500/40 rounded-3xl shadow-[0_0_40px_rgba(16,185,129,0.25)] flex flex-col overflow-hidden text-slate-100 animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-2xl max-h-[92vh] bg-[#0A101C] border-t sm:border border-emerald-500/40 rounded-t-3xl sm:rounded-3xl shadow-[0_0_40px_rgba(16,185,129,0.25)] flex flex-col overflow-hidden text-slate-100 animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Manija de Arrastre Táctil para Móviles */}
+        <div className="w-12 h-1.5 rounded-full bg-slate-700/80 mx-auto mt-2.5 mb-0.5 sm:hidden shrink-0" />
+
         {/* Cabecera de la Calculadora con Aura Esmeralda */}
         <div className="p-4 sm:p-6 border-b border-slate-800/80 bg-gradient-to-r from-emerald-950/60 via-[#0B1424] to-[#0A101C] flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
