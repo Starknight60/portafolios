@@ -582,8 +582,8 @@ export default function HomePage() {
         />
       )}
 
-      {/* Header Principal Compacto y Elegante */}
-      <header className="sticky top-0 z-[100] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 py-2">
+      {/* Header Principal Compacto y Elegante con Adaptabilidad a Notch y Punch-Hole de Android */}
+      <header className="sticky top-0 z-[100] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 py-2 safe-area-header">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           {/* Logo & Marca Compacta con Compás Animado */}
           <div className="flex items-center gap-2.5 shrink-0">
@@ -1517,7 +1517,7 @@ export default function HomePage() {
                   <div
                     key={place.id}
                     onClick={() => setSelectedPlace(place)}
-                    className={`p-4 rounded-2xl border transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1.5 ${
+                    className={`virtual-gpu-card p-4 rounded-2xl border transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1.5 ${
                       isSelected
                         ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-[#0C1524] border-emerald-400 shadow-[0_0_28px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/80 animate-card-glow'
                         : 'bg-gradient-to-br from-[#0E1726] via-[#0C1523] to-[#090F1A] border-slate-800/90 hover:border-emerald-500/60 hover:bg-slate-800/80 hover:shadow-2xl hover:shadow-emerald-950/50'
