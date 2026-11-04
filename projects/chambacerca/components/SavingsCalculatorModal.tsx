@@ -6,6 +6,7 @@ import {
   HelpCircle, CheckCircle2, AlertCircle, Copy, Check, Bus, Navigation
 } from 'lucide-react';
 import { PlaceResultItem } from '@/app/api/places/route';
+import { DEFAULT_BCV_RATE, formatBsNumber } from '@/lib/currencies';
 
 interface SavingsCalculatorModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export default function SavingsCalculatorModal({
   const [monthlySalaryUSD, setMonthlySalaryUSD] = useState<number>(initialSalary);
   const [ridesPerDay, setRidesPerDay] = useState<number>(4); // 2 de ida + 2 de regreso
   const [rideCostBs, setRideCostBs] = useState<number>(25); // 25 Bs por pasaje en camionetica
-  const [bcvRate, setBcvRate] = useState<number>(55); // Tasa de cambio de referencia Bs/USD
+  const [bcvRate, setBcvRate] = useState<number>(DEFAULT_BCV_RATE); // Tasa de cambio de referencia Bs/USD
   const [workDaysPerMonth, setWorkDaysPerMonth] = useState<number>(24);
   const [trafficHoursPerDay, setTrafficHoursPerDay] = useState<number>(2.5); // 2.5 horas diarias en cola
   const [copiedSummary, setCopiedSummary] = useState(false);
@@ -34,13 +35,16 @@ export default function SavingsCalculatorModal({
   if (!isOpen) return null;
 
   // Cálculos matemáticos de transporte vs salario real
-  const rideCostUSD = rideCostBs / (bcvRate || 55);
+  const rideCostUSD = rideCostBs / (bcvRate || DEFAULT_BCV_RATE);
   const dailyTransitCostUSD = ridesPerDay * rideCostUSD;
   const monthlyTransitCostUSD = dailyTransitCostUSD * workDaysPerMonth;
+  const monthlyTransitCostBs = monthlyTransitCostUSD * bcvRate;
 
   // Salario libre
   const salaryFarJobNet = Math.max(0, monthlySalaryUSD - monthlyTransitCostUSD);
+  const salaryFarJobNetBs = salaryFarJobNet * bcvRate;
   const salaryNearJobNet = monthlySalaryUSD;
+  const salaryNearJobNetBs = salaryNearJobNet * bcvRate;
   const percentageLostInTransit = Math.round((monthlyTransitCostUSD / monthlySalaryUSD) * 100);
 
   // Tiempo perdido en colas
@@ -49,12 +53,12 @@ export default function SavingsCalculatorModal({
 
   const copySavingsSummary = () => {
     const text = `📊 Balance ChambaCerca en Venezuela:
-Salario: $${monthlySalaryUSD} USD/mes
-Gasto en camioneticas evitables: -$${monthlyTransitCostUSD.toFixed(1)} USD/mes (${ridesPerDay} pasajes/día)
-Salario real trabajando lejos: $${salaryFarJobNet.toFixed(1)} USD/mes
-Salario real con ChambaCerca (a pie): $${salaryNearJobNet.toFixed(1)} USD/mes (+${monthlyTransitCostUSD.toFixed(1)} USD libres en tu bolsillo)
+Salario: $${monthlySalaryUSD} USD/mes (~Bs. ${formatBsNumber(monthlySalaryUSD * bcvRate)})
+Gasto en camioneticas evitables: -$${monthlyTransitCostUSD.toFixed(1)} USD/mes (~Bs. ${formatBsNumber(monthlyTransitCostBs)}) (${ridesPerDay} pasajes/día)
+Salario real trabajando lejos: $${salaryFarJobNet.toFixed(1)} USD/mes (~Bs. ${formatBsNumber(salaryFarJobNetBs)})
+Salario real con ChambaCerca (a pie): $${salaryNearJobNet.toFixed(1)} USD/mes (~Bs. ${formatBsNumber(salaryNearJobNetBs)}) (+${monthlyTransitCostUSD.toFixed(1)} USD libres en tu bolsillo)
 Tiempo recuperado con tu familia: ${monthlyHoursInTraffic} horas al mes libres de colas.
-Calculado en ChambaCerca (Radar de empleo local por GPS).`;
+(Calculado a tasa referencial BCV: Bs. ${bcvRate} / USD en ChambaCerca).`;
 
     navigator.clipboard.writeText(text);
     setCopiedSummary(true);
@@ -230,8 +234,9 @@ Calculado en ChambaCerca (Radar de empleo local por GPS).`;
                 <TrendingUp className="w-4 h-4" />
                 Veredicto Financiero Real:
               </span>
-              <span className="text-xs font-black text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 rounded-full animate-card-glow">
-                +${monthlyTransitCostUSD.toFixed(1)} USD Libres / Mes
+              <span className="text-xs font-black text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 rounded-full animate-card-glow flex items-center gap-1.5">
+                <span>+${monthlyTransitCostUSD.toFixed(1)} USD Libres / Mes</span>
+                <span className="text-[11px] text-emerald-400 font-normal">(~Bs. {formatBsNumber(monthlyTransitCostBs)})</span>
               </span>
             </div>
 
@@ -244,12 +249,15 @@ Calculado en ChambaCerca (Radar de empleo local por GPS).`;
                   <span className="text-slate-400">
                     ❌ Trabajando Lejos (Camionetica diaria):
                   </span>
-                  <span className="font-black text-rose-400 font-mono">
-                    ${salaryFarJobNet.toFixed(1)} USD netos
-                    <span className="text-[10px] text-slate-500 font-normal ml-1">
-                      (-${monthlyTransitCostUSD.toFixed(1)} en pasajes)
+                  <div className="text-right">
+                    <span className="font-black text-rose-400 font-mono">
+                      ${salaryFarJobNet.toFixed(1)} USD
+                      <span className="text-[10px] text-slate-400 ml-1">(~Bs. {formatBsNumber(salaryFarJobNetBs)})</span>
                     </span>
-                  </span>
+                    <p className="text-[10px] text-slate-500">
+                      -${monthlyTransitCostUSD.toFixed(1)} USD (~Bs. {formatBsNumber(monthlyTransitCostBs)}) en pasajes
+                    </p>
+                  </div>
                 </div>
                 <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden flex">
                   <div 
@@ -270,9 +278,14 @@ Calculado en ChambaCerca (Radar de empleo local por GPS).`;
                   <span className="text-emerald-300 font-bold flex items-center gap-1">
                     <span>✓</span> Con ChambaCerca (A pie o transporte corto):
                   </span>
-                  <span className="font-black text-emerald-400 font-mono text-sm">
-                    ${salaryNearJobNet.toFixed(1)} USD íntegros (100%)
-                  </span>
+                  <div className="text-right">
+                    <span className="font-black text-emerald-400 font-mono text-sm">
+                      ${salaryNearJobNet.toFixed(1)} USD íntegros
+                    </span>
+                    <span className="text-[11px] text-emerald-300 font-semibold block">
+                      ~Bs. {formatBsNumber(salaryNearJobNetBs)} / mes
+                    </span>
+                  </div>
                 </div>
                 <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden">
                   <div 

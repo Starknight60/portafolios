@@ -12,6 +12,8 @@ import AuthModal from '@/components/AuthModal';
 import LoginGatekeeper from '@/components/LoginGatekeeper';
 import SavingsCalculatorModal from '@/components/SavingsCalculatorModal';
 import CurriculumBuilderModal from '@/components/CurriculumBuilderModal';
+import ApplicantProfileModal, { ApplicantProfile } from '@/components/ApplicantProfileModal';
+import { parseSalaryBreakdown } from '@/lib/currencies';
 import { COMMERCIAL_HUBS, CommercialHub } from '@/lib/commercialHubs';
 import { playSonarPing, playSuccessChime, playTacticalClick, initSoundState, setSoundEnabled } from '@/lib/audio';
 import { 
@@ -20,7 +22,7 @@ import {
   ExternalLink, ChevronRight, ChevronDown, Layers, ShieldCheck, HeartHandshake,
   AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn,
   Radio, Zap, X, SlidersHorizontal, Volume2, VolumeX, FileText, Sun, Utensils, Bus, GraduationCap,
-  Maximize2, Minimize2, Share2, CheckCircle2, ClipboardList, TrendingUp
+  Maximize2, Minimize2, Share2, CheckCircle2, ClipboardList, TrendingUp, WifiOff
 } from 'lucide-react';
 
 // Carga dinámica del mapa de Google Maps sin SSR para evitar errores de hidratación
@@ -87,7 +89,12 @@ export default function HomePage() {
   // Selector de simulación de rotación de 24 horas (0 = Hoy, 1 = Mañana, 2 = Pasado Mañana)
   const [dayOffset, setDayOffset] = useState<number>(0);
 
-  // Inicializar estado de sonido, modo sol de calle y estado de postulaciones
+  // Estados de Nuevas Funcionalidades: Perfil de Postulante & Modo Callejero Offline
+  const [applicantProfile, setApplicantProfile] = useState<ApplicantProfile | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
+
+  // Inicializar estado de sonido, modo sol de calle, estado de postulaciones y perfil
   useEffect(() => {
     const active = initSoundState();
     setSoundOn(active);
@@ -100,9 +107,48 @@ export default function HomePage() {
         if (savedStatuses) {
           setApplicationStatuses(JSON.parse(savedStatuses));
         }
+
+        const savedProf = localStorage.getItem('chambacerca_applicant_profile');
+        if (savedProf) {
+          setApplicantProfile(JSON.parse(savedProf));
+        }
+
+        // Detectar estado de conectividad en tiempo real (Modo Callejero Offline)
+        const handleOnline = () => {
+          setIsOfflineMode(false);
+          fetchPlaces();
+        };
+        const handleOffline = () => {
+          setIsOfflineMode(true);
+        };
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        if (!navigator.onLine) {
+          setIsOfflineMode(true);
+        }
+
+        return () => {
+          window.removeEventListener('online', handleOnline);
+          window.removeEventListener('offline', handleOffline);
+        };
       }
     } catch {}
   }, []);
+
+  // Función para enfocar el radar en vivo y trazar la ruta a pie hacia un comercio
+  const handleFocusOnRadar = (place: PlaceResultItem) => {
+    playTacticalClick();
+    setSelectedPlace(place);
+    setMobileTab('map');
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('radar-map-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   // Función para actualizar el estado de postulación de una vacante
   const updateApplicationStatus = (
@@ -285,7 +331,7 @@ export default function HomePage() {
     }
   }
 
-  // Consulta de lugares a la API (con soporte de rotación diaria)
+  // Consulta de lugares a la API (con soporte de rotación diaria y caché offline callejera)
   async function fetchPlaces(forcedOffset?: number) {
     setLoading(true);
     try {
@@ -301,14 +347,41 @@ export default function HomePage() {
 
       const url = `/api/places?lat=${coords.lat}&lng=${coords.lng}&radius=${radius}&category=${selectedCategory}${dateQuery}`;
       const res = await fetch(url);
+      if (!res.ok) throw new Error('Network error or server unavailable');
       const data = await res.json();
       if (data.success && Array.isArray(data.places)) {
         setPlaces(data.places);
         setSummary(data.summary);
+        setIsOfflineMode(false);
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(
+              'chambacerca_offline_cache',
+              JSON.stringify({
+                places: data.places,
+                summary: data.summary,
+                cachedAt: Date.now(),
+              })
+            );
+          }
+        } catch {}
         playSonarPing();
       }
     } catch (err) {
-      console.error('Error fetching places:', err);
+      console.warn('Falla de red consultando lugares, recurriendo a caché callejera:', err);
+      try {
+        if (typeof window !== 'undefined') {
+          const cached = localStorage.getItem('chambacerca_offline_cache');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed.places) && parsed.places.length > 0) {
+              setPlaces(parsed.places);
+              if (parsed.summary) setSummary(parsed.summary);
+              setIsOfflineMode(true);
+            }
+          }
+        }
+      } catch {}
     } finally {
       setLoading(false);
     }
@@ -563,6 +636,26 @@ export default function HomePage() {
               <span className="xs:hidden">+</span>
             </button>
 
+            {/* Botón Acceso Rápido: Mi Perfil de Postulante (Auto-llenado Inteligente) */}
+            <button
+              onClick={() => {
+                setIsProfileModalOpen(true);
+                playTacticalClick();
+              }}
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition cursor-pointer whitespace-nowrap ${
+                applicantProfile?.fullName
+                  ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/50 hover:bg-emerald-900/60'
+                  : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:bg-slate-800'
+              }`}
+              title="Configurar tus datos de postulante para auto-llenar WhatsApp y CV"
+            >
+              <User className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Mi Perfil</span>
+              {applicantProfile?.fullName && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              )}
+            </button>
+
             {/* Menú Desplegable de Herramientas (Ahorro, CV, Aporte Vecinal, Portafolio) */}
             <div className="relative">
               <button
@@ -621,6 +714,32 @@ export default function HomePage() {
                       <div>
                         <p className="font-semibold text-slate-100">Generar CV (1 Página)</p>
                         <p className="text-[10px] text-slate-400">PDF para imprimir y WhatsApp</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsToolsMenuOpen(false);
+                        setIsProfileModalOpen(true);
+                        playTacticalClick();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:text-emerald-300 hover:bg-slate-800/80 rounded-xl transition text-left cursor-pointer"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center shrink-0">
+                        <User className="w-3.5 h-3.5 text-emerald-400" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold text-slate-100">Mi Perfil de Postulante</p>
+                          {applicantProfile?.fullName && (
+                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950 px-1.5 py-0.2 rounded border border-emerald-800">
+                              Activo
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          {applicantProfile?.fullName ? applicantProfile.fullName : 'Auto-llenado para WhatsApp y CV'}
+                        </p>
                       </div>
                     </button>
 
@@ -799,6 +918,27 @@ export default function HomePage() {
         </div>
       </header>
 
+      {/* Banner de Modo Callejero Offline (Anti-caídas de señal en la calle) */}
+      {isOfflineMode && (
+        <div className="bg-amber-950/90 border-b border-amber-500/50 px-3 sm:px-6 py-2 text-amber-200 text-xs flex items-center justify-between gap-2 shadow-lg z-[90]">
+          <div className="flex items-center gap-2">
+            <WifiOff className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+            <div>
+              <span className="font-bold text-amber-300">Modo Callejero Offline:</span>{' '}
+              <span className="text-amber-200/90">
+                Sin señal de datos. Mostrando los comercios guardados en memoria en este dispositivo con sus números de WhatsApp y direcciones.
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => fetchPlaces()}
+            className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 text-[11px] font-black shrink-0 transition cursor-pointer"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {/* 3. Barra de Control Geográfico & Selector de Ciudades de Venezuela (Optimizada y Esbelta) */}
       <section className="bg-[#0B131F] border-b border-slate-800/80 px-3 sm:px-6 py-2">
         <div className="max-w-7xl mx-auto space-y-2">
@@ -958,7 +1098,10 @@ export default function HomePage() {
       {/* 5. Contenedor Principal: Radar Panorámico Arriba y Ofertas Debajo (Cero Espacio Vacío) */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6">
         {/* SECCIÓN 1: Radar Panorámico Superior con Google Maps */}
-        <section className={`w-full space-y-2.5 ${isFullscreenMap ? 'fixed inset-0 z-[200] bg-[#080D15] p-3 sm:p-4 flex flex-col h-screen' : ''}`}>
+        <section 
+          id="radar-map-section"
+          className={`w-full space-y-2.5 ${isFullscreenMap ? 'fixed inset-0 z-[200] bg-[#080D15] p-3 sm:p-4 flex flex-col h-screen' : ''}`}
+        >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 bg-slate-900/80 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-800">
@@ -1472,14 +1615,25 @@ export default function HomePage() {
                       </p>
                     )}
 
-                    {/* Fila de Salario / Horario con Textura Metálica Esmeralda */}
+                    {/* Fila de Salario / Horario con Textura Metálica Esmeralda y Conversión a Bolívares */}
                     {(place.salaryRange || place.schedule) && (
-                      <div className="mt-2.5 pt-2.5 border-t border-slate-800/80 flex items-center gap-3 text-xs flex-wrap">
-                        {place.salaryRange && (
-                          <span className="font-bold text-emerald-300 flex items-center gap-1 bg-gradient-to-r from-emerald-950/80 via-emerald-900/50 to-emerald-950/80 px-2.5 py-0.5 rounded-lg border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)] font-mono">
-                            <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> {place.salaryRange}
-                          </span>
-                        )}
+                      <div className="mt-2.5 pt-2.5 border-t border-slate-800/80 flex items-center gap-2 text-xs flex-wrap">
+                        {place.salaryRange && (() => {
+                          const bcv = parseSalaryBreakdown(place.salaryRange);
+                          return (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-emerald-300 flex items-center gap-1 bg-gradient-to-r from-emerald-950/80 via-emerald-900/50 to-emerald-950/80 px-2.5 py-0.5 rounded-lg border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)] font-mono">
+                                <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> {place.salaryRange}
+                              </span>
+                              <span 
+                                className="text-[10px] font-bold text-emerald-300 bg-emerald-950/90 border border-emerald-800/70 px-2 py-0.5 rounded-md font-mono"
+                                title="Equivalente en Bolívares (Tasa Oficial BCV)"
+                              >
+                                {bcv.bsMonthlyText}
+                              </span>
+                            </div>
+                          );
+                        })()}
                         {place.schedule && (
                           <span className="text-slate-300 flex items-center gap-1 font-medium">
                             <Clock className="w-3.5 h-3.5 text-amber-400" /> {place.schedule}
@@ -1632,6 +1786,20 @@ export default function HomePage() {
                           <span className="hidden sm:inline">Avisar a un pana</span>
                         </button>
 
+                        {/* Botón Ver Ruta a Pie en el Radar en Vivo */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFocusOnRadar(place);
+                          }}
+                          className="px-2 py-1 rounded-lg bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border border-emerald-600/50 hover:border-emerald-400 font-semibold text-[11px] flex items-center gap-1 transition cursor-pointer shadow-[0_0_8px_rgba(16,185,129,0.2)]"
+                          title="Trazar ruta luminosa a pie en el radar"
+                        >
+                          <Navigation className="w-3 h-3 text-emerald-400" />
+                          <span>Ver Ruta</span>
+                        </button>
+
                         <a
                           href={`https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking`}
                           target="_blank"
@@ -1670,7 +1838,11 @@ export default function HomePage() {
                         ) : (
                           place.contactWhatsapp && (
                             <a
-                              href={`https://wa.me/${place.contactWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante para "${place.title || 'el puesto'}". Quisiera postularme formalmente. Gracias.`)}`}
+                              href={`https://wa.me/${place.contactWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
+                                applicantProfile?.fullName
+                                  ? `Hola, cordial saludo. Mi nombre es ${applicantProfile.fullName}${applicantProfile.idNumber ? ` (C.I. ${applicantProfile.idNumber})` : ''}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto'}". Cuento con experiencia como ${applicantProfile.targetRole || 'postulante'} y disponibilidad inmediata. ¿En qué horario podría consignar mi síntesis curricular? Gracias.`
+                                  : `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante para "${place.title || 'el puesto'}". Quisiera postularme formalmente. Gracias.`
+                              )}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => {
@@ -1739,7 +1911,15 @@ export default function HomePage() {
         onOpenReport={(p) => setReportTargetPlace(p)}
         onOpenCalculator={() => setIsCalculatorOpen(true)}
         onOpenCvBuilder={() => setIsCvBuilderOpen(true)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onFocusOnRadar={handleFocusOnRadar}
         onApplyJob={handleApplyJob}
+      />
+
+      <ApplicantProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onProfileUpdated={(updated) => setApplicantProfile(updated)}
       />
 
       <SavingsCalculatorModal

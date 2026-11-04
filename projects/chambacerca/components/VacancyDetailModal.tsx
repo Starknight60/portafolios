@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlaceResultItem } from '@/app/api/places/route';
+import { parseSalaryBreakdown } from '@/lib/currencies';
 import { 
   X, MapPin, Clock, DollarSign, CheckCircle2, MessageCircle, 
   Phone, AlertTriangle, FileText, UserCheck, Navigation, ExternalLink,
   Mail, ShieldCheck, Globe, Briefcase, Share2, Copy, Check, Sparkles,
-  Award, ShieldAlert, Bus, Utensils, HeartHandshake, ChevronRight
+  Award, ShieldAlert, Bus, Utensils, HeartHandshake, ChevronRight, User
 } from 'lucide-react';
 
 interface VacancyDetailModalProps {
@@ -15,17 +16,40 @@ interface VacancyDetailModalProps {
   onOpenReport: (place: PlaceResultItem) => void;
   onOpenCalculator?: () => void;
   onOpenCvBuilder?: () => void;
+  onOpenProfile?: () => void;
+  onFocusOnRadar?: (place: PlaceResultItem) => void;
   onApplyJob?: (place: PlaceResultItem, channel: string) => void;
 }
 
-export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpenCalculator, onOpenCvBuilder, onApplyJob }: VacancyDetailModalProps) {
+export default function VacancyDetailModal({ 
+  place, 
+  onClose, 
+  onOpenReport, 
+  onOpenCalculator, 
+  onOpenCvBuilder, 
+  onOpenProfile,
+  onFocusOnRadar,
+  onApplyJob 
+}: VacancyDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'requirements' | 'apply' | 'safety'>('info');
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+
+  // Cargar perfil del postulante guardado en el dispositivo
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('chambacerca_applicant_profile');
+        if (saved) setProfile(JSON.parse(saved));
+      }
+    } catch {}
+  }, []);
 
   if (!place) return null;
 
   const isClaimed = Boolean(place.isClaimed);
+  const salaryBreakdown = parseSalaryBreakdown(place.salaryRange);
 
   const handleApplyClick = (channel: string = 'WHATSAPP') => {
     if (onApplyJob && place) {
@@ -33,8 +57,10 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
     }
   };
 
-  // Mensaje predeterminado para WhatsApp formal en Venezuela
-  const rawWhatsAppText = `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante activa para "${place.title || 'el puesto publicado'}". Cumplo con los requisitos y quisiera consignar mi síntesis curricular. ¿Con quién o en qué horario podría presentarme? Muchas gracias.`;
+  // Mensaje para WhatsApp: auto-personalizado si el postulante guardó su perfil
+  const rawWhatsAppText = profile?.fullName
+    ? `Hola, cordial saludo. Mi nombre es *${profile.fullName}*${profile.idNumber ? ` (C.I. *${profile.idNumber}*)` : ''}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto publicado'}". Cuento con experiencia como *${profile.targetRole || 'postulante'}* y disponibilidad inmediata. ¿En qué horario podría consignar mi síntesis curricular en físico o comunicarme con RRHH? Quedo a su orden al *${profile.phone || 'mi número'}*. ¡Muchas gracias!`
+    : `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante activa para "${place.title || 'el puesto publicado'}". Cumplo con los requisitos y quisiera consignar mi síntesis curricular. ¿Con quién o en qué horario podría presentarme? Muchas gracias.`;
   
   const whatsappUrl = place.contactWhatsapp
     ? `https://wa.me/${place.contactWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(rawWhatsAppText)}`
@@ -216,13 +242,23 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
                   <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                     <DollarSign className="w-5 h-5" />
                   </div>
-                  <div>
-                    <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-                      Paquete Salarial Estimado
-                    </p>
-                    <p className="font-black text-emerald-300 text-base sm:text-lg mt-0.5">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                        Paquete Salarial Estimado
+                      </p>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/60 font-mono">
+                        REF. BCV (~Bs. {salaryBreakdown.bcvRate}/$)
+                      </span>
+                    </div>
+                    <p className="font-black text-emerald-300 text-base sm:text-lg mt-0.5 font-mono">
                       {place.salaryRange || '$180 - $220 + Bono'}
                     </p>
+                    <div className="mt-1 flex items-center gap-1.5 flex-wrap text-xs">
+                      <span className="text-emerald-400 font-bold">{salaryBreakdown.bsMonthlyText}</span>
+                      <span className="text-slate-600">•</span>
+                      <span className="text-slate-300 font-medium">{salaryBreakdown.bsBiweeklyText}</span>
+                    </div>
                     <p className="text-[10px] text-slate-400 mt-1">
                       Pago quincenal puntual a tasa oficial BCV + Cesta Ticket de ley.
                     </p>
@@ -312,9 +348,19 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
               <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <Navigation className="w-4 h-4 text-cyan-400" />
-                  <span>Ubicación y Rutas en Google Maps:</span>
+                  <span>Ruta y Navegación:</span>
                 </span>
                 <div className="flex items-center gap-2 flex-wrap">
+                  {onFocusOnRadar && (
+                    <button
+                      type="button"
+                      onClick={() => onFocusOnRadar(place)}
+                      className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                    >
+                      <Navigation className="w-3 h-3 text-emerald-200" />
+                      <span>Ver Ruta en el Radar</span>
+                    </button>
+                  )}
                   <a
                     href={googleMapsPlaceUrl}
                     target="_blank"
@@ -482,6 +528,22 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
                     )
                   )}
                 </div>
+
+                {!profile?.fullName && onOpenProfile && (
+                  <div className="p-3 rounded-2xl bg-cyan-950/40 border border-cyan-800/40 flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs text-slate-300 flex items-center gap-1.5">
+                      <User className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>¿Quieres que este mensaje lleve tu nombre, cédula y oficio automáticamente?</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={onOpenProfile}
+                      className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition cursor-pointer shadow-sm"
+                    >
+                      Completar Mi Perfil
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Vías Oficiales de Contacto */}
@@ -673,6 +735,19 @@ export default function VacancyDetailModal({ place, onClose, onOpenReport, onOpe
               <Share2 className="w-4 h-4 text-emerald-400" />
               <span>Avisar a un pana</span>
             </button>
+
+            {/* Botón Ver Ruta a Pie en el Radar en Vivo */}
+            {onFocusOnRadar && (
+              <button
+                type="button"
+                onClick={() => onFocusOnRadar(place)}
+                className="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md shadow-emerald-950"
+                title="Trazar ruta a pie luminosa en el radar"
+              >
+                <Navigation className="w-4 h-4 text-emerald-200" />
+                <span>Ruta en Radar</span>
+              </button>
+            )}
 
             <a
               href={googleMapsWalkingUrl}

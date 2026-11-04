@@ -73,6 +73,17 @@ export default function CurriculumBuilderModal({
           if (parsed.exp1Role) setExp1Role(parsed.exp1Role);
           if (parsed.exp1Tasks) setExp1Tasks(parsed.exp1Tasks);
         }
+
+        // Si no había datos en CV, intentar auto-llenar desde el Perfil de Postulante Rápido
+        const profileSaved = localStorage.getItem('chambacerca_applicant_profile');
+        if (profileSaved) {
+          const prof = JSON.parse(profileSaved);
+          setFullName((prev) => prev || prof.fullName || '');
+          setIdNumber((prev) => prev || prof.idNumber || '');
+          setPhone((prev) => prev || prof.phone || '');
+          setTargetRole((prev) => prev || prof.targetRole || '');
+          setAboutMe((prev) => prev || prof.experienceSummary || prev);
+        }
       } catch {}
     }
   }, []);
@@ -125,8 +136,8 @@ export default function CurriculumBuilderModal({
   };
 
   // Copiar Síntesis Curricular en texto para WhatsApp
-  const handleCopyForWhatsApp = () => {
-    const text = `📄 *SÍNTESIS CURRICULAR - ${fullName.toUpperCase() || 'CANDIDATO'}*
+  const getWhatsAppSynthesisText = () => {
+    return `📄 *SÍNTESIS CURRICULAR - ${(fullName || 'CANDIDATO').toUpperCase()}*
 *Cédula:* ${idNumber || 'En trámite'} | *Teléfono:* ${phone || 'No especificado'}
 *Ubicación:* ${location}
 *Cargo Solicitado:* ${targetRole || 'Vacante General'}
@@ -144,14 +155,23 @@ ${extraCourses ? `*Cursos y Destrezas:* ${extraCourses}` : ''}
 *Experiencia:*
 ${isFirstJob 
   ? '• En búsqueda de primer empleo formal (Disponibilidad inmediata para inducción y entrenamiento)'
-  : `• ${exp1Role} en ${exp1Company} (${exp1Period})\n  Funciones: ${exp1Tasks}`}
+  : `• ${exp1Role || 'Auxiliar'} en ${exp1Company || 'Comercio'} (${exp1Period || 'Reciente'})\n  Funciones: ${exp1Tasks || 'Atención y soporte general'}`}
 ${exp2Company ? `\n• ${exp2Role} en ${exp2Company} (${exp2Period})` : ''}
 
 _Documentos físicos y síntesis curricular disponibles para consignación inmediata._`;
+  };
 
+  const handleCopyForWhatsApp = () => {
+    const text = getWhatsAppSynthesisText();
     navigator.clipboard.writeText(text);
     setCopiedText(true);
     setTimeout(() => setCopiedText(false), 2500);
+  };
+
+  const handleShareToWhatsApp = () => {
+    const text = getWhatsAppSynthesisText();
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
   };
 
   // Función de Impresión / Descarga PDF Nativa
@@ -570,41 +590,83 @@ _Documentos físicos y síntesis curricular disponibles para consignación inmed
                 )}
               </button>
 
-              <button
-                type="button"
-                onClick={handleCopyForWhatsApp}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  copiedText
-                    ? 'bg-emerald-500 text-slate-950 font-black shadow-[0_0_12px_#10B981]'
-                    : 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60'
-                }`}
-              >
-                {copiedText ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>¡Copiado para WhatsApp!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copiar para WhatsApp</span>
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleCopyForWhatsApp}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    copiedText
+                      ? 'bg-emerald-500 text-slate-950 font-black shadow-[0_0_12px_#10B981]'
+                      : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700'
+                  }`}
+                  title="Copiar texto resumen para pegar en cualquier chat"
+                >
+                  {copiedText ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>¡Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Copiar Texto</span>
+                    </>
+                  )}
+                </button>
 
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="px-4 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-cyan-950 cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Descargar PDF / Imprimir</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={handleShareToWhatsApp}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-950"
+                  title="Enviar tu síntesis curricular lista por WhatsApp"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Enviar por WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="px-4 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-cyan-950 cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Descargar PDF (1 Pág)</span>
+                </button>
+              </div>
             </div>
 
           </div>
 
         </div>
+
+        {/* Hoja de Estilos de Impresión Nativa (Limpia y ajustada a 1 sola página para descargar en PDF) */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media print {
+            body {
+              background: #ffffff !important;
+              color: #000000 !important;
+            }
+            body * {
+              visibility: hidden !important;
+            }
+            #printable-cv-sheet, #printable-cv-sheet * {
+              visibility: visible !important;
+            }
+            #printable-cv-sheet {
+              position: fixed !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 10mm 15mm !important;
+              border: none !important;
+              box-shadow: none !important;
+              background: #ffffff !important;
+              color: #0f172a !important;
+            }
+          }
+        `}} />
 
       </div>
     </div>
