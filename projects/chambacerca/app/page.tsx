@@ -15,13 +15,13 @@ import CurriculumBuilderModal from '@/components/CurriculumBuilderModal';
 import ApplicantProfileModal, { ApplicantProfile } from '@/components/ApplicantProfileModal';
 import { parseSalaryBreakdown } from '@/lib/currencies';
 import { COMMERCIAL_HUBS, CommercialHub } from '@/lib/commercialHubs';
-import { playSonarPing, playSuccessChime, playTacticalClick, initSoundState, setSoundEnabled } from '@/lib/audio';
+import { playSonarPing, playSuccessChime, playTacticalClick } from '@/lib/audio';
 import { 
   Compass, MapPin, Navigation, Search, Filter, RefreshCw, 
   Briefcase, MessageCircle, DollarSign, Clock, Users, ArrowUpRight, 
   ExternalLink, ChevronRight, ChevronDown, Layers, ShieldCheck, HeartHandshake,
   AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn,
-  Radio, Zap, X, SlidersHorizontal, Volume2, VolumeX, FileText, Sun, Utensils, Bus, GraduationCap,
+  Radio, Zap, X, SlidersHorizontal, FileText, Utensils, Bus, GraduationCap,
   Maximize2, Minimize2, Share2, CheckCircle2, ClipboardList, TrendingUp, WifiOff
 } from 'lucide-react';
 
@@ -77,9 +77,6 @@ export default function HomePage() {
   >('all');
   const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
   const [isCvBuilderOpen, setIsCvBuilderOpen] = useState<boolean>(false);
-  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState<boolean>(false);
-  const [soundOn, setSoundOn] = useState<boolean>(false);
-  const [sunlightMode, setSunlightMode] = useState<boolean>(false);
   const [selectedHub, setSelectedHub] = useState<string | null>(null);
 
   // Nuevas Mejoras: Radar Pantalla Completa, Mi Ruta de Chamba & Tracker
@@ -104,15 +101,10 @@ export default function HomePage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Inicializar estado de sonido, modo sol de calle, estado de postulaciones y perfil
+  // Inicializar estado de postulaciones, dispositivo y perfil
   useEffect(() => {
-    const active = initSoundState();
-    setSoundOn(active);
     try {
       if (typeof window !== 'undefined') {
-        const savedSun = localStorage.getItem('chambacerca_sunlight_mode');
-        setSunlightMode(savedSun === '1');
-
         let dHash = localStorage.getItem('chambacerca_device_hash');
         if (!dHash) {
           dHash = 'dev_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
@@ -250,24 +242,6 @@ export default function HomePage() {
         isWalkable: false,
       };
     }
-  };
-
-  const handleToggleSound = () => {
-    const next = !soundOn;
-    setSoundOn(next);
-    setSoundEnabled(next);
-    if (next) {
-      playSuccessChime();
-    }
-  };
-
-  const toggleSunlightMode = () => {
-    const next = !sunlightMode;
-    setSunlightMode(next);
-    try {
-      localStorage.setItem('chambacerca_sunlight_mode', next ? '1' : '0');
-    } catch {}
-    playTacticalClick();
   };
 
   // Verificar sesión actual al cargar
@@ -676,16 +650,14 @@ export default function HomePage() {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${sunlightMode ? 'street-sunlight-mode' : 'bg-[#080D15] text-slate-100'} relative overflow-hidden`}>
-      {/* Iluminación Ambiental Optimizada por Gradiente Nativo (Mantiene idéntica estética sin la sobrecarga GPU de blur gaussianos) */}
-      {!sunlightMode && (
-        <div 
-          className="fixed inset-0 pointer-events-none z-0" 
-          style={{
-            background: 'radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.08), transparent 45%), radial-gradient(circle at 90% 40%, rgba(6, 182, 212, 0.06), transparent 45%), radial-gradient(circle at 50% 90%, rgba(37, 99, 235, 0.05), transparent 50%)'
-          }} 
-        />
-      )}
+    <div className="min-h-screen flex flex-col font-sans bg-[#080D15] text-slate-100 relative overflow-hidden">
+      {/* Iluminación Ambiental Optimizada por Gradiente Nativo */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0" 
+        style={{
+          background: 'radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.08), transparent 45%), radial-gradient(circle at 90% 40%, rgba(6, 182, 212, 0.06), transparent 45%), radial-gradient(circle at 50% 90%, rgba(37, 99, 235, 0.05), transparent 50%)'
+        }} 
+      />
 
       {/* Header Principal Compacto y Elegante con Adaptabilidad a Notch y Punch-Hole de Android */}
       <header className="sticky top-0 z-[100] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 py-2 safe-area-header">
@@ -731,12 +703,12 @@ export default function HomePage() {
               </span>
             ) : (
               <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
-                <span>📅 Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || '30 de Octubre'})</span>
+                <span>📅 Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || '5 de Noviembre'})</span>
               </span>
             )}
           </div>
 
-          {/* Acciones de Cabecera: Botones Primarios, Herramientas y Toggles */}
+          {/* Acciones de Cabecera: Botones Primarios y Herramientas */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Botón Primario: Publicar Empleo */}
             <button
@@ -746,6 +718,32 @@ export default function HomePage() {
               <Briefcase className="w-3.5 h-3.5" />
               <span className="hidden xs:inline">Publicar</span>
               <span className="xs:hidden">+</span>
+            </button>
+
+            {/* Botón Calculadora de Pasaje y Ahorro */}
+            <button
+              onClick={() => {
+                setIsCalculatorOpen(true);
+                playTacticalClick();
+              }}
+              className="hidden md:flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-900/90 hover:bg-slate-800 text-emerald-300 border border-slate-700/80 transition cursor-pointer whitespace-nowrap shadow-sm"
+              title="Calcular ahorro de pasaje en camionetica vs sueldo neto"
+            >
+              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Calculadora</span>
+            </button>
+
+            {/* Botón Creador de CV en 1 Página */}
+            <button
+              onClick={() => {
+                setIsCvBuilderOpen(true);
+                playTacticalClick();
+              }}
+              className="hidden md:flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border border-slate-700/80 transition cursor-pointer whitespace-nowrap shadow-sm"
+              title="Crear currículum vitae en 1 página para imprimir"
+            >
+              <FileText className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Crear CV</span>
             </button>
 
             {/* Botón Acceso Rápido: Mi Perfil de Postulante (Visible en pantallas sm+) */}
@@ -766,50 +764,6 @@ export default function HomePage() {
               {applicantProfile?.fullName && (
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               )}
-            </button>
-
-            {/* Botón Herramientas en Cabecera (Visible en pantallas md+) */}
-            <button
-              onClick={() => {
-                setIsToolsMenuOpen(!isToolsMenuOpen);
-                playTacticalClick();
-              }}
-              className={`hidden md:flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition cursor-pointer whitespace-nowrap ${
-                isToolsMenuOpen
-                  ? 'bg-slate-800 text-emerald-300 border-emerald-500/50'
-                  : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700/80'
-              }`}
-              title="Herramientas adicionales de ChambaCerca"
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>Herramientas</span>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isToolsMenuOpen ? 'rotate-180 text-emerald-400' : ''}`} />
-            </button>
-
-            {/* Toggle de Sonido Sonar Táctico (En pantallas >= sm) */}
-            <button
-              onClick={handleToggleSound}
-              className={`hidden sm:flex w-8 h-8 rounded-lg text-xs font-bold border transition items-center justify-center cursor-pointer shrink-0 ${
-                soundOn
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
-                  : 'bg-slate-900/80 text-slate-500 border-slate-800 hover:text-slate-300'
-              }`}
-              title={soundOn ? 'Sonido sonar activo (clic para silenciar)' : 'Activar efectos de sonido de radar táctico'}
-            >
-              {soundOn ? <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" /> : <VolumeX className="w-4 h-4" />}
-            </button>
-
-            {/* Toggle de Modo Sol de Calle (En pantallas >= sm) */}
-            <button
-              onClick={toggleSunlightMode}
-              className={`hidden sm:flex w-8 h-8 rounded-lg text-xs font-bold border transition items-center justify-center cursor-pointer shrink-0 ${
-                sunlightMode
-                  ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-md font-black'
-                  : 'bg-slate-900/80 text-amber-300 border-slate-800 hover:text-white hover:border-amber-500/50'
-              }`}
-              title={sunlightMode ? 'Desactivar modo sol de calle' : 'Activar Modo Sol de Calle (Alto contraste para buscar bajo el sol)'}
-            >
-              <Sun className={`w-4 h-4 ${sunlightMode ? 'fill-current text-slate-950' : 'text-amber-400'}`} />
             </button>
 
             {/* Estado de Sesión del Usuario (Siempre visible, sin desbordamiento) */}
@@ -2011,7 +1965,36 @@ export default function HomePage() {
             )}
           </button>
 
-          {/* Tab 4: Mi Perfil Postulante */}
+          {/* Tab 4: Mi Ruta de Chamba */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = !filterRouteOnly;
+              setFilterRouteOnly(next);
+              if (next && mobileTab === 'map') {
+                setMobileTab('feed');
+              }
+              playTacticalClick();
+            }}
+            className={`flex flex-col items-center justify-center py-1 transition cursor-pointer relative ${
+              filterRouteOnly ? 'text-amber-400 font-extrabold' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <div className="relative">
+              <ClipboardList className="w-5 h-5" />
+              {routeCount > 0 && (
+                <span className="absolute -top-1 -right-2 px-1 text-[9px] font-bold rounded-full bg-amber-500 text-slate-950 leading-tight">
+                  {routeCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] mt-1">Mi Ruta</span>
+            {filterRouteOnly && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-0.5" />
+            )}
+          </button>
+
+          {/* Tab 5: Mi Perfil Postulante */}
           <button
             type="button"
             onClick={() => {
@@ -2027,21 +2010,6 @@ export default function HomePage() {
               )}
             </div>
             <span className="text-[10px] mt-1">Mi Perfil</span>
-          </button>
-
-          {/* Tab 5: Más / Herramientas */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsToolsMenuOpen(true);
-              playTacticalClick();
-            }}
-            className={`flex flex-col items-center justify-center py-1 transition cursor-pointer ${
-              isToolsMenuOpen ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Zap className="w-5 h-5 text-amber-400" />
-            <span className="text-[10px] mt-1">Opciones</span>
           </button>
         </div>
       </nav>
@@ -2122,140 +2090,6 @@ export default function HomePage() {
         }}
       />
 
-      {/* Modal / Bottom Sheet Global de Herramientas y Opciones */}
-      {isToolsMenuOpen && (
-        <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-150">
-          <div 
-            className="fixed inset-0"
-            onClick={() => setIsToolsMenuOpen(false)}
-          />
-          <div className="relative z-10 w-full sm:max-w-md bg-[#0E1726] border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-2xl max-h-[85vh] overflow-y-auto safe-area-bottom">
-            {/* Manija táctil en móvil */}
-            <div className="sm:hidden w-12 h-1.5 rounded-full bg-slate-700/80 mx-auto -mt-1 mb-2" />
-
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
-                  <Zap className="w-4 h-4 text-amber-400" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-white">Herramientas y Opciones</h3>
-                  <p className="text-[11px] text-slate-400">Funciones para optimizar tu búsqueda laboral</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsToolsMenuOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800/80 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsToolsMenuOpen(false);
-                  setIsCalculatorOpen(true);
-                  playTacticalClick();
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 transition text-left cursor-pointer group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-emerald-950/80 border border-emerald-700/60 flex items-center justify-center shrink-0">
-                  <DollarSign className="w-4 h-4 text-emerald-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition">Calculadora de Pasaje</p>
-                  <p className="text-[11px] text-slate-400">Calcula tu gasto diario en camionetica vs tu sueldo real</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-0.5 transition" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsToolsMenuOpen(false);
-                  setIsCvBuilderOpen(true);
-                  playTacticalClick();
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 transition text-left cursor-pointer group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-cyan-950/80 border border-cyan-700/60 flex items-center justify-center shrink-0">
-                  <FileText className="w-4 h-4 text-cyan-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-white group-hover:text-cyan-300 transition">Creador de CV en 1 Página</p>
-                  <p className="text-[11px] text-slate-400">Descarga tu PDF listo para imprimir y entregar en tienda</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-0.5 transition" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsToolsMenuOpen(false);
-                  setIsProfileModalOpen(true);
-                  playTacticalClick();
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 transition text-left cursor-pointer group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-indigo-950/80 border border-indigo-700/60 flex items-center justify-center shrink-0">
-                  <User className="w-4 h-4 text-indigo-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-white group-hover:text-indigo-300 transition">Mi Perfil de Postulante</p>
-                  <p className="text-[11px] text-slate-400">Configura nombre, oficio y mensaje WhatsApp para 1 clic</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-0.5 transition" />
-              </button>
-
-              {/* Toggles Rápidos Móviles: Sonido y Modo Sol */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleToggleSound}
-                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
-                    soundOn
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
-                      : 'bg-slate-900 text-slate-400 border-slate-800'
-                  }`}
-                >
-                  {soundOn ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4" />}
-                  <span>{soundOn ? 'Sonido ON' : 'Sonido OFF'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={toggleSunlightMode}
-                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
-                    sunlightMode
-                      ? 'bg-amber-400 text-slate-950 border-amber-500 font-black'
-                      : 'bg-slate-900 text-amber-300 border-slate-800'
-                  }`}
-                >
-                  <Sun className={`w-4 h-4 ${sunlightMode ? 'fill-current text-slate-950' : 'text-amber-400'}`} />
-                  <span>{sunlightMode ? 'Modo Sol ON' : 'Modo Sol'}</span>
-                </button>
-              </div>
-
-              {/* Modo Callejero Offline */}
-              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <WifiOff className="w-4 h-4 text-cyan-400" />
-                  <div>
-                    <p className="font-semibold text-slate-200">Caché Callejera Offline</p>
-                    <p className="text-[10px] text-slate-400">Guardado automático si se te va la señal</p>
-                  </div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono font-bold">
-                  Activa
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Toast Animado de Confirmación Táctica de Postulación */}
       {toastMessage && (
         <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[1500] max-w-md w-[92%] p-3.5 rounded-2xl bg-[#0C1527]/95 border border-emerald-500/60 shadow-2xl shadow-emerald-950/90 backdrop-blur-md flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-200">
