@@ -96,6 +96,13 @@ export default function HomePage() {
   const [applicantProfile, setApplicantProfile] = useState<ApplicantProfile | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
+  const [deviceHash, setDeviceHash] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showSuccessToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   // Inicializar estado de sonido, modo sol de calle, estado de postulaciones y perfil
   useEffect(() => {
@@ -105,6 +112,13 @@ export default function HomePage() {
       if (typeof window !== 'undefined') {
         const savedSun = localStorage.getItem('chambacerca_sunlight_mode');
         setSunlightMode(savedSun === '1');
+
+        let dHash = localStorage.getItem('chambacerca_device_hash');
+        if (!dHash) {
+          dHash = 'dev_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
+          localStorage.setItem('chambacerca_device_hash', dHash);
+        }
+        setDeviceHash(dHash);
 
         const savedStatuses = localStorage.getItem('chambacerca_application_statuses');
         if (savedStatuses) {
@@ -327,39 +341,78 @@ export default function HomePage() {
     }
   }
 
-  // Registrar postulación y pausar vacante 24h para evaluación del empleador
+  // Registrar postulación inteligente, actualizar cupos y agregarla automáticamente a Mi Ruta
   async function handleApplyJob(place: PlaceResultItem, channel: string = 'WHATSAPP') {
     try {
       playTacticalClick();
-      // Optimistic update: marcar de inmediato como pausada/en proceso
+
+      // 1. Guardar de inmediato en "Mi Ruta" local (Estado: cv_delivered)
+      updateApplicationStatus(place.id, 'cv_delivered');
+
+      // 2. Optimistic update en la lista de lugares
+      const currentHash = deviceHash || (typeof window !== 'undefined' ? localStorage.getItem('chambacerca_device_hash') || '' : '');
       setPlaces((prev) =>
-        prev.map((p) =>
-          p.id === place.id
-            ? { ...p, isClaimed: true, claimChannel: channel }
-            : p
-        )
+        prev.map((p) => {
+          if (p.id === place.id) {
+            const newCount = (p.applicantCount || 0) + 1;
+            const maxSlots = p.maxSlots || 3;
+            const newAvailable = Math.max(0, maxSlots - newCount);
+            return {
+              ...p,
+              userHasApplied: true,
+              applicantCount: newCount,
+              availableSlots: newAvailable,
+              isClaimed: newAvailable <= 0,
+              claimChannel: channel,
+            };
+          }
+          return p;
+        })
       );
       if (selectedPlace?.id === place.id) {
-        setSelectedPlace((prev) => (prev ? { ...prev, isClaimed: true, claimChannel: channel } : null));
+        setSelectedPlace((prev) =>
+          prev
+            ? {
+                ...prev,
+                userHasApplied: true,
+                applicantCount: (prev.applicantCount || 0) + 1,
+                availableSlots: Math.max(0, (prev.maxSlots || 3) - ((prev.applicantCount || 0) + 1)),
+                isClaimed: Math.max(0, (prev.maxSlots || 3) - ((prev.applicantCount || 0) + 1)) <= 0,
+                claimChannel: channel,
+              }
+            : null
+        );
       }
 
-      await fetch('/api/places/apply', {
+      // 3. Feedback visual táctil e informativo: Notificación Toast
+      showSuccessToast(`🎉 ¡Postulación a ${place.placeName} enviada! Agregada a "Mi Ruta".`);
+
+      // 4. Enviar a la base de datos
+      const res = await fetch('/api/places/apply', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(currentHash ? { 'x-device-hash': currentHash } : {}),
+        },
         body: JSON.stringify({
           placeId: place.id,
           placeName: place.placeName,
-          applicantName: currentUser?.name || 'Postulante ChambaCerca',
+          applicantName: currentUser?.name || applicantProfile?.fullName || 'Postulante ChambaCerca',
           channel,
+          deviceHash: currentHash || undefined,
         }),
       });
+      const data = await res.json();
+      if (data.alreadyAppliedByUser) {
+        showSuccessToast(`ℹ️ Ya estabas registrado hoy para ${place.placeName} (en Mi Ruta).`);
+      }
     } catch (err) {
       console.error('Error applying to job:', err);
     }
   }
 
   // Consulta de lugares a la API (con soporte de rotación diaria y caché offline callejera)
-  async function fetchPlaces(forcedOffset?: number) {
+  async function fetchPlaces(forcedOffset?: number, overrideDeviceHash?: string) {
     setLoading(true);
     try {
       const activeOffset = typeof forcedOffset === 'number' ? forcedOffset : dayOffset;
@@ -372,7 +425,9 @@ export default function HomePage() {
         dateQuery = `&date=${isoDate}`;
       }
 
-      const url = `/api/places?lat=${coords.lat}&lng=${coords.lng}&radius=${radius}&category=${selectedCategory}${dateQuery}`;
+      const activeHash = overrideDeviceHash || deviceHash || (typeof window !== 'undefined' ? localStorage.getItem('chambacerca_device_hash') || '' : '');
+      const hashParam = activeHash ? `&deviceHash=${encodeURIComponent(activeHash)}` : '';
+      const url = `/api/places?lat=${coords.lat}&lng=${coords.lng}&radius=${radius}&category=${selectedCategory}${dateQuery}${hashParam}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Network error or server unavailable');
       const data = await res.json();
@@ -444,7 +499,24 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchPlaces();
-  }, [coords, radius, selectedCategory]);
+  }, [coords, radius, selectedCategory, deviceHash]);
+
+  // Live-sync: actualizar ofertas y estado de postulaciones cuando el usuario regresa a la aplicación
+  useEffect(() => {
+    const handleSyncOnFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchPlaces();
+      }
+    };
+    if (typeof window !== 'undefined') {
+      document.addEventListener('visibilitychange', handleSyncOnFocus);
+      window.addEventListener('focus', handleSyncOnFocus);
+      return () => {
+        document.removeEventListener('visibilitychange', handleSyncOnFocus);
+        window.removeEventListener('focus', handleSyncOnFocus);
+      };
+    }
+  }, [coords, radius, selectedCategory, dayOffset, deviceHash]);
 
   function handleRequestLocation() {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -1087,7 +1159,13 @@ export default function HomePage() {
               {/* Métrica 4: Mi Ruta de Chamba */}
               <button
                 type="button"
-                onClick={() => setFilterRouteOnly(!filterRouteOnly)}
+                onClick={() => {
+                  const next = !filterRouteOnly;
+                  setFilterRouteOnly(next);
+                  if (next && mobileTab === 'map') {
+                    setMobileTab('feed');
+                  }
+                }}
                 className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
                   filterRouteOnly
                     ? 'bg-amber-950/80 border-amber-500 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
@@ -1426,15 +1504,25 @@ export default function HomePage() {
                     {/* Badge Superior */}
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {place.isClaimed ? (
+                        {place.userHasApplied || applicationStatuses[place.id] ? (
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-950/90 text-blue-300 border border-blue-500/70 flex items-center gap-1 shadow-sm shadow-blue-950/60">
+                            <CheckCircle2 className="w-3 h-3 text-blue-400" />
+                            Ya te postulaste hoy
+                          </span>
+                        ) : place.isClaimed ? (
                           <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-950/90 text-amber-300 border border-amber-500/70 flex items-center gap-1 shadow-sm shadow-amber-950/60">
                             <Clock className="w-3 h-3 text-amber-400" />
-                            En Selección (24h)
+                            Cupos llenos hoy ({place.applicantCount || 0}/{place.maxSlots || 3})
                           </span>
                         ) : (
                           <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950/90 text-emerald-300 border border-emerald-500/70 flex items-center gap-1 shadow-sm shadow-emerald-950/60">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            {place.dayFormatted ? `Hoy, ${place.dayFormatted}` : 'Disponible Hoy'}
+                            {place.dayFormatted ? (
+                              place.dayFormatted.toLowerCase().startsWith('hoy') ? place.dayFormatted : `Hoy, ${place.dayFormatted}`
+                            ) : 'Disponible Hoy'}
+                            {typeof place.availableSlots === 'number' && place.availableSlots > 0 && (
+                              <span className="text-emerald-300 font-mono ml-1">• {place.availableSlots} {place.availableSlots === 1 ? 'cupo' : 'cupos'}</span>
+                            )}
                           </span>
                         )}
                         {place.isDailyCycleJob && (
@@ -1722,15 +1810,29 @@ export default function HomePage() {
                           <span>Ahorro</span>
                         </button>
 
-                        {place.isClaimed ? (
+                        {place.userHasApplied || applicationStatuses[place.id] ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFilterRouteOnly(true);
+                              setMobileTab('feed');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-blue-950/80 hover:bg-blue-900/60 text-blue-300 border border-blue-500/50 font-bold text-xs flex items-center gap-1 transition shadow-sm cursor-pointer"
+                            title="Ya te postulaste hoy. Toca para ver tus vacantes en Mi Ruta."
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                            <span>En Mi Ruta</span>
+                          </button>
+                        ) : place.isClaimed ? (
                           <button
                             disabled
                             onClick={(e) => e.stopPropagation()}
                             className="px-2.5 py-1 rounded-lg bg-slate-800 text-amber-400/80 border border-amber-500/30 text-[11px] font-semibold flex items-center gap-1 cursor-not-allowed opacity-90"
-                            title="Un candidato ya envió su síntesis hoy a este negocio. La vacante está en revisión durante 24h para no saturar al empleador."
+                            title="Esta vacante completó el cupo de solicitudes de hoy y se encuentra en revisión de RRHH."
                           >
                             <Clock className="w-3 h-3 text-amber-400" />
-                            <span>En Revisión (24h)</span>
+                            <span>Cupos Llenos (24h)</span>
                           </button>
                         ) : (
                           place.contactWhatsapp && (
@@ -1747,10 +1849,15 @@ export default function HomePage() {
                                 handleApplyJob(place, 'WHATSAPP');
                               }}
                               className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
-                              title="Postularte por WhatsApp (Pausa la vacante 24h para tu evaluación)"
+                              title="Postularte por WhatsApp (Registra tu postulación y asegura tu cupo en Mi Ruta)"
                             >
                               <MessageCircle className="w-3.5 h-3.5 fill-current" />
                               <span>WhatsApp</span>
+                              {typeof place.availableSlots === 'number' && (
+                                <span className="text-[10px] bg-emerald-900/80 px-1 py-0.2 rounded text-emerald-200 font-mono ml-0.5">
+                                  {place.availableSlots}
+                                </span>
+                              )}
                             </a>
                           )
                         )}
@@ -2147,6 +2254,23 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {/* Toast Animado de Confirmación Táctica de Postulación */}
+      {toastMessage && (
+        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[1500] max-w-md w-[92%] p-3.5 rounded-2xl bg-[#0C1527]/95 border border-emerald-500/60 shadow-2xl shadow-emerald-950/90 backdrop-blur-md flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-200">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="flex-1 text-xs font-bold text-white leading-tight">
+            {toastMessage}
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-slate-400 hover:text-white p-1 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
     </div>

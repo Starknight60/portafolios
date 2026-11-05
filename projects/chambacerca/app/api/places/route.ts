@@ -51,6 +51,10 @@ export interface PlaceResultItem {
   claimAppliedAt?: string | null;
   claimExpiresAt?: string | null;
   claimChannel?: string | null;
+  applicantCount?: number;
+  maxSlots?: number;
+  availableSlots?: number;
+  userHasApplied?: boolean;
   isDailyCycleJob?: boolean;
   publishedTime?: string | null;
   dayFormatted?: string | null;
@@ -65,6 +69,7 @@ export async function GET(request: NextRequest) {
     const radiusParam = searchParams.get('radius');
     const categoryParam = searchParams.get('category');
     const dateParam = searchParams.get('date');
+    const deviceHash = searchParams.get('deviceHash') || request.headers.get('x-device-hash') || null;
 
     // Información del día actual en Venezuela (rotación dinámica de 24 horas)
     const dayInfo = getVenezuelaDayInfo(dateParam || undefined);
@@ -163,9 +168,15 @@ export async function GET(request: NextRequest) {
     }
 
     const applicationsQuery = `
-      SELECT "placeId", "appliedAt", "expiresAt", "channel"
+      SELECT 
+        "placeId", 
+        COUNT(*)::int as "applicantCount", 
+        MAX("appliedAt") as "lastAppliedAt", 
+        MAX("channel") as "channel",
+        BOOL_OR("deviceHash" = $1) as "userHasApplied"
       FROM chambacerca."JobApplication"
-      WHERE "expiresAt" > NOW();
+      WHERE "expiresAt" > NOW()
+      GROUP BY "placeId";
     `;
 
     // Ejecutar todas las consultas SQL y reverse geocoding en PARALELO con Promise.all (reduce latencia hasta un 70%)
@@ -173,7 +184,7 @@ export async function GET(request: NextRequest) {
       (sql as any).query(vacanciesQuery, vacanciesParams).catch(() => []),
       (sql as any).query(reportsQuery, reportsParams).catch(() => []),
       (sql as any).query(cacheQuery, cacheParams).catch(() => []),
-      (sql as any).query(applicationsQuery).catch(() => []),
+      (sql as any).query(applicationsQuery, [deviceHash || '']).catch(() => []),
       geoPromise,
     ]);
 
@@ -444,17 +455,35 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Asociar estado de postulación de 24 horas a cada lugar
+    // Asociar estado de postulación de 24 horas y cupos inteligentes a cada lugar
     for (const item of results) {
       const app = applicationMap.get(item.id);
-      if (app) {
-        item.isClaimed = true;
-        item.claimAppliedAt = app.appliedAt ? new Date(app.appliedAt).toISOString() : null;
-        item.claimExpiresAt = app.expiresAt ? new Date(app.expiresAt).toISOString() : null;
-        item.claimChannel = app.channel;
-      } else {
-        item.isClaimed = false;
-      }
+      const applicantCount = app ? Number(app.applicantCount) : 0;
+      // Cadenas grandes, supermercados o comercios verificados soportan hasta 5 postulantes diarios; comercios pequeños 3.
+      const isLargeChain = Boolean(
+        item.isOfficiallyVerified ||
+        item.category === 'supermarket' ||
+        item.category === 'store' ||
+        (item.placeName && (
+          item.placeName.toLowerCase().includes('farmatodo') ||
+          item.placeName.toLowerCase().includes('gama') ||
+          item.placeName.toLowerCase().includes('plazas') ||
+          item.placeName.toLowerCase().includes('traki') ||
+          item.placeName.toLowerCase().includes('central madeirense')
+        ))
+      );
+      const maxSlots = isLargeChain ? 5 : 3;
+      const availableSlots = Math.max(0, maxSlots - applicantCount);
+      const isClaimed = availableSlots <= 0;
+      const userHasApplied = Boolean(app?.userHasApplied);
+
+      item.applicantCount = applicantCount;
+      item.maxSlots = maxSlots;
+      item.availableSlots = availableSlots;
+      item.isClaimed = isClaimed;
+      item.userHasApplied = userHasApplied;
+      item.claimAppliedAt = app?.lastAppliedAt ? new Date(app.lastAppliedAt).toISOString() : null;
+      item.claimChannel = app?.channel || null;
     }
 
     const statusPriority: Record<string, number> = {
@@ -465,7 +494,7 @@ export async function GET(request: NextRequest) {
     };
 
     results.sort((a, b) => {
-      // Las vacantes no solicitadas (disponibles) tienen prioridad sobre las que ya tienen solicitud enviada hoy
+      // Las vacantes disponibles tienen prioridad sobre las que completaron todos sus cupos hoy
       if (a.isClaimed !== b.isClaimed) {
         return a.isClaimed ? 1 : -1;
       }
@@ -478,6 +507,7 @@ export async function GET(request: NextRequest) {
       totalFound: results.length,
       availableVacancies: results.filter(r => !r.isClaimed && (r.status === 'VERIFIED_VACANCY' || r.status === 'COMMUNITY_HIRING')).length,
       claimedCount: results.filter(r => r.isClaimed).length,
+      totalApplicantsToday: Array.from(applicationMap.values()).reduce((acc: number, cur: any) => acc + (Number(cur.applicantCount) || 0), 0),
       verifiedVacancies: results.filter(r => r.status === 'VERIFIED_VACANCY').length,
       communityReports: results.filter(r => r.status === 'COMMUNITY_HIRING' || r.status === 'COMMUNITY_NOT_HIRING').length,
       potentialPlaces: results.filter(r => r.status === 'POTENTIAL_PLACE').length,

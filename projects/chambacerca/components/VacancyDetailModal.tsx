@@ -103,15 +103,23 @@ export default function VacancyDetailModal({
 
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                {isClaimed ? (
+                {place.userHasApplied ? (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/50 flex items-center gap-1 shadow-sm">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                    Ya te postulaste hoy
+                  </span>
+                ) : isClaimed ? (
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 flex items-center gap-1 shadow-sm">
                     <Clock className="w-3.5 h-3.5 text-amber-400" />
-                    En Selección (Pausada 24h)
+                    Cupos llenos hoy ({place.applicantCount || 0}/{place.maxSlots || 3})
                   </span>
                 ) : (
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shadow-sm">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                     {place.isOfficiallyVerified ? 'Canal Oficial Verificado' : 'Vacante Activa Confirmada'}
+                    {typeof place.availableSlots === 'number' && place.availableSlots > 0 && (
+                      <span className="text-emerald-300 font-mono ml-1">• {place.availableSlots} {place.availableSlots === 1 ? 'cupo' : 'cupos'}</span>
+                    )}
                   </span>
                 )}
                 <span className="text-[11px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
@@ -762,14 +770,21 @@ export default function VacancyDetailModal({
               <span>Caminar ({place.walkTimeMinutes} min)</span>
             </a>
 
-            {isClaimed ? (
+            {place.userHasApplied ? (
+              <div
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-blue-950/80 border border-blue-500/50 text-blue-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <CheckCircle2 className="w-4 h-4 text-blue-400" />
+                <span>Ya te postulaste hoy</span>
+              </div>
+            ) : isClaimed ? (
               <button
                 disabled
                 className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-800 text-amber-400/80 border border-amber-500/30 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-90"
-                title="Vacante en evaluación durante 24h para no saturar al comercio"
+                title="Esta vacante completó el cupo de postulaciones de hoy y se encuentra en evaluación por RRHH."
               >
                 <Clock className="w-4 h-4 text-amber-400" />
-                <span>En Revisión (24h)</span>
+                <span>Cupos Llenos (24h)</span>
               </button>
             ) : (
               whatsappUrl && (
@@ -782,6 +797,11 @@ export default function VacancyDetailModal({
                 >
                   <MessageCircle className="w-4 h-4 fill-current" />
                   <span>WhatsApp Directo</span>
+                  {typeof place.availableSlots === 'number' && (
+                    <span className="text-[10px] bg-emerald-900/90 px-1.5 py-0.5 rounded font-mono text-emerald-200 ml-1">
+                      {place.availableSlots} {place.availableSlots === 1 ? 'cupo' : 'cupos'}
+                    </span>
+                  )}
                 </a>
               )
             )}
