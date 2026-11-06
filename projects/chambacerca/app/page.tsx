@@ -9,7 +9,6 @@ import VacancyDetailModal from '@/components/VacancyDetailModal';
 import ReportModal from '@/components/ReportModal';
 import EmployerModal from '@/components/EmployerModal';
 import AuthModal from '@/components/AuthModal';
-import LoginGatekeeper from '@/components/LoginGatekeeper';
 import SavingsCalculatorModal from '@/components/SavingsCalculatorModal';
 import CurriculumBuilderModal from '@/components/CurriculumBuilderModal';
 import ApplicantProfileModal, { ApplicantProfile } from '@/components/ApplicantProfileModal';
@@ -61,7 +60,6 @@ export default function HomePage() {
   // Estados de Autenticación de Usuario
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [sessionLoading, setSessionLoading] = useState<boolean>(true);
-  const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [savedIds, setSavedIds] = useState<string[]>([]);
@@ -282,7 +280,6 @@ export default function HomePage() {
       setCurrentUser(null);
       setSavedIds([]);
       setFilterSavedOnly(false);
-      setIsGuestMode(false);
     } catch (err) {
       console.error('Logout error:', err);
     }
@@ -632,23 +629,6 @@ export default function HomePage() {
     );
   }
 
-  // =========================================================================
-  // GATEKEEPER DE LOGIN & EXPLICACIÓN FORMAL DE LA PLATAFORMA (COMO EN LOS ANTERIORES RADARES)
-  // =========================================================================
-  if (!currentUser && !isGuestMode) {
-    return (
-      <LoginGatekeeper
-        onLoginSuccess={(user) => {
-          setCurrentUser(user);
-          fetchSaved();
-        }}
-        onContinueAsGuest={() => {
-          setIsGuestMode(true);
-        }}
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#080D15] text-slate-100 relative overflow-hidden">
       {/* Iluminación Ambiental Optimizada por Gradiente Nativo */}
@@ -801,13 +781,27 @@ export default function HomePage() {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setIsGuestMode(false)}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-sm transition cursor-pointer shrink-0"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Acceder</span>
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => {
+                    setAuthModalTab('login');
+                    setIsAuthModalOpen(true);
+                  }}
+                  className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition cursor-pointer"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Iniciar Sesión</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setAuthModalTab('register');
+                    setIsAuthModalOpen(true);
+                  }}
+                  className="hidden sm:flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-300 border border-slate-700/80 transition cursor-pointer"
+                >
+                  <span>Registrarse</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
