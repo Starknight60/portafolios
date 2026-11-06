@@ -15,27 +15,30 @@ interface MapViewerProps {
   userLocation: [number, number] | null;
 }
 
-// Capas de mapas de alta velocidad (CartoDB & Esri optimizados para carga instantánea <150ms, cero marcas de agua, alto contraste y zoom completo hasta 20)
+// Capas de mapas de alta velocidad Esri ArcGIS (100% libres de marcas de agua, alto contraste y carga <200ms)
 const MAP_LAYERS = {
   tactical: {
     name: 'Radar Táctico (Oscuro)',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    subdomains: ['a', 'b', 'c', 'd'],
-    attribution: '&copy; CARTO &copy; OpenStreetMap contributors',
-    maxZoom: 20,
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    subdomains: ['server'],
+    attribution: '&copy; Esri &copy; OpenStreetMap contributors',
+    maxNativeZoom: 16,
+    maxZoom: 19,
   },
   streets: {
     name: 'Calles en Alta Definición',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    subdomains: ['a', 'b', 'c', 'd'],
-    attribution: '&copy; CARTO &copy; OpenStreetMap contributors',
-    maxZoom: 20,
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    subdomains: ['server'],
+    attribution: '&copy; Esri StreetMap',
+    maxNativeZoom: 19,
+    maxZoom: 19,
   },
   satellite: {
     name: 'Satélite en Vivo',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     subdomains: ['server'],
     attribution: '&copy; Esri &copy; Earthstar Geographics',
+    maxNativeZoom: 19,
     maxZoom: 19,
   },
 };
@@ -517,13 +520,14 @@ export default function MapViewer({
       >
         <MapController center={safeCenter} zoom={zoom} selectedPlace={selectedPlace} userLocation={safeUserLocation} />
 
-        {/* Capa de Mapa Ultrarrápida con CDN global y caché inteligente */}
+        {/* Capa de Mapa Ultrarrápida con CDN global y cero marcas de agua */}
         <TileLayer
           key={mapType}
           attribution={currentLayer.attribution}
           url={currentLayer.url}
           subdomains={currentLayer.subdomains}
           maxZoom={currentLayer.maxZoom}
+          maxNativeZoom={currentLayer.maxNativeZoom}
           keepBuffer={4}
           updateWhenIdle={false}
           updateWhenZooming={true}
@@ -657,24 +661,22 @@ export default function MapViewer({
         })}
       </MapContainer>
 
-      {/* Marca de Google Maps y Leyenda en la esquina inferior */}
-      <div className="absolute bottom-3 left-3 z-[1000] bg-slate-950/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-700/80 text-[11px] text-slate-300 shadow-2xl flex items-center gap-3">
-        <div className="flex items-center gap-1 font-bold text-white pr-2 border-r border-slate-700">
-          <span className="text-blue-400 font-extrabold">G</span>
-          <span className="text-rose-400 font-extrabold">o</span>
-          <span className="text-amber-400 font-extrabold">o</span>
-          <span className="text-blue-400 font-extrabold">g</span>
-          <span className="text-emerald-400 font-extrabold">l</span>
-          <span className="text-rose-400 font-extrabold">e</span>
-          <span className="ml-1 text-[10px] text-slate-400 font-normal">Maps</span>
+      {/* Leyenda Táctica del Radar en la esquina inferior */}
+      <div className="absolute bottom-3 left-3 z-[1000] bg-[#0B131F]/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700/80 text-[11px] text-slate-300 shadow-2xl flex items-center gap-3">
+        <div className="flex items-center gap-1.5 font-bold text-white pr-2 border-r border-slate-700">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
+          </span>
+          <span className="text-emerald-400 font-mono text-[10px] uppercase font-bold tracking-wider">Radar GPS</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
-          <span>Vacante Verificada</span>
+          <span className="text-[10px] font-medium">Vacante Verificada</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_6px_#F59E0B]"></span>
-          <span>Reporte Vecinal</span>
+          <span className="text-[10px] font-medium">Reporte Vecinal</span>
         </div>
       </div>
     </div>
