@@ -42,7 +42,7 @@
 
 @media (max-width: 640px) {
   .safe-area-header {
-    padding-top: max(16px, env(safe-area-inset-top, 16px));
+    padding-top: max(42px, env(safe-area-inset-top, 42px));
   }
 }
 

@@ -133,7 +133,7 @@ export default function WebLogin({ onLoginSuccess, onContinueAsGuest }: WebLogin
       />
 
       {/* Cabecera Superior Web con Adaptabilidad Safe-Area para Móviles y Muescas */}
-      <header className="sticky top-0 z-30 w-full bg-[#080D15]/95 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-8 py-3 pt-[max(env(safe-area-inset-top),16px)]">
+      <header className="sticky top-0 z-30 w-full bg-[#080D15]/95 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-8 py-3 pt-[max(env(safe-area-inset-top),42px)] sm:pt-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-lg shadow-emerald-950/60 flex items-center justify-center">
