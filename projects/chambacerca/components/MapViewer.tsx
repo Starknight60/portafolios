@@ -15,28 +15,28 @@ interface MapViewerProps {
   userLocation: [number, number] | null;
 }
 
-// Capas de mapas de alta velocidad (CDN global Esri ArcGIS optimizado para carga <800ms, cero marcas de agua y máxima fluidez)
+// Capas de mapas de alta velocidad (CartoDB & Esri optimizados para carga instantánea <150ms, cero marcas de agua, alto contraste y zoom completo hasta 20)
 const MAP_LAYERS = {
   tactical: {
     name: 'Radar Táctico (Oscuro)',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    subdomains: ['server'],
-    attribution: '&copy; Esri &copy; OpenStreetMap contributors',
-    maxZoom: 16,
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    subdomains: ['a', 'b', 'c', 'd'],
+    attribution: '&copy; CARTO &copy; OpenStreetMap contributors',
+    maxZoom: 20,
   },
   streets: {
     name: 'Calles en Alta Definición',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-    subdomains: ['server'],
-    attribution: '&copy; Esri StreetMap',
-    maxZoom: 18,
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    subdomains: ['a', 'b', 'c', 'd'],
+    attribution: '&copy; CARTO &copy; OpenStreetMap contributors',
+    maxZoom: 20,
   },
   satellite: {
     name: 'Satélite en Vivo',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     subdomains: ['server'],
-    attribution: '&copy; Esri World Imagery',
-    maxZoom: 18,
+    attribution: '&copy; Esri &copy; Earthstar Geographics',
+    maxZoom: 19,
   },
 };
 
@@ -524,9 +524,9 @@ export default function MapViewer({
           url={currentLayer.url}
           subdomains={currentLayer.subdomains}
           maxZoom={currentLayer.maxZoom}
-          keepBuffer={2}
-          updateWhenIdle={true}
-          updateWhenZooming={false}
+          keepBuffer={4}
+          updateWhenIdle={false}
+          updateWhenZooming={true}
         />
 
         {/* Círculo visual del radio de proximidad a pie con pulso */}

@@ -652,7 +652,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#080D15] text-slate-100 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col font-sans bg-[#080D15] text-slate-100 relative overflow-x-clip">
       {/* Iluminación Ambiental Optimizada por Gradiente Nativo */}
       <div 
         className="fixed inset-0 pointer-events-none z-0" 
@@ -1020,14 +1020,13 @@ export default function HomePage() {
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 bg-slate-900/80 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-800">
-                <span className="text-blue-400 font-bold">G</span>
-                <span className="text-rose-400 font-bold">o</span>
-                <span className="text-amber-400 font-bold">o</span>
-                <span className="text-blue-400 font-bold">g</span>
-                <span className="text-emerald-400 font-bold">l</span>
-                <span className="text-rose-400 font-bold">e</span>
-                <span className="text-slate-200 ml-1 font-bold">Maps Proximidad</span>
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 bg-slate-900/90 px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-500/30 shadow-inner">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
+                </span>
+                <span className="text-emerald-400 font-bold">Radar GPS</span>
+                <span className="text-slate-200 font-bold">Proximidad</span>
               </span>
               <span className="text-xs text-slate-400 hidden md:inline">
                 Radar satelital en vivo • Rutas a pie con minutos y pasos calculados

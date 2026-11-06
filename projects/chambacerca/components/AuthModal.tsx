@@ -223,7 +223,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'lo
                       type="button"
                       onClick={() => {
                         setLoginEmail('carlos.perez@ejemplo.com');
-                        setLoginPassword('123456');
+                        setLoginPassword('Password123!');
                       }}
                       className="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 text-[11px] font-semibold text-emerald-300 text-left transition flex items-center gap-1.5 cursor-pointer"
                     >
@@ -234,7 +234,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'lo
                       type="button"
                       onClick={() => {
                         setLoginEmail('rrhh@plazas.com');
-                        setLoginPassword('123456');
+                        setLoginPassword('Chamba2026!');
                       }}
                       className="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-[11px] font-semibold text-cyan-300 text-left transition flex items-center gap-1.5 cursor-pointer"
                     >
