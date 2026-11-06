@@ -15,29 +15,28 @@ interface MapViewerProps {
   userLocation: [number, number] | null;
 }
 
-// Capas de mapas de alta velocidad (CDN global optimizado para carga <300ms y cero pantallas negras)
+// Capas de mapas de alta velocidad (CDN global Esri ArcGIS optimizado para carga <800ms, cero marcas de agua y máxima fluidez)
 const MAP_LAYERS = {
   tactical: {
-    name: 'Radar Táctico',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    subdomains: ['a', 'b', 'c', 'd'],
-    attribution: '&copy; CARTO &copy; OpenStreetMap',
-    maxZoom: 20,
+    name: 'Radar Táctico (Oscuro)',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    subdomains: ['server'],
+    attribution: '&copy; Esri &copy; OpenStreetMap contributors',
+    maxZoom: 16,
   },
   streets: {
-    name: 'Calles',
-    url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-    fallbackUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    subdomains: ['0', '1', '2', '3'],
-    attribution: '&copy; Google Maps / OSM',
-    maxZoom: 20,
+    name: 'Calles en Alta Definición',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    subdomains: ['server'],
+    attribution: '&copy; Esri StreetMap',
+    maxZoom: 18,
   },
   satellite: {
-    name: 'Satélite',
+    name: 'Satélite en Vivo',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     subdomains: ['server'],
     attribution: '&copy; Esri World Imagery',
-    maxZoom: 19,
+    maxZoom: 18,
   },
 };
 
