@@ -165,20 +165,79 @@ export default function WebLogin({ onLoginSuccess, onContinueAsGuest }: WebLogin
 
       {/* Cuerpo Principal: Split-Screen en Computadora / Card Centrado en Móvil */}
       <main className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-12 flex-1 flex items-center">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        
+        {/* =========================================================================
+            FONDO DE RADAR DINÁMICO TÁCTICO CON HAZ DE SONAR (SOLO EN ESCRITORIO WEB)
+            ========================================================================= */}
+        <div className="hidden lg:block absolute inset-0 pointer-events-none overflow-hidden select-none">
+          {/* Anillo Exterior Concentrico Giratorio Lento */}
+          <div className="absolute -left-20 top-1/2 -translate-y-1/2 w-[620px] h-[620px] rounded-full border border-emerald-500/10 animate-spin-very-slow flex items-center justify-center">
+            <div className="w-[85%] h-[85%] rounded-full border border-dashed border-teal-500/15 flex items-center justify-center">
+              <div className="w-[70%] h-[70%] rounded-full border border-cyan-500/10 flex items-center justify-center">
+                {/* Haz Láser Giratorio de Radar Táctico */}
+                <div className="w-full h-full rounded-full animate-radar-sweep"
+                  style={{
+                    background: 'conic-gradient(from 0deg, transparent 0deg, transparent 300deg, rgba(16, 185, 129, 0.12) 360deg)'
+                  }}
+                />
+              </div>
+            </div>
+            {/* Marcadores Cardinales Tácticos */}
+            <span className="absolute top-2 text-[9px] font-mono text-emerald-500/40">N 000°</span>
+            <span className="absolute right-2 text-[9px] font-mono text-emerald-500/40">E 090°</span>
+            <span className="absolute bottom-2 text-[9px] font-mono text-emerald-500/40">S 180°</span>
+            <span className="absolute left-2 text-[9px] font-mono text-emerald-500/40">W 270°</span>
+          </div>
+
+          {/* Cruz Cardinal de Coordenadas */}
+          <div className="absolute left-[200px] top-1/2 -translate-y-1/2 w-[300px] h-[1px] bg-gradient-to-r from-transparent via-emerald-500/15 to-transparent" />
+          <div className="absolute left-[350px] top-1/2 -translate-y-1/2 h-[300px] w-[1px] -translate-x-1/2 bg-gradient-to-b from-transparent via-emerald-500/15 to-transparent" />
+        </div>
+
+        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
           
           {/* =========================================================================
-              COLUMNA IZQUIERDA: HERO Y PROPUESTA DE VALOR WEB (DESKTOP / LAPTOP)
+              COLUMNA IZQUIERDA: HERO, BADGES FLOTANTES Y PROPUESTA DE VALOR WEB
               ========================================================================= */}
-          <div className="lg:col-span-7 space-y-6 text-left">
+          <div className="lg:col-span-7 space-y-6 text-left relative">
+            
+            {/* BADGES FLOTANTES DE OPORTUNIDADES EN VIVO (SOLO EN ESCRITORIO WEB) */}
+            {/* Flotante 1: Farmatodo */}
+            <div className="hidden lg:flex absolute -top-8 right-4 z-20 items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-[#0B131F]/90 border border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.25)] backdrop-blur-md animate-float-slow pointer-events-none">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-xs">
+                🏥
+              </div>
+              <div className="text-left">
+                <p className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                  <span>Farmatodo Chacao</span>
+                  <span className="text-[8px] font-black uppercase tracking-wider px-1 py-0.2 bg-emerald-950 text-emerald-400 rounded border border-emerald-500/40">Activa</span>
+                </p>
+                <p className="text-[10px] text-emerald-300 font-mono">🚶 450m a pie • $210 USD • Turno Rotativo</p>
+              </div>
+            </div>
+
+            {/* Flotante 2: Docente / Educación */}
+            <div className="hidden lg:flex absolute top-[45%] -left-6 z-20 items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-[#0B131F]/90 border border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.2)] backdrop-blur-md animate-float-delayed pointer-events-none">
+              <div className="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center text-xs">
+                🎓
+              </div>
+              <div className="text-left">
+                <p className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                  <span>Colegio San Ignacio</span>
+                  <span className="text-[8px] font-black uppercase tracking-wider px-1 py-0.2 bg-cyan-950 text-cyan-400 rounded border border-cyan-500/40">Docente</span>
+                </p>
+                <p className="text-[10px] text-cyan-300 font-mono">🚶 850m a pie • $280 USD • Lun a Vie</p>
+              </div>
+            </div>
+
             {/* Badge de Seguridad y Validación */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 shadow-inner">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>Convocatorias 100% Auditadas • Sin Gestores ni Cobros</span>
             </div>
 
-            {/* Gran Título Web */}
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.15]">
+            {/* Gran Título Web con Tipografía Vanguardista */}
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.12]">
               Tu próxima chamba,{' '}
               <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
                 a pasos de tu casa.
@@ -192,10 +251,30 @@ export default function WebLogin({ onLoginSuccess, onContinueAsGuest }: WebLogin
               supermercados, clínicas y colegios a distancia caminable de donde vives.
             </p>
 
-            {/* 3 Pilares Destacados */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-left space-y-1">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+            {/* Ticker de Métricas en Vivo (Solo en Escritorio Web) */}
+            <div className="hidden lg:grid grid-cols-4 gap-2.5 p-2 rounded-2xl bg-slate-950/70 border border-slate-800/80 backdrop-blur-sm shadow-inner">
+              <div className="text-center p-2 rounded-xl bg-slate-900/50 border border-slate-800/60">
+                <p className="text-base font-black text-emerald-400 tracking-tight font-mono">33</p>
+                <p className="text-[10px] text-slate-400 font-medium">Vacantes Hoy</p>
+              </div>
+              <div className="text-center p-2 rounded-xl bg-slate-900/50 border border-slate-800/60">
+                <p className="text-base font-black text-cyan-400 tracking-tight font-mono">&lt; 15 min</p>
+                <p className="text-[10px] text-slate-400 font-medium">A Pie de Casa</p>
+              </div>
+              <div className="text-center p-2 rounded-xl bg-slate-900/50 border border-slate-800/60">
+                <p className="text-base font-black text-amber-400 tracking-tight font-mono">$0</p>
+                <p className="text-[10px] text-slate-400 font-medium">En Camionetica</p>
+              </div>
+              <div className="text-center p-2 rounded-xl bg-slate-900/50 border border-slate-800/60">
+                <p className="text-base font-black text-teal-400 tracking-tight font-mono">24 Horas</p>
+                <p className="text-[10px] text-slate-400 font-medium">Rotación Diaria</p>
+              </div>
+            </div>
+
+            {/* 3 Pilares Destacados con Micro-Interacciones */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 hover:bg-slate-900/90 transition-all duration-300 text-left space-y-1 group">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
                   <Footprints className="w-4 h-4" />
                   <span>A Pie (&lt;1.5 km)</span>
                 </div>
@@ -204,8 +283,8 @@ export default function WebLogin({ onLoginSuccess, onContinueAsGuest }: WebLogin
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-left space-y-1">
-                <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs">
+              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/40 hover:bg-slate-900/90 transition-all duration-300 text-left space-y-1 group">
+                <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
                   <Clock className="w-4 h-4" />
                   <span>Rotación 24 Horas</span>
                 </div>
@@ -214,8 +293,8 @@ export default function WebLogin({ onLoginSuccess, onContinueAsGuest }: WebLogin
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-left space-y-1">
-                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-900/90 transition-all duration-300 text-left space-y-1 group">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
                   <DollarSign className="w-4 h-4" />
                   <span>Sueldos Claros</span>
                 </div>
@@ -227,225 +306,245 @@ export default function WebLogin({ onLoginSuccess, onContinueAsGuest }: WebLogin
 
             {/* Ticker de Cobertura Activa */}
             <div className="flex items-center gap-2 text-xs text-slate-400 pt-1 font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10B981]" />
               <span>Cobertura activa en Caracas, Valencia, Maracaibo, Barquisimeto y Maracay</span>
             </div>
           </div>
 
           {/* =========================================================================
-              COLUMNA DERECHA: TARJETA DE AUTENTICACIÓN WEB LIMPIA Y MODERNA
+              COLUMNA DERECHA: TARJETA DE AUTENTICACIÓN WEB ELEGANTE CON BORDE GLOW
               ========================================================================= */}
-          <div className="lg:col-span-5 w-full max-w-md mx-auto">
-            <div className="p-6 sm:p-8 rounded-3xl bg-[#0D1524]/95 border border-slate-700/80 shadow-2xl shadow-emerald-950/30 backdrop-blur-xl relative">
-              
-              {/* Selector de Pestaña: Iniciar Sesión / Crear Cuenta */}
-              <div className="flex p-1 bg-slate-950/80 border border-slate-800 rounded-xl mb-5">
-                <button
-                  type="button"
-                  onClick={() => { setTab('login'); setErrorMsg(null); setSuccessMsg(null); }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    tab === 'login'
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Iniciar Sesión
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setTab('register'); setErrorMsg(null); setSuccessMsg(null); }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    tab === 'register'
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Crear Cuenta
-                </button>
-              </div>
+          <div className="lg:col-span-5 w-full max-w-md mx-auto relative">
+            
+            {/* Resplandor Luminiscente de Fondo para la Tarjeta (Desktop Web) */}
+            <div className="hidden lg:block absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-teal-500/10 to-cyan-500/20 rounded-[32px] blur-xl opacity-70 group-hover:opacity-100 transition duration-1000 -z-10" />
 
-              {/* Mensajes de Estado */}
-              {errorMsg && (
-                <div className="mb-4 p-3 rounded-xl bg-rose-950/50 border border-rose-800/60 text-rose-300 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                  <span>{errorMsg}</span>
+            {/* Contenedor con Borde Gradiente Suave */}
+            <div className="p-[1px] rounded-3xl bg-gradient-to-b from-emerald-500/35 via-slate-700/60 to-slate-800/80 shadow-2xl shadow-emerald-950/40">
+              <div className="p-6 sm:p-8 rounded-[23px] bg-[#0D1524]/95 backdrop-blur-xl relative">
+                
+                {/* Selector de Pestaña: Iniciar Sesión / Crear Cuenta con Indicador Dinámico */}
+                <div className="flex p-1 bg-slate-950/80 border border-slate-800 rounded-xl mb-5 relative">
+                  <button
+                    type="button"
+                    onClick={() => { setTab('login'); setErrorMsg(null); setSuccessMsg(null); }}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                      tab === 'login'
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Iniciar Sesión
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTab('register'); setErrorMsg(null); setSuccessMsg(null); }}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                      tab === 'register'
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Crear Cuenta
+                  </button>
                 </div>
-              )}
 
-              {successMsg && (
-                <div className="mb-4 p-3 rounded-xl bg-emerald-950/50 border border-emerald-800/60 text-emerald-300 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                  <span>{successMsg}</span>
-                </div>
-              )}
+                {/* Mensajes de Estado */}
+                {errorMsg && (
+                  <div className="mb-4 p-3 rounded-xl bg-rose-950/50 border border-rose-800/60 text-rose-300 text-xs flex items-center gap-2 animate-shake">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
 
-              {/* Formulario */}
-              <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
-                {tab === 'register' && (
-                  <>
-                    {/* Selector de Rol */}
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                        ¿Cómo usarás ChambaCerca?
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setRole('SEEKER')}
-                          className={`p-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                            role === 'SEEKER'
-                              ? 'bg-emerald-950/70 border-emerald-500 text-emerald-300 shadow'
-                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          <User className="w-3.5 h-3.5" />
-                          <span>Busco Empleo</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRole('EMPLOYER')}
-                          className={`p-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                            role === 'EMPLOYER'
-                              ? 'bg-emerald-950/70 border-emerald-500 text-emerald-300 shadow'
-                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          <Building2 className="w-3.5 h-3.5" />
-                          <span>Soy Negocio / RRHH</span>
-                        </button>
-                      </div>
-                    </div>
+                {successMsg && (
+                  <div className="mb-4 p-3 rounded-xl bg-emerald-950/50 border border-emerald-800/60 text-emerald-300 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                    <span>{successMsg}</span>
+                  </div>
+                )}
 
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                        Nombre Completo *
-                      </label>
-                      <div className="relative">
-                        <User className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
-                        <input
-                          type="text"
-                          required
-                          placeholder="Tu nombre y apellido"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-                    </div>
-
-                    {role === 'EMPLOYER' && (
+                {/* Formulario */}
+                <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
+                  {tab === 'register' && (
+                    <>
+                      {/* Selector de Rol */}
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                          Empresa o Comercio *
+                          ¿Cómo usarás ChambaCerca?
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setRole('SEEKER')}
+                            className={`p-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                              role === 'SEEKER'
+                                ? 'bg-emerald-950/70 border-emerald-500 text-emerald-300 shadow'
+                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            <User className="w-3.5 h-3.5" />
+                            <span>Busco Empleo</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRole('EMPLOYER')}
+                            className={`p-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                              role === 'EMPLOYER'
+                                ? 'bg-emerald-950/70 border-emerald-500 text-emerald-300 shadow'
+                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            <Building2 className="w-3.5 h-3.5" />
+                            <span>Soy Negocio / RRHH</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          Nombre Completo *
                         </label>
                         <div className="relative">
-                          <Building2 className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                          <User className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
                           <input
                             type="text"
                             required
-                            placeholder="Nombre del comercio"
-                            value={company}
-                            onChange={(e) => setCompany(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                            placeholder="Tu nombre y apellido"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition"
                           />
                         </div>
                       </div>
-                    )}
-                  </>
-                )}
 
-                {/* Email */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Correo Electrónico *
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
-                    <input
-                      type="email"
-                      required
-                      placeholder="usuario@ejemplo.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                    />
+                      {role === 'EMPLOYER' && (
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                            Empresa o Comercio *
+                          </label>
+                          <div className="relative">
+                            <Building2 className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                            <input
+                              type="text"
+                              required
+                              placeholder="Nombre del comercio"
+                              value={company}
+                              onChange={(e) => setCompany(e.target.value)}
+                              className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      Correo Electrónico *
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                      <input
+                        type="email"
+                        required
+                        placeholder="usuario@ejemplo.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Contraseña */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Contraseña *
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      minLength={6}
-                      placeholder="Mínimo 6 caracteres"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-9 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                    />
+                  {/* Contraseña */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      Contraseña *
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        placeholder="Mínimo 6 caracteres"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full pl-9 pr-9 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Botón Principal con Efecto Shimmer y Hover Elevado */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="group w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-300 shadow-lg shadow-emerald-950/60 hover:shadow-emerald-900/50 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 mt-1 cursor-pointer"
+                  >
+                    <span>{loading ? 'Verificando...' : tab === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </form>
+
+                {/* Acceso Rápido con Cuentas Demo de Prueba */}
+                <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                    <span>O entra con credenciales de prueba:</span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/80 px-1.5 py-0.2 rounded border border-emerald-500/30">1 Clic</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300"
+                      onClick={() => handleQuickLogin('carlos.perez@ejemplo.com', 'Password123!')}
+                      className="group p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/60 text-[11px] font-semibold text-emerald-300 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer flex flex-col gap-0.5"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">👤</span>
+                        <span className="truncate font-bold text-slate-200 group-hover:text-emerald-300">Buscador</span>
+                      </div>
+                      <span className="text-[9px] text-slate-400 font-mono truncate">Carlos (Postulante)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickLogin('rrhh@plazas.com', 'Chamba2026!')}
+                      className="group p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/60 text-[11px] font-semibold text-cyan-300 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer flex flex-col gap-0.5"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">🏢</span>
+                        <span className="truncate font-bold text-slate-200 group-hover:text-cyan-300">Empleador</span>
+                      </div>
+                      <span className="text-[9px] text-slate-400 font-mono truncate">Plazas (RRHH)</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Botón Principal */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 disabled:opacity-50 mt-1 cursor-pointer"
-                >
-                  <span>{loading ? 'Verificando...' : tab === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </form>
-
-              {/* Acceso Rápido con Cuentas Demo de Prueba */}
-              <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-2">
-                <p className="text-[11px] text-slate-400 font-medium text-center">
-                  O entra con 1 clic con credenciales de prueba:
-                </p>
-                <div className="grid grid-cols-2 gap-2">
+                {/* Botón inferior para continuar como invitado */}
+                <div className="mt-4 pt-3 border-t border-slate-800/80 text-center">
                   <button
                     type="button"
-                    onClick={() => handleQuickLogin('carlos.perez@ejemplo.com', 'Password123!')}
-                    className="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 text-[11px] font-semibold text-emerald-300 text-left transition flex items-center gap-1.5 cursor-pointer"
+                    onClick={onContinueAsGuest}
+                    className="text-xs text-slate-400 hover:text-emerald-400 transition font-semibold flex items-center justify-center gap-1 w-full cursor-pointer group"
                   >
-                    <span>👤</span>
-                    <span className="truncate">Buscador (Carlos)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('rrhh@plazas.com', 'Chamba2026!')}
-                    className="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-[11px] font-semibold text-cyan-300 text-left transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>🏢</span>
-                    <span className="truncate">Empleador (Plazas)</span>
+                    <span>¿Prefieres explorar antes? Entrar como Invitado</span>
+                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
-              </div>
 
-              {/* Botón inferior para continuar como invitado */}
-              <div className="mt-4 pt-3 border-t border-slate-800/80 text-center">
-                <button
-                  type="button"
-                  onClick={onContinueAsGuest}
-                  className="text-xs text-slate-400 hover:text-emerald-400 transition font-semibold flex items-center justify-center gap-1 w-full cursor-pointer"
-                >
-                  <span>¿Prefieres explorar antes? Entrar como Invitado</span>
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              </div>
+                {/* Badge de Confianza y Seguridad */}
+                <div className="mt-3 pt-2 flex items-center justify-center gap-2 text-[10px] text-slate-500">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500/70" />
+                  <span>Conexión cifrada SSL • Neon PostgreSQL 2026</span>
+                </div>
 
+              </div>
             </div>
           </div>
 
