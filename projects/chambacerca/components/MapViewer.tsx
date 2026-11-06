@@ -522,7 +522,7 @@ export default function MapViewer({
 
         {/* Capa de Mapa Ultrarrápida con CDN global y cero marcas de agua */}
         <TileLayer
-          key={mapType}
+          key={`${mapType}_esri_clean_v3`}
           attribution={currentLayer.attribution}
           url={currentLayer.url}
           subdomains={currentLayer.subdomains}
