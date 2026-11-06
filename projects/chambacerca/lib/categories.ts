@@ -152,6 +152,19 @@ export const BASE_CATEGORIES: Category[] = [
     ],
     terms: ["hairdresser", "gym"],
   },
+  {
+    id: "educacion",
+    name: "Educación & Docencia",
+    label: "Colegios, academias y tareas dirigidas",
+    short: "Educación",
+    color: "#6366F1",
+    emoji: "🎓",
+    icon: "🎓",
+    overpass: [
+      `["amenity"~"^(school|kindergarten|language_school|music_school|college)$"]`,
+    ],
+    terms: ["school", "college", "kindergarten"],
+  },
 ];
 
 // Diccionario por ID (soporta tanto nombres en inglés como en español para compatibilidad)
@@ -165,6 +178,8 @@ export const CATEGORY_BY_ID: Record<string, Category> = {
   clinic: { ...BASE_CATEGORIES[3], name: "Clínicas & Asistencia", icon: "🏥", emoji: "🏥" },
   mechanic: BASE_CATEGORIES[4],
   warehouse: BASE_CATEGORIES[5],
+  education: BASE_CATEGORIES.find((c) => c.id === "educacion") || BASE_CATEGORIES[0],
+  school: BASE_CATEGORIES.find((c) => c.id === "educacion") || BASE_CATEGORIES[0],
 };
 
 export const CATEGORIES = CATEGORY_BY_ID;
@@ -188,6 +203,7 @@ export function classifyTags(tags: Record<string, string>): string | null {
   if (amenity && /^(restaurant|fast_food|cafe|bar|pub|food_court|ice_cream)$/.test(amenity)) return "comida";
   if (shop && /^(bakery|butcher|pastry|confectionery)$/.test(shop)) return "comida";
   if (tourism && /^(hotel|hostel|guest_house|motel|apartment|resort)$/.test(tourism)) return "hoteles";
+  if (amenity && /^(school|kindergarten|language_school|music_school|college)$/.test(amenity)) return "educacion";
   if (amenity && /^(pharmacy|clinic|hospital|dentist|doctors|veterinary)$/.test(amenity)) return "salud";
   if (shop && /^(car_repair|car|tyres|motorcycle|doityourself|car_parts)$/.test(shop)) return "talleres";
   if (craft && /^(carpenter|electrician|plumber|welder|metal_construction|painter|tailor|shoemaker|locksmith)$/.test(craft)) return "talleres";

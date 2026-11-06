@@ -337,6 +337,68 @@ const ROLE_TEMPLATES_BY_CATEGORY: Record<string, CategoryRoleTemplate[]> = {
       benefits: ['Dotación completa de equipos de seguridad', 'Almuerzo incluido', 'Pago puntual quincenal'],
       description: 'Carga y descarga de sacos de cemento, tuberías y perfiles. Armado de pedidos para despacho a clientes.'
     }
+  ],
+
+  educacion: [
+    {
+      title: 'Docente de Educación Primaria / Aula Integral',
+      salary: '$240 - $320 + Bonos de Desempeño',
+      schedule: 'Lunes a Viernes, 7:00 AM a 1:30 PM (Turno Matutino)',
+      requirements: ['Licenciado o TSU en Educación / Pedagogía', 'Vocación y paciencia en el trato con niños', 'Planificación pedagógica al día'],
+      benefits: ['Beneficio de matrícula escolar para hijos', 'Bono de alimentación y transporte', 'Capacitaciones continuas'],
+      description: 'Conducción de grupo escolar de primaria, impartición de materias básicas (lenguaje, matemáticas, sociales), evaluación continua y atención a representantes.'
+    },
+    {
+      title: 'Tutor / Guía de Tareas Dirigidas y Refuerzo Escolar',
+      salary: '$180 - $250 mensual',
+      schedule: 'Lunes a Jueves, 2:00 PM a 6:00 PM (Turno Tarde)',
+      requirements: ['Estudiante universitario de educación, letras o carreras afines', 'Dinamismo, paciencia y buena ortografía', 'Puntualidad'],
+      benefits: ['Horario cómodo compatible con estudios', 'Ambiente de trabajo colaborativo y climatizado', 'Pago puntual quincenal'],
+      description: 'Apoyo y orientación a grupos reducidos de estudiantes de primaria y secundaria en realización de tareas escolares, preparación para exámenes y refuerzo de lectura y cálculo.'
+    },
+    {
+      title: 'Profesor(a) de Inglés (Primaria y Secundaria)',
+      salary: '$250 - $340 mensual',
+      schedule: 'Lunes a Viernes, horario escolar matutino o por horas',
+      requirements: ['Dominio avanzado del idioma inglés (C1/C2)', 'Experiencia impartiendo clases dinámicas e interactivas', 'Cédula y síntesis curricular'],
+      benefits: ['Excelente ambiente laboral en academia/colegio', 'Bono en divisas por desempeño', 'Flexibilidad horaria'],
+      description: 'Enseñanza del idioma inglés con metodología conversacional y gramatical para niños y jóvenes. Elaboración de evaluaciones y actividades lúdicas.'
+    },
+    {
+      title: 'Auxiliar de Aula & Cuidado Infantil (Preescolar / Maternal)',
+      salary: '$180 - $220 mensual',
+      schedule: 'Lunes a Viernes, 7:30 AM a 1:00 PM',
+      requirements: ['Cariño y paciencia con niños en edad maternal/preescolar', 'Disposición para actividades manuales y recreativas', 'Certificado de salud'],
+      benefits: ['Almuerzo en la institución', 'Uniforme institucional', 'Ambiente educativo cálido'],
+      description: 'Acompañamiento a la maestra titular en el cuidado, merienda, actividades recreativas y hábitos de higiene de niños pequeños.'
+    },
+    {
+      title: 'Docente de Matemáticas, Física y Química (Bachillerato)',
+      salary: '$260 - $360 mensual',
+      schedule: 'Lunes a Viernes, carga horaria académica (mañanas)',
+      requirements: ['Profesor o Licenciado en Ciencias/Educación o Ingeniero', 'Habilidad para explicar conceptos complejos de forma clara', 'Responsabilidad'],
+      benefits: ['Bonificación especial por asignaturas críticas', 'Estabilidad laboral garantizada', 'Póliza de salud colectiva'],
+      description: 'Dictado de cátedras científicas para 1ro a 5to año de bachillerato, preparación de laboratorios, tutoría de proyectos y evaluación continua.'
+    }
+  ],
+
+  education: [
+    {
+      title: 'Docente de Educación Primaria / Aula Integral',
+      salary: '$240 - $320 + Bonos de Desempeño',
+      schedule: 'Lunes a Viernes, 7:00 AM a 1:30 PM (Turno Matutino)',
+      requirements: ['Licenciado o TSU en Educación / Pedagogía', 'Vocación y paciencia en el trato con niños', 'Planificación pedagógica al día'],
+      benefits: ['Beneficio de matrícula escolar para hijos', 'Bono de alimentación y transporte', 'Capacitaciones continuas'],
+      description: 'Conducción de grupo escolar de primaria, impartición de materias básicas (lenguaje, matemáticas, sociales), evaluación continua y atención a representantes.'
+    },
+    {
+      title: 'Tutor / Guía de Tareas Dirigidas y Refuerzo Escolar',
+      salary: '$180 - $250 mensual',
+      schedule: 'Lunes a Jueves, 2:00 PM a 6:00 PM (Turno Tarde)',
+      requirements: ['Estudiante universitario de educación, letras o carreras afines', 'Dinamismo, paciencia y buena ortografía', 'Puntualidad'],
+      benefits: ['Horario cómodo compatible con estudios', 'Ambiente de trabajo colaborativo y climatizado', 'Pago puntual quincenal'],
+      description: 'Apoyo y orientación a grupos reducidos de estudiantes de primaria y secundaria en realización de tareas escolares, preparación para exámenes y refuerzo de lectura y cálculo.'
+    }
   ]
 };
 

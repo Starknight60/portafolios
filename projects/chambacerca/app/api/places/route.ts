@@ -531,8 +531,9 @@ export async function GET(request: NextRequest) {
       summary,
       places: results,
     });
-    // Cabecera de caché para Vercel Edge CDN y navegadores móviles: 30s maxage, 120s stale-while-revalidate
-    response.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+    // Sincronización dinámica en tiempo real: sin caché estancada para que ofertas nuevas aparezcan de inmediato y ofertas expiradas/borradas desaparezcan al instante
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
     return response;
   } catch (err: any) {
     console.error('Error in /api/places:', err);

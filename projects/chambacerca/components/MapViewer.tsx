@@ -15,25 +15,29 @@ interface MapViewerProps {
   userLocation: [number, number] | null;
 }
 
-// Capas oficiales de Google Maps en alta resolución (distribuidas en subdominios mt0-mt3 para carga paralela ultrarrápida)
-const GOOGLE_MAPS_LAYERS = {
-  roadmap: {
-    name: 'Google Maps Calles',
-    url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+// Capas de mapas de alta velocidad (CDN global optimizado para carga <300ms y cero pantallas negras)
+const MAP_LAYERS = {
+  tactical: {
+    name: 'Radar Táctico',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    subdomains: ['a', 'b', 'c', 'd'],
+    attribution: '&copy; CARTO &copy; OpenStreetMap',
     maxZoom: 20,
   },
-  hybrid: {
-    name: 'Google Maps Satélite',
-    url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+  streets: {
+    name: 'Calles',
+    url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    fallbackUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    subdomains: ['0', '1', '2', '3'],
+    attribution: '&copy; Google Maps / OSM',
     maxZoom: 20,
   },
-  traffic: {
-    name: 'Google Maps Tráfico',
-    url: 'https://{s}.google.com/vt/lyrs=m,trafficinfo&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-    maxZoom: 20,
+  satellite: {
+    name: 'Satélite',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    subdomains: ['server'],
+    attribution: '&copy; Esri World Imagery',
+    maxZoom: 19,
   },
 };
 
@@ -343,7 +347,7 @@ export default function MapViewer({
   userLocation,
 }: MapViewerProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const [mapType, setMapType] = useState<'roadmap' | 'hybrid' | 'traffic'>('roadmap');
+  const [mapType, setMapType] = useState<'tactical' | 'streets' | 'satellite'>('tactical');
   const [showRadarHud, setShowRadarHud] = useState(false);
 
   useEffect(() => {
@@ -355,9 +359,9 @@ export default function MapViewer({
       <div className="w-full h-full min-h-[440px] flex flex-col items-center justify-center bg-[#0B131F] rounded-2xl border border-slate-800 text-slate-400">
         <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3 shadow-[0_0_20px_#10B981]"></div>
         <p className="text-sm font-bold text-slate-100 flex items-center gap-2">
-          <Radio className="w-4 h-4 text-emerald-400 animate-pulse" /> Sincronizando Google Maps Satelital...
+          <Radio className="w-4 h-4 text-emerald-400 animate-pulse" /> Calibrando Radar de Proximidad...
         </p>
-        <p className="text-xs text-slate-400 mt-1">Calibrando radar de proximidad a pie</p>
+        <p className="text-xs text-slate-400 mt-1">Cargando mapa satelital de alta velocidad</p>
       </div>
     );
   }
@@ -375,7 +379,7 @@ export default function MapViewer({
   const validPlaces = (places || []).filter(p => p && isValidLatLng(p.latitude, p.longitude));
 
   const zoom = safeRadius <= 600 ? 16 : safeRadius <= 1500 ? 15 : safeRadius <= 3500 ? 14 : 13;
-  const currentLayer = GOOGLE_MAPS_LAYERS[mapType];
+  const currentLayer = MAP_LAYERS[mapType];
   const selectedPlace = validPlaces.find((p) => p.id === selectedPlaceId) || null;
   const isWalkingDistance = Boolean(
     selectedPlace &&
@@ -439,12 +443,22 @@ export default function MapViewer({
           <span className="hidden sm:inline">{showRadarHud ? 'Retícula ON' : 'Retícula OFF'}</span>
         </button>
 
-        {/* Selector de Tipo de Capa Google Maps */}
+        {/* Selector de Tipo de Capa de Alta Velocidad */}
         <div className="bg-[#0B131F]/95 rounded-xl p-0.5 border border-slate-700 shadow-xl flex items-center gap-0.5">
           <button
-            onClick={() => setMapType('roadmap')}
+            onClick={() => setMapType('tactical')}
             className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
-              mapType === 'roadmap'
+              mapType === 'tactical'
+                ? 'bg-emerald-600 text-white shadow-[0_0_12px_rgba(16,185,129,0.5)]'
+                : 'text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            Táctico
+          </button>
+          <button
+            onClick={() => setMapType('streets')}
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
+              mapType === 'streets'
                 ? 'bg-blue-600 text-white shadow'
                 : 'text-slate-300 hover:bg-slate-800'
             }`}
@@ -452,24 +466,14 @@ export default function MapViewer({
             Calles
           </button>
           <button
-            onClick={() => setMapType('hybrid')}
+            onClick={() => setMapType('satellite')}
             className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
-              mapType === 'hybrid'
+              mapType === 'satellite'
                 ? 'bg-blue-600 text-white shadow'
                 : 'text-slate-300 hover:bg-slate-800'
             }`}
           >
             Satélite
-          </button>
-          <button
-            onClick={() => setMapType('traffic')}
-            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
-              mapType === 'traffic'
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-slate-300 hover:bg-slate-800'
-            }`}
-          >
-            Tráfico
           </button>
         </div>
       </div>
@@ -514,15 +518,15 @@ export default function MapViewer({
       >
         <MapController center={safeCenter} zoom={zoom} selectedPlace={selectedPlace} userLocation={safeUserLocation} />
 
-        {/* Capa Oficial de Google Maps con precarga acelerada en paralelo */}
+        {/* Capa de Mapa Ultrarrápida con CDN global y caché inteligente */}
         <TileLayer
           key={mapType}
-          attribution='&copy; Google Maps'
+          attribution={currentLayer.attribution}
           url={currentLayer.url}
           subdomains={currentLayer.subdomains}
           maxZoom={currentLayer.maxZoom}
-          keepBuffer={4}
-          updateWhenIdle={false}
+          keepBuffer={2}
+          updateWhenIdle={true}
           updateWhenZooming={false}
         />
 

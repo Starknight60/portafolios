@@ -25,14 +25,14 @@ import {
   Maximize2, Minimize2, Share2, CheckCircle2, ClipboardList, TrendingUp, WifiOff
 } from 'lucide-react';
 
-// Carga dinámica del mapa de Google Maps sin SSR para evitar errores de hidratación
+// Carga dinámica del mapa de Radar táctico sin SSR para evitar errores de hidratación
 const MapViewer = dynamic(() => import('@/components/MapViewer'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full min-h-[440px] flex flex-col items-center justify-center bg-[#0B131F] rounded-2xl border border-slate-800 text-slate-400">
       <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-      <p className="text-sm font-semibold text-slate-200">Cargando Google Maps satelital...</p>
-      <p className="text-xs text-slate-500">Conectando con servidores de mapas y radar de proximidad</p>
+      <p className="text-sm font-semibold text-slate-200">Cargando Radar de Proximidad...</p>
+      <p className="text-xs text-slate-500">Conectando con servidores de mapas y radar satelital</p>
     </div>
   ),
 });
