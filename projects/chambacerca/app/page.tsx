@@ -9,6 +9,7 @@ import VacancyDetailModal from '@/components/VacancyDetailModal';
 import ReportModal from '@/components/ReportModal';
 import EmployerModal from '@/components/EmployerModal';
 import AuthModal from '@/components/AuthModal';
+import WebLogin from '@/components/WebLogin';
 import SavingsCalculatorModal from '@/components/SavingsCalculatorModal';
 import CurriculumBuilderModal from '@/components/CurriculumBuilderModal';
 import ApplicantProfileModal, { ApplicantProfile } from '@/components/ApplicantProfileModal';
@@ -60,6 +61,7 @@ export default function HomePage() {
   // Estados de Autenticación de Usuario
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [sessionLoading, setSessionLoading] = useState<boolean>(true);
+  const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [savedIds, setSavedIds] = useState<string[]>([]);
@@ -280,6 +282,7 @@ export default function HomePage() {
       setCurrentUser(null);
       setSavedIds([]);
       setFilterSavedOnly(false);
+      setIsGuestMode(false);
     } catch (err) {
       console.error('Logout error:', err);
     }
@@ -626,6 +629,25 @@ export default function HomePage() {
           <p className="text-xs text-slate-400 font-semibold tracking-wide">Iniciando ChambaCerca Radar...</p>
         </div>
       </div>
+    );
+  }
+
+  // =========================================================================
+  // PANTALLA DE INICIO WEB: LOGIN ELEGANTE SPLIT-SCREEN
+  // La página inicia directamente en el login web si el usuario no ha iniciado sesión
+  // y no ha seleccionado "Explorar como Invitado".
+  // =========================================================================
+  if (!currentUser && !isGuestMode) {
+    return (
+      <WebLogin
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          fetchSaved();
+        }}
+        onContinueAsGuest={() => {
+          setIsGuestMode(true);
+        }}
+      />
     );
   }
 
