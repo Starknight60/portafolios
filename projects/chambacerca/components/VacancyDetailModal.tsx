@@ -442,32 +442,66 @@ export default function VacancyDetailModal({
                       <span>Ver Ruta en el Radar</span>
                     </button>
                   )}
-                  <a
-                    href={googleMapsPlaceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1 transition"
-                  >
-                    <span>Abrir en Google Maps</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                  <a
-                    href={googleStreetViewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1 transition"
-                  >
-                    <span>Fachada Street View</span>
-                  </a>
-                  <a
-                    href={googleMapsWalkingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 text-xs font-medium flex items-center gap-1 transition"
-                  >
-                    <Navigation className="w-3 h-3 text-emerald-400" />
-                    <span>Caminar ({place.walkTimeMinutes} min)</span>
-                  </a>
+                  {isDemoUser ? (
+                    <button
+                      type="button"
+                      onClick={() => onRestrictedAction && onRestrictedAction('contact_info')}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <span>Abrir en Google Maps (🔒)</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  ) : (
+                    <a
+                      href={googleMapsPlaceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1 transition"
+                    >
+                      <span>Abrir en Google Maps</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+
+                  {isDemoUser ? (
+                    <button
+                      type="button"
+                      onClick={() => onRestrictedAction && onRestrictedAction('contact_info')}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <span>Fachada Street View (🔒)</span>
+                    </button>
+                  ) : (
+                    <a
+                      href={googleStreetViewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1 transition"
+                    >
+                      <span>Fachada Street View</span>
+                    </a>
+                  )}
+
+                  {isDemoUser ? (
+                    <button
+                      type="button"
+                      onClick={() => onRestrictedAction && onRestrictedAction('contact_info')}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 text-xs font-medium flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <Navigation className="w-3 h-3 text-emerald-400" />
+                      <span>Caminar ({place.walkTimeMinutes} min) (🔒)</span>
+                    </button>
+                  ) : (
+                    <a
+                      href={googleMapsWalkingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 text-xs font-medium flex items-center gap-1 transition"
+                    >
+                      <Navigation className="w-3 h-3 text-emerald-400" />
+                      <span>Caminar ({place.walkTimeMinutes} min)</span>
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -651,48 +685,90 @@ export default function VacancyDetailModal({
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   {place.computrabajoUrl && (
-                    <a
-                      href={place.computrabajoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-3 rounded-xl bg-red-950/30 hover:bg-red-900/40 border border-red-800/40 text-red-300 flex items-center justify-between transition"
-                    >
-                      <span className="font-semibold flex items-center gap-2">
-                        <Briefcase className="w-4 h-4" />
-                        <span>CompuTrabajo Venezuela</span>
-                      </span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    isDemoUser ? (
+                      <button
+                        type="button"
+                        onClick={() => onRestrictedAction && onRestrictedAction('message')}
+                        className="p-3 rounded-xl bg-red-950/30 hover:bg-red-900/40 border border-red-800/40 text-red-300 flex items-center justify-between transition cursor-pointer"
+                      >
+                        <span className="font-semibold flex items-center gap-2">
+                          <Briefcase className="w-4 h-4" />
+                          <span>CompuTrabajo Venezuela (🔒 Solo Ver)</span>
+                        </span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <a
+                        href={place.computrabajoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3 rounded-xl bg-red-950/30 hover:bg-red-900/40 border border-red-800/40 text-red-300 flex items-center justify-between transition"
+                      >
+                        <span className="font-semibold flex items-center gap-2">
+                          <Briefcase className="w-4 h-4" />
+                          <span>CompuTrabajo Venezuela</span>
+                        </span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )
                   )}
 
                   {place.linkedinUrl && (
-                    <a
-                      href={place.linkedinUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-3 rounded-xl bg-blue-950/30 hover:bg-blue-900/40 border border-blue-800/40 text-blue-300 flex items-center justify-between transition"
-                    >
-                      <span className="font-semibold flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-blue-400" />
-                        <span>LinkedIn Corporativo</span>
-                      </span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    isDemoUser ? (
+                      <button
+                        type="button"
+                        onClick={() => onRestrictedAction && onRestrictedAction('message')}
+                        className="p-3 rounded-xl bg-blue-950/30 hover:bg-blue-900/40 border border-blue-800/40 text-blue-300 flex items-center justify-between transition cursor-pointer"
+                      >
+                        <span className="font-semibold flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-blue-400" />
+                          <span>LinkedIn Corporativo (🔒 Solo Ver)</span>
+                        </span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <a
+                        href={place.linkedinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3 rounded-xl bg-blue-950/30 hover:bg-blue-900/40 border border-blue-800/40 text-blue-300 flex items-center justify-between transition"
+                      >
+                        <span className="font-semibold flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-blue-400" />
+                          <span>LinkedIn Corporativo</span>
+                        </span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )
                   )}
 
                   {place.instagramUrl && (
-                    <a
-                      href={place.instagramUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-3 rounded-xl bg-pink-950/30 hover:bg-pink-900/40 border border-pink-800/40 text-pink-300 flex items-center justify-between transition"
-                    >
-                      <span className="font-semibold flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-pink-400" />
-                        <span>Instagram Convocatorias</span>
-                      </span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    isDemoUser ? (
+                      <button
+                        type="button"
+                        onClick={() => onRestrictedAction && onRestrictedAction('message')}
+                        className="p-3 rounded-xl bg-pink-950/30 hover:bg-pink-900/40 border border-pink-800/40 text-pink-300 flex items-center justify-between transition cursor-pointer"
+                      >
+                        <span className="font-semibold flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-pink-400" />
+                          <span>Instagram Convocatorias (🔒 Solo Ver)</span>
+                        </span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <a
+                        href={place.instagramUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3 rounded-xl bg-pink-950/30 hover:bg-pink-900/40 border border-pink-800/40 text-pink-300 flex items-center justify-between transition"
+                      >
+                        <span className="font-semibold flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-pink-400" />
+                          <span>Instagram Convocatorias</span>
+                        </span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )
                   )}
 
                   {place.contactEmail && (
@@ -833,6 +909,10 @@ export default function VacancyDetailModal({
             <button
               type="button"
               onClick={() => {
+                if (isDemoUser) {
+                  if (onRestrictedAction) onRestrictedAction('message');
+                  return;
+                }
                 const title = place.title || 'esta vacante';
                 const name = place.placeName;
                 const address = place.address || '';
@@ -861,15 +941,27 @@ export default function VacancyDetailModal({
               </button>
             )}
 
-            <a
-              href={googleMapsWalkingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
-            >
-              <Navigation className="w-4 h-4 text-emerald-400" />
-              <span>Caminar ({place.walkTimeMinutes} min)</span>
-            </a>
+            {isDemoUser ? (
+              <button
+                type="button"
+                onClick={() => onRestrictedAction && onRestrictedAction('contact_info')}
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                title="Modo Prueba: Inicia sesión para ver en Google Maps"
+              >
+                <Navigation className="w-4 h-4 text-emerald-400" />
+                <span>Caminar ({place.walkTimeMinutes} min) (🔒)</span>
+              </button>
+            ) : (
+              <a
+                href={googleMapsWalkingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <Navigation className="w-4 h-4 text-emerald-400" />
+                <span>Caminar ({place.walkTimeMinutes} min)</span>
+              </a>
+            )}
 
             {place.userHasApplied ? (
               <div
@@ -919,15 +1011,27 @@ export default function VacancyDetailModal({
             )}
 
             {place.computrabajoUrl && (
-              <a
-                href={place.computrabajoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
-              >
-                <Briefcase className="w-4 h-4" />
-                <span>CompuTrabajo</span>
-              </a>
+              isDemoUser ? (
+                <button
+                  type="button"
+                  onClick={() => onRestrictedAction && onRestrictedAction('message')}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-red-700/80 hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  title="Modo Prueba: Inicia sesión para postularte"
+                >
+                  <Briefcase className="w-4 h-4" />
+                  <span>CompuTrabajo (🔒 Solo Ver)</span>
+                </button>
+              ) : (
+                <a
+                  href={place.computrabajoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <Briefcase className="w-4 h-4" />
+                  <span>CompuTrabajo</span>
+                </a>
+              )
             )}
 
             {place.contactPhone && !whatsappUrl && (

@@ -13,6 +13,8 @@ interface MapViewerProps {
   selectedPlaceId: string | null;
   onSelectPlace: (place: PlaceResultItem) => void;
   userLocation: [number, number] | null;
+  isDemoUser?: boolean;
+  onRestrictedAction?: (action: 'message' | 'contact_info' | 'publish' | 'report' | 'general') => void;
 }
 
 // Capas de mapas de alta velocidad Esri ArcGIS (100% libres de marcas de agua, alto contraste y carga <200ms)
@@ -347,6 +349,8 @@ export default function MapViewer({
   selectedPlaceId,
   onSelectPlace,
   userLocation,
+  isDemoUser = false,
+  onRestrictedAction,
 }: MapViewerProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [mapType, setMapType] = useState<'tactical' | 'streets' | 'satellite'>('tactical');
@@ -645,14 +649,25 @@ export default function MapViewer({
                       Ver cómo postular <ExternalLink className="w-3 h-3" />
                     </button>
 
-                    <a
-                      href={googleMapsWalkingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-1 px-2 bg-slate-800 hover:bg-slate-700 text-blue-300 rounded text-[11px] font-medium flex items-center justify-center gap-1 transition"
-                    >
-                      <Navigation className="w-3 h-3 text-blue-400" /> Ruta en Google Maps
-                    </a>
+                    {isDemoUser ? (
+                      <button
+                        type="button"
+                        onClick={() => onRestrictedAction && onRestrictedAction('contact_info')}
+                        className="w-full py-1 px-2 bg-slate-800 hover:bg-slate-700 text-blue-300 rounded text-[11px] font-medium flex items-center justify-center gap-1 transition cursor-pointer"
+                        title="Modo Prueba: Inicia sesión para abrir en Google Maps"
+                      >
+                        <Navigation className="w-3 h-3 text-blue-400" /> Ruta en Google Maps (🔒)
+                      </button>
+                    ) : (
+                      <a
+                        href={googleMapsWalkingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-1 px-2 bg-slate-800 hover:bg-slate-700 text-blue-300 rounded text-[11px] font-medium flex items-center justify-center gap-1 transition"
+                      >
+                        <Navigation className="w-3 h-3 text-blue-400" /> Ruta en Google Maps
+                      </a>
+                    )}
                   </div>
                 </div>
               </Popup>

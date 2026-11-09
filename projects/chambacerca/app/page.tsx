@@ -1163,6 +1163,8 @@ export default function HomePage() {
                 setSelectedPlace(p);
               }}
               userLocation={userLocation}
+              isDemoUser={isDemoUser}
+              onRestrictedAction={triggerDemoNotice}
             />
           </div>
 
@@ -1872,17 +1874,32 @@ export default function HomePage() {
                           <span>Ver Ruta</span>
                         </button>
 
-                        <a
-                          href={`https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="px-2 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-blue-300 border border-blue-500/40 hover:border-blue-400 font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
-                          title="Abrir ruta a pie en Google Maps"
-                        >
-                          <Navigation className="w-3 h-3 text-blue-400" />
-                          <span>Mapa</span>
-                        </a>
+                        {isDemoUser ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              triggerDemoNotice('contact_info');
+                            }}
+                            className="px-2 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-blue-300/80 border border-blue-500/30 font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                            title="Modo Prueba: Inicia sesión para abrir en Google Maps"
+                          >
+                            <Navigation className="w-3 h-3 text-blue-400" />
+                            <span>Mapa (🔒)</span>
+                          </button>
+                        ) : (
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-2 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-blue-300 border border-blue-500/40 hover:border-blue-400 font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                            title="Abrir ruta a pie en Google Maps"
+                          >
+                            <Navigation className="w-3 h-3 text-blue-400" />
+                            <span>Mapa</span>
+                          </a>
+                        )}
 
                         <button
                           onClick={(e) => {
@@ -1923,43 +1940,75 @@ export default function HomePage() {
                           </button>
                         ) : (
                           place.contactWhatsapp && (
-                            <a
-                              href={`https://wa.me/${place.contactWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
-                                applicantProfile?.fullName
-                                  ? `Hola, cordial saludo. Mi nombre es ${applicantProfile.fullName}${applicantProfile.idNumber ? ` (C.I. ${applicantProfile.idNumber})` : ''}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto'}". Cuento con experiencia como ${applicantProfile.targetRole || 'postulante'} y disponibilidad inmediata. ¿En qué horario podría consignar mi síntesis curricular? Gracias.`
-                                  : `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante para "${place.title || 'el puesto'}". Quisiera postularme formalmente. Gracias.`
-                              )}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApplyJob(place, 'WHATSAPP');
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
-                              title="Postularte por WhatsApp (Registra tu postulación y asegura tu cupo en Mi Ruta)"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                              <span>WhatsApp</span>
-                              {typeof place.availableSlots === 'number' && (
-                                <span className="text-[10px] bg-emerald-900/80 px-1 py-0.2 rounded text-emerald-200 font-mono ml-0.5">
-                                  {place.availableSlots}
-                                </span>
-                              )}
-                            </a>
+                            isDemoUser ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  triggerDemoNotice('message');
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
+                                title="Modo Prueba: Inicia sesión para postularte por WhatsApp"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                                <span>WhatsApp (🔒 Solo Ver)</span>
+                              </button>
+                            ) : (
+                              <a
+                                href={`https://wa.me/${place.contactWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
+                                  applicantProfile?.fullName
+                                    ? `Hola, cordial saludo. Mi nombre es ${applicantProfile.fullName}${applicantProfile.idNumber ? ` (C.I. ${applicantProfile.idNumber})` : ''}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto'}". Cuento con experiencia como ${applicantProfile.targetRole || 'postulante'} y disponibilidad inmediata. ¿En qué horario podría consignar mi síntesis curricular? Gracias.`
+                                    : `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante para "${place.title || 'el puesto'}". Quisiera postularme formalmente. Gracias.`
+                                )}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApplyJob(place, 'WHATSAPP');
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
+                                title="Postularte por WhatsApp (Registra tu postulación y asegura tu cupo en Mi Ruta)"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                                <span>WhatsApp</span>
+                                {typeof place.availableSlots === 'number' && (
+                                  <span className="text-[10px] bg-emerald-900/80 px-1 py-0.2 rounded text-emerald-200 font-mono ml-0.5">
+                                    {place.availableSlots}
+                                  </span>
+                                )}
+                              </a>
+                            )
                           )
                         )}
 
                         {place.computrabajoUrl && !place.contactWhatsapp && (
-                          <a
-                            href={place.computrabajoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-2.5 py-1 rounded-lg bg-red-700 hover:bg-red-600 text-white font-semibold text-[11px] flex items-center gap-1 transition cursor-pointer"
-                          >
-                            <Briefcase className="w-3.5 h-3.5" />
-                            <span>CompuTrabajo</span>
-                          </a>
+                          isDemoUser ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                triggerDemoNotice('message');
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-red-700/80 hover:bg-red-600 text-white font-semibold text-[11px] flex items-center gap-1 transition cursor-pointer"
+                              title="Modo Prueba: Inicia sesión para postularte"
+                            >
+                              <Briefcase className="w-3.5 h-3.5" />
+                              <span>CompuTrabajo (🔒 Solo Ver)</span>
+                            </button>
+                          ) : (
+                            <a
+                              href={place.computrabajoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2.5 py-1 rounded-lg bg-red-700 hover:bg-red-600 text-white font-semibold text-[11px] flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <Briefcase className="w-3.5 h-3.5" />
+                              <span>CompuTrabajo</span>
+                            </a>
+                          )
                         )}
                       </div>
                     </div>
