@@ -7,7 +7,7 @@ import {
   X, MapPin, Clock, DollarSign, CheckCircle2, MessageCircle, 
   Phone, AlertTriangle, FileText, UserCheck, Navigation, ExternalLink,
   Mail, ShieldCheck, Globe, Briefcase, Share2, Copy, Check, Sparkles,
-  Award, ShieldAlert, Bus, Utensils, HeartHandshake, ChevronRight, User
+  Award, ShieldAlert, Bus, Utensils, HeartHandshake, ChevronRight, User, Lock
 } from 'lucide-react';
 
 interface VacancyDetailModalProps {
@@ -92,6 +92,53 @@ export default function VacancyDetailModal({
         className="relative w-full max-w-2xl max-h-[92vh] bg-[#0A101C] border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-3xl shadow-2xl shadow-emerald-950/40 flex flex-col overflow-hidden text-slate-100 animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* PANTALLA DE BLOQUEO TOTAL PARA CUENTAS DEMO (SOLO VER) */}
+        {isDemoUser && (
+          <div className="absolute inset-0 z-50 bg-[#0A101C]/96 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer border border-slate-800"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-16 h-16 rounded-3xl bg-amber-950/80 border border-amber-500/60 flex items-center justify-center text-amber-400 mb-4 shadow-xl shadow-amber-950/60">
+              <Lock className="w-8 h-8 animate-pulse" />
+            </div>
+
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-500/40 mb-2">
+              Información Protegida • Cuenta Demo
+            </span>
+
+            <h3 className="text-lg font-black text-white max-w-sm">
+              {place.placeName} — {place.title}
+            </h3>
+
+            <p className="text-xs text-slate-300 max-w-sm mt-2.5 leading-relaxed">
+              Estás usando una cuenta de prueba (<strong>solo para ver</strong>). Para consultar la información completa de esta vacante (sueldo exacto, dirección, requisitos y contacto del reclutador) o enviar un mensaje, debes iniciar sesión o crear una cuenta para poder empezar a trabajar con la página.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 mt-5 w-full max-w-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  if (onRestrictedAction) onRestrictedAction('contact_info');
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-lg shadow-emerald-950/60 transition cursor-pointer"
+              >
+                Iniciar Sesión / Crear Cuenta
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 transition cursor-pointer"
+              >
+                Volver al radar
+              </button>
+            </div>
+          </div>
+        )}
         {/* Manija de Arrastre Táctil para Móviles (Bottom Sheet Ergonómico) */}
         <div className="w-12 h-1.5 rounded-full bg-slate-700/80 mx-auto mt-2.5 mb-0.5 sm:hidden shrink-0" />
 

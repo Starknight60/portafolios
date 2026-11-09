@@ -22,7 +22,7 @@ import {
   Briefcase, MessageCircle, DollarSign, Clock, Users, ArrowUpRight, 
   ExternalLink, ChevronRight, ChevronDown, Layers, ShieldCheck, HeartHandshake,
   AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn,
-  Radio, Zap, X, SlidersHorizontal, FileText, Utensils, Bus, GraduationCap,
+  Radio, Zap, X, SlidersHorizontal, FileText, Utensils, Bus, GraduationCap, Lock,
   Maximize2, Minimize2, Share2, CheckCircle2, ClipboardList, TrendingUp, WifiOff
 } from 'lucide-react';
 
@@ -1155,7 +1155,13 @@ export default function HomePage() {
               radiusMeters={radius}
               places={displayedPlaces}
               selectedPlaceId={selectedPlace ? selectedPlace.id : null}
-              onSelectPlace={(p) => setSelectedPlace(p)}
+              onSelectPlace={(p) => {
+                if (isDemoUser) {
+                  triggerDemoNotice('contact_info');
+                  return;
+                }
+                setSelectedPlace(p);
+              }}
               userLocation={userLocation}
             />
           </div>
@@ -1553,7 +1559,13 @@ export default function HomePage() {
                 return (
                   <div
                     key={place.id}
-                    onClick={() => setSelectedPlace(place)}
+                    onClick={() => {
+                      if (isDemoUser) {
+                        triggerDemoNotice('contact_info');
+                        return;
+                      }
+                      setSelectedPlace(place);
+                    }}
                     className={`virtual-gpu-card p-4 rounded-2xl border transition-all duration-300 cursor-pointer relative overflow-hidden group hover:-translate-y-1.5 ${
                       isSelected
                         ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-[#0C1524] border-emerald-400 shadow-[0_0_28px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/80 animate-card-glow'
@@ -1810,12 +1822,25 @@ export default function HomePage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (isDemoUser) {
+                            triggerDemoNotice('contact_info');
+                            return;
+                          }
                           setSelectedPlace(place);
                         }}
                         className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
                       >
-                        <span>Ver detalle</span>
-                        <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        {isDemoUser ? (
+                          <span className="flex items-center gap-1 text-amber-400 font-semibold">
+                            <Lock className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Ver Información (🔒 Requiere Cuenta)</span>
+                          </span>
+                        ) : (
+                          <>
+                            <span>Ver detalle</span>
+                            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                          </>
+                        )}
                       </button>
 
                       <div className="flex items-center gap-1.5 flex-wrap">

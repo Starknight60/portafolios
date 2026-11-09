@@ -28,8 +28,8 @@ export default function DemoRestrictionModal({
       subtitle: 'Para contactar directamente a los empleadores o enviar tu postulación por WhatsApp, necesitas una cuenta activa.',
     },
     contact_info: {
-      title: 'Ver Información de Contacto Directa',
-      subtitle: 'Para consultar teléfonos, nombres de reclutadores y canales directos de los comercios, debes iniciar sesión.',
+      title: 'Ver Información de la Vacante',
+      subtitle: 'Para consultar la información detallada de la oferta, sueldo exacto, dirección y datos de contacto de RRHH, debes iniciar sesión o crear una cuenta.',
     },
     publish: {
       title: 'Publicar Ofertas de Empleo',
