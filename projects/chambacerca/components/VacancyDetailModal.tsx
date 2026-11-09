@@ -636,27 +636,25 @@ export default function VacancyDetailModal({
                     </button>
                   ) : (
                     whatsappUrl && (
-                      isDemoUser ? (
-                        <button
-                          type="button"
-                          onClick={() => onRestrictedAction && onRestrictedAction('message')}
-                          className="px-4 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          <span>Abrir Chat en WhatsApp (🔒 Solo Ver)</span>
-                        </button>
-                      ) : (
-                        <a
-                          href={whatsappUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => handleApplyClick('WHATSAPP')}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          <span>Abrir Chat en WhatsApp</span>
-                        </a>
-                      )
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isDemoUser) {
+                            if (onRestrictedAction) onRestrictedAction('message');
+                            return;
+                          }
+                          handleApplyClick('WHATSAPP');
+                          window.open(whatsappUrl, '_blank');
+                        }}
+                        className={
+                          isDemoUser
+                            ? "px-4 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                            : "px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                        }
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>{isDemoUser ? "Abrir Chat en WhatsApp (🔒 Solo Ver)" : "Abrir Chat en WhatsApp"}</span>
+                      </button>
                     )
                   )}
                 </div>
@@ -981,32 +979,30 @@ export default function VacancyDetailModal({
               </button>
             ) : (
               whatsappUrl && (
-                isDemoUser ? (
-                  <button
-                    type="button"
-                    onClick={() => onRestrictedAction && onRestrictedAction('message')}
-                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
-                  >
-                    <MessageCircle className="w-4 h-4 fill-current" />
-                    <span>WhatsApp Directo (🔒 Solo Ver)</span>
-                  </button>
-                ) : (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => handleApplyClick('WHATSAPP')}
-                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
-                  >
-                    <MessageCircle className="w-4 h-4 fill-current" />
-                    <span>WhatsApp Directo</span>
-                    {typeof place.availableSlots === 'number' && (
-                      <span className="text-[10px] bg-emerald-900/90 px-1.5 py-0.5 rounded font-mono text-emerald-200 ml-1">
-                        {place.availableSlots} {place.availableSlots === 1 ? 'cupo' : 'cupos'}
-                      </span>
-                    )}
-                  </a>
-                )
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isDemoUser) {
+                      if (onRestrictedAction) onRestrictedAction('message');
+                      return;
+                    }
+                    handleApplyClick('WHATSAPP');
+                    window.open(whatsappUrl, '_blank');
+                  }}
+                  className={
+                    isDemoUser
+                      ? "flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                      : "flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                  }
+                >
+                  <MessageCircle className="w-4 h-4 fill-current" />
+                  <span>{isDemoUser ? "WhatsApp Directo (🔒 Solo Ver)" : "WhatsApp Directo"}</span>
+                  {!isDemoUser && typeof place.availableSlots === 'number' && (
+                    <span className="text-[10px] bg-emerald-900/90 px-1.5 py-0.5 rounded font-mono text-emerald-200 ml-1">
+                      {place.availableSlots} {place.availableSlots === 1 ? 'cupo' : 'cupos'}
+                    </span>
+                  )}
+                </button>
               )
             )}
 

@@ -12,12 +12,16 @@ interface CurriculumBuilderModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedPlace?: PlaceResultItem | null;
+  isDemoUser?: boolean;
+  onRestrictedAction?: (reason: 'message' | 'contact_info' | 'publish' | 'report' | 'general') => void;
 }
 
 export default function CurriculumBuilderModal({
   isOpen,
   onClose,
   selectedPlace,
+  isDemoUser = false,
+  onRestrictedAction,
 }: CurriculumBuilderModalProps) {
   // Estados del Formulario
   const [fullName, setFullName] = useState('');
@@ -169,6 +173,10 @@ _Documentos físicos y síntesis curricular disponibles para consignación inmed
   };
 
   const handleShareToWhatsApp = () => {
+    if (isDemoUser) {
+      if (onRestrictedAction) onRestrictedAction('message');
+      return;
+    }
     const text = getWhatsAppSynthesisText();
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');

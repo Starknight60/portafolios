@@ -77,10 +77,12 @@ export default function HomePage() {
   const isDemoUser = useMemo(() => {
     if (!currentUser) return true; // Modo invitado es solo para ver
     if (currentUser.role === 'ADMIN') return false; // Administrador tiene acceso total
+    const email = String(currentUser.email || '').toLowerCase().trim();
     if (
-      currentUser.email === 'carlos.perez@ejemplo.com' ||
-      currentUser.email === 'rrhh@plazas.com' ||
-      currentUser.isDemo
+      email === 'carlos.perez@ejemplo.com' ||
+      email === 'rrhh@plazas.com' ||
+      Boolean(currentUser.isDemo) ||
+      currentUser.role === 'DEMO'
     ) {
       return true;
     }
@@ -1940,45 +1942,37 @@ export default function HomePage() {
                           </button>
                         ) : (
                           place.contactWhatsapp && (
-                            isDemoUser ? (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                if (isDemoUser) {
                                   triggerDemoNotice('message');
-                                }}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
-                                title="Modo Prueba: Inicia sesión para postularte por WhatsApp"
-                              >
-                                <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                                <span>WhatsApp (🔒 Solo Ver)</span>
-                              </button>
-                            ) : (
-                              <a
-                                href={`https://wa.me/${place.contactWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
-                                  applicantProfile?.fullName
-                                    ? `Hola, cordial saludo. Mi nombre es ${applicantProfile.fullName}${applicantProfile.idNumber ? ` (C.I. ${applicantProfile.idNumber})` : ''}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto'}". Cuento con experiencia como ${applicantProfile.targetRole || 'postulante'} y disponibilidad inmediata. ¿En qué horario podría consignar mi síntesis curricular? Gracias.`
-                                    : `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante para "${place.title || 'el puesto'}". Quisiera postularme formalmente. Gracias.`
-                                )}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleApplyJob(place, 'WHATSAPP');
-                                }}
-                                className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
-                                title="Postularte por WhatsApp (Registra tu postulación y asegura tu cupo en Mi Ruta)"
-                              >
-                                <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                                <span>WhatsApp</span>
-                                {typeof place.availableSlots === 'number' && (
-                                  <span className="text-[10px] bg-emerald-900/80 px-1 py-0.2 rounded text-emerald-200 font-mono ml-0.5">
-                                    {place.availableSlots}
-                                  </span>
-                                )}
-                              </a>
-                            )
+                                  return;
+                                }
+                                handleApplyJob(place, 'WHATSAPP');
+                                const msg = applicantProfile?.fullName
+                                  ? `Hola, cordial saludo. Mi nombre es ${applicantProfile.fullName}${applicantProfile.idNumber ? ` (C.I. ${applicantProfile.idNumber})` : ''}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto'}". Cuento con experiencia como ${applicantProfile.targetRole || 'postulante'} y disponibilidad inmediata. ¿En qué horario podría consignar mi síntesis curricular? Gracias.`
+                                  : `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante para "${place.title || 'el puesto'}". Quisiera postularme formalmente. Gracias.`;
+                                const phone = place.contactWhatsapp ? place.contactWhatsapp.replace(/\D/g, '') : '';
+                                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                              }}
+                              className={
+                                isDemoUser
+                                  ? "px-2.5 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
+                                  : "px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
+                              }
+                              title={isDemoUser ? "Modo Prueba: Inicia sesión para postularte por WhatsApp" : "Postularte por WhatsApp (Registra tu postulación y asegura tu cupo en Mi Ruta)"}
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                              <span>{isDemoUser ? "WhatsApp (🔒 Solo Ver)" : "WhatsApp"}</span>
+                              {!isDemoUser && typeof place.availableSlots === 'number' && (
+                                <span className="text-[10px] bg-emerald-900/80 px-1 py-0.2 rounded text-emerald-200 font-mono ml-0.5">
+                                  {place.availableSlots}
+                                </span>
+                              )}
+                            </button>
                           )
                         )}
 
@@ -2255,6 +2249,8 @@ export default function HomePage() {
         isOpen={isCvBuilderOpen}
         onClose={() => setIsCvBuilderOpen(false)}
         selectedPlace={selectedPlace}
+        isDemoUser={isDemoUser}
+        onRestrictedAction={(reason) => triggerDemoNotice(reason)}
       />
 
       <ReportModal
