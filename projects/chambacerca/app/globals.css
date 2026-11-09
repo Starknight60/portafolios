@@ -281,7 +281,84 @@
   }
 }
 
-/* 10. Ruta a Pie Caminable Animada con Rayo Láser */
+/* 10. Efectos Ambientales Vanguardistas para Login Web */
+@keyframes orb-pulse {
+  0%, 100% {
+    transform: scale(1) translate(0px, 0px);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.18) translate(18px, -12px);
+    opacity: 0.65;
+  }
+}
+
+@keyframes orb-drift {
+  0%, 100% {
+    transform: scale(1.15) translate(0px, 0px);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(0.92) translate(-22px, 16px);
+    opacity: 0.55;
+  }
+}
+
+@keyframes radar-blip-glow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes gradient-x-sweep {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-orb-pulse {
+  animation: orb-pulse 10s ease-in-out infinite alternate;
+}
+
+.animate-orb-drift {
+  animation: orb-drift 14s ease-in-out infinite alternate;
+}
+
+.animate-blip-glow {
+  animation: radar-blip-glow 2.5s ease-in-out infinite;
+}
+
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: gradient-x-sweep 5s ease infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.bg-dot-grid {
+  background-image: radial-gradient(rgba(16, 185, 129, 0.12) 1.2px, transparent 1.2px);
+  background-size: 28px 28px;
+}
+
+/* 11. Ruta a Pie Caminable Animada con Rayo Láser */
 @keyframes walking-dash {
   from {
     stroke-dashoffset: 40;
