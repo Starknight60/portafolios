@@ -892,20 +892,21 @@ export default function WebLogin({ onLoginSuccess, onContinueAsGuest }: WebLogin
                   </button>
                 </form>
 
-                {/* Acceso Rápido con Cuentas Demo de Prueba */}
+                {/* Acceso Rápido con Cuentas Demo y Administrador */}
                 <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-2">
                   <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
                     <span className="flex items-center gap-1">
                       <Zap className="w-3 h-3 text-amber-400" />
-                      <span>Acceso de 1 Clic (Modo Demo):</span>
+                      <span>Acceso Rápido de Prueba:</span>
                     </span>
                     <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-950/80 px-1.5 py-0.2 rounded border border-emerald-500/30">
-                      Verificado
+                      3 Cuentas Listas
                     </span>
                   </div>
 
+                  {/* 2 Cuentas de Prueba: Solo para Ver */}
                   <div className="grid grid-cols-2 gap-2">
-                    {/* Botón Carlos */}
+                    {/* Botón Carlos (Solo Ver) */}
                     <button
                       type="button"
                       onClick={() => handleQuickLogin('carlos.perez@ejemplo.com', 'Password123!')}
@@ -917,12 +918,12 @@ export default function WebLogin({ onLoginSuccess, onContinueAsGuest }: WebLogin
                           <span className="text-sm">👤</span>
                           <span className="font-bold text-slate-200 group-hover:text-emerald-300 transition-colors">Carlos Pérez</span>
                         </div>
-                        <span className="text-[8px] uppercase font-mono px-1 py-0.2 bg-emerald-950 text-emerald-400 rounded border border-emerald-500/30">CV LISTO</span>
+                        <span className="text-[8px] uppercase font-mono px-1 py-0.2 bg-amber-950/90 text-amber-300 rounded border border-amber-500/40 font-bold">SOLO VER</span>
                       </div>
-                      <span className="text-[9px] text-slate-400 font-mono truncate">Postulante (33 empleos a &lt;15m)</span>
+                      <span className="text-[9px] text-slate-400 font-mono truncate">Postulante Demo (33 vacantes)</span>
                     </button>
 
-                    {/* Botón Plazas */}
+                    {/* Botón Plazas (Solo Ver) */}
                     <button
                       type="button"
                       onClick={() => handleQuickLogin('rrhh@plazas.com', 'Chamba2026!')}
@@ -934,11 +935,34 @@ export default function WebLogin({ onLoginSuccess, onContinueAsGuest }: WebLogin
                           <span className="text-sm">🏢</span>
                           <span className="font-bold text-slate-200 group-hover:text-cyan-300 transition-colors">RRHH Plazas</span>
                         </div>
-                        <span className="text-[8px] uppercase font-mono px-1 py-0.2 bg-cyan-950 text-cyan-400 rounded border border-cyan-500/30">EMPRESA</span>
+                        <span className="text-[8px] uppercase font-mono px-1 py-0.2 bg-amber-950/90 text-amber-300 rounded border border-amber-500/40 font-bold">SOLO VER</span>
                       </div>
-                      <span className="text-[9px] text-slate-400 font-mono truncate">Gestión y Publicación de Vacantes</span>
+                      <span className="text-[9px] text-slate-400 font-mono truncate">Empresa Demo (Reclutador)</span>
                     </button>
                   </div>
+
+                  {/* Botón Usuario Administrador (Acceso Total) */}
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin('admin@chambacerca.com', 'AdminChamba2026!')}
+                    className="w-full p-2.5 rounded-xl bg-gradient-to-r from-amber-950/50 via-slate-900/90 to-amber-950/50 hover:from-amber-900/50 hover:to-amber-900/40 border border-amber-500/40 hover:border-amber-400 text-[11px] font-semibold text-amber-300 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-950/60 cursor-pointer flex items-center justify-between relative overflow-hidden group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-900/80 border border-amber-400/50 flex items-center justify-center text-sm shadow">
+                        👑
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-amber-100 group-hover:text-amber-300 transition-colors">Usuario Administrador</span>
+                          <span className="text-[8px] uppercase font-mono px-1.5 py-0.2 bg-amber-500 text-slate-950 rounded font-black tracking-wider shadow-sm">
+                            ACCESO TOTAL
+                          </span>
+                        </div>
+                        <span className="text-[9px] text-slate-400 font-mono">admin@chambacerca.com • Moderación y gestión completa</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-1 transition-transform" />
+                  </button>
                 </div>
 
                 {/* Botón inferior para continuar como invitado */}

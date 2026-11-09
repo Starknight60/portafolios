@@ -9,7 +9,14 @@ export async function GET() {
   if (!session) {
     return NextResponse.json({ authenticated: false, user: null });
   }
-  return NextResponse.json({ authenticated: true, user: session });
+  const isDemo = session.email === 'carlos.perez@ejemplo.com' || session.email === 'rrhh@plazas.com';
+  return NextResponse.json({ 
+    authenticated: true, 
+    user: {
+      ...session,
+      isDemo,
+    } 
+  });
 }
 
 export async function POST() {

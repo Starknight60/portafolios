@@ -9,6 +9,7 @@ import VacancyDetailModal from '@/components/VacancyDetailModal';
 import ReportModal from '@/components/ReportModal';
 import EmployerModal from '@/components/EmployerModal';
 import AuthModal from '@/components/AuthModal';
+import DemoRestrictionModal from '@/components/DemoRestrictionModal';
 import WebLogin from '@/components/WebLogin';
 import SavingsCalculatorModal from '@/components/SavingsCalculatorModal';
 import CurriculumBuilderModal from '@/components/CurriculumBuilderModal';
@@ -66,6 +67,31 @@ export default function HomePage() {
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [filterSavedOnly, setFilterSavedOnly] = useState<boolean>(false);
+
+  // Estados para Modo Demostración (Cuentas de prueba solo para ver)
+  const [isDemoRestrictionOpen, setIsDemoRestrictionOpen] = useState<boolean>(false);
+  const [demoRestrictionReason, setDemoRestrictionReason] = useState<
+    'message' | 'contact_info' | 'publish' | 'report' | 'general'
+  >('general');
+
+  const isDemoUser = useMemo(() => {
+    if (!currentUser) return true; // Modo invitado es solo para ver
+    if (currentUser.role === 'ADMIN') return false; // Administrador tiene acceso total
+    if (
+      currentUser.email === 'carlos.perez@ejemplo.com' ||
+      currentUser.email === 'rrhh@plazas.com' ||
+      currentUser.isDemo
+    ) {
+      return true;
+    }
+    return false;
+  }, [currentUser]);
+
+  const triggerDemoNotice = (reason: 'message' | 'contact_info' | 'publish' | 'report' | 'general' = 'general') => {
+    playTacticalClick();
+    setDemoRestrictionReason(reason);
+    setIsDemoRestrictionOpen(true);
+  };
 
   // Estados de Búsqueda y Filtros Inteligentes (Optimizado con useDeferredValue para 120Hz sin retraso al teclear)
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -205,6 +231,10 @@ export default function HomePage() {
 
   // Función para compartir vacante por WhatsApp a un pana
   const handleShareToWhatsApp = (place: PlaceResultItem) => {
+    if (isDemoUser) {
+      triggerDemoNotice('message');
+      return;
+    }
     playTacticalClick();
     const title = place.title || 'esta vacante';
     const name = place.placeName;
@@ -317,6 +347,11 @@ export default function HomePage() {
 
   // Registrar postulación inteligente, actualizar cupos y agregarla automáticamente a Mi Ruta
   async function handleApplyJob(place: PlaceResultItem, channel: string = 'WHATSAPP') {
+    if (isDemoUser) {
+      triggerDemoNotice('message');
+      return;
+    }
+
     try {
       playTacticalClick();
 
@@ -714,7 +749,13 @@ export default function HomePage() {
           <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Botón Primario: Publicar Empleo */}
             <button
-              onClick={() => setIsEmployerModalOpen(true)}
+              onClick={() => {
+                if (isDemoUser) {
+                  triggerDemoNotice('publish');
+                  return;
+                }
+                setIsEmployerModalOpen(true);
+              }}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm cursor-pointer whitespace-nowrap"
             >
               <Briefcase className="w-3.5 h-3.5" />
@@ -768,18 +809,55 @@ export default function HomePage() {
               )}
             </button>
 
-            {/* Estado de Sesión del Usuario (Siempre visible, sin desbordamiento) */}
+            {/* Estado de Sesión del Usuario (Distinción entre Admin, Demo y Normal) */}
             {currentUser ? (
-              <div className="flex items-center gap-1 sm:gap-1.5 bg-slate-900/90 p-1 pl-1.5 sm:pl-2 rounded-xl border border-slate-800 shrink-0">
+              <div
+                className={`flex items-center gap-1 sm:gap-1.5 p-1 pl-1.5 sm:pl-2 rounded-xl border shrink-0 transition-all ${
+                  currentUser.role === 'ADMIN'
+                    ? 'bg-gradient-to-r from-amber-950/90 via-slate-900 to-amber-950/90 border-amber-500/60 shadow-lg shadow-amber-950/50'
+                    : isDemoUser
+                    ? 'bg-slate-900/90 border-amber-500/40'
+                    : 'bg-slate-900/90 border-slate-800'
+                }`}
+              >
                 <div 
-                  className="w-6 h-6 rounded-md bg-emerald-600 text-white font-extrabold text-[11px] flex items-center justify-center shrink-0 shadow-sm"
-                  title={currentUser.name}
+                  className={`w-6 h-6 rounded-md font-extrabold text-[11px] flex items-center justify-center shrink-0 shadow-sm ${
+                    currentUser.role === 'ADMIN'
+                      ? 'bg-amber-500 text-slate-950 font-black'
+                      : isDemoUser
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-emerald-600 text-white'
+                  }`}
+                  title={currentUser.role === 'ADMIN' ? 'Administrador Maestro' : currentUser.name}
                 >
-                  {currentUser.name.charAt(0).toUpperCase()}
+                  {currentUser.role === 'ADMIN' ? '👑' : currentUser.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="hidden md:block text-left pr-1 max-w-[90px]">
-                  <p className="text-xs font-bold text-slate-100 truncate leading-tight">{currentUser.name}</p>
+                <div className="hidden md:block text-left pr-1 max-w-[125px]">
+                  <p className={`text-xs font-bold truncate leading-tight ${currentUser.role === 'ADMIN' ? 'text-amber-200' : 'text-slate-100'}`}>
+                    {currentUser.role === 'ADMIN' ? 'Admin Master' : currentUser.name}
+                  </p>
+                  <p className="text-[9px] font-mono font-bold leading-none mt-0.5">
+                    {currentUser.role === 'ADMIN' ? (
+                      <span className="text-amber-400 uppercase">Acceso Total</span>
+                    ) : isDemoUser ? (
+                      <span className="text-amber-400 uppercase">Solo Ver</span>
+                    ) : (
+                      <span className="text-emerald-400 uppercase">Verificado</span>
+                    )}
+                  </p>
                 </div>
+
+                {/* Si es cuenta demo, botón visible para activar / iniciar sesión real */}
+                {isDemoUser && (
+                  <button
+                    type="button"
+                    onClick={() => triggerDemoNotice('general')}
+                    className="hidden sm:flex px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition cursor-pointer"
+                    title="Cuenta de prueba: Haz clic para activar tu cuenta completa"
+                  >
+                    Activar
+                  </button>
+                )}
 
                 <button
                   onClick={() => setFilterSavedOnly(!filterSavedOnly)}
@@ -804,6 +882,15 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => triggerDemoNotice('general')}
+                  className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg bg-amber-950/60 border border-amber-500/40 text-amber-300 hover:bg-amber-900/60 transition cursor-pointer"
+                  title="Estás navegando en modo invitado"
+                >
+                  <span className="text-xs">👁️</span>
+                  <span className="hidden sm:inline text-[11px]">Invitado (Solo Ver)</span>
+                </button>
                 <button
                   onClick={() => {
                     setAuthModalTab('login');
@@ -1361,8 +1448,14 @@ export default function HomePage() {
                       Ampliar a 5 km
                     </button>
                     <button
-                      onClick={() => setIsEmployerModalOpen(true)}
-                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition"
+                      onClick={() => {
+                        if (isDemoUser) {
+                          triggerDemoNotice('publish');
+                          return;
+                        }
+                        setIsEmployerModalOpen(true);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition cursor-pointer"
                     >
                       Publicar Vacante
                     </button>
@@ -2056,12 +2149,20 @@ export default function HomePage() {
       <VacancyDetailModal
         place={selectedPlace}
         onClose={() => setSelectedPlace(null)}
-        onOpenReport={(p) => setReportTargetPlace(p)}
+        onOpenReport={(p) => {
+          if (isDemoUser) {
+            triggerDemoNotice('report');
+            return;
+          }
+          setReportTargetPlace(p);
+        }}
         onOpenCalculator={() => setIsCalculatorOpen(true)}
         onOpenCvBuilder={() => setIsCvBuilderOpen(true)}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onFocusOnRadar={handleFocusOnRadar}
         onApplyJob={handleApplyJob}
+        isDemoUser={isDemoUser}
+        onRestrictedAction={(reason) => triggerDemoNotice(reason)}
       />
 
       <ApplicantProfileModal
@@ -2103,6 +2204,22 @@ export default function HomePage() {
           setCurrentUser(user);
           fetchSaved();
         }}
+      />
+
+      {/* Modal de Restricción para Cuentas Demo (Solo Ver) */}
+      <DemoRestrictionModal
+        isOpen={isDemoRestrictionOpen}
+        onClose={() => setIsDemoRestrictionOpen(false)}
+        onOpenLogin={() => {
+          setAuthModalTab('login');
+          setIsAuthModalOpen(true);
+        }}
+        onOpenRegister={() => {
+          setAuthModalTab('register');
+          setIsAuthModalOpen(true);
+        }}
+        userEmail={currentUser?.email}
+        reason={demoRestrictionReason}
       />
 
       {/* Toast Animado de Confirmación Táctica de Postulación */}

@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
       company: user.company || null,
     });
 
+    const isDemo = user.email === 'carlos.perez@ejemplo.com' || user.email === 'rrhh@plazas.com';
+
     const response = NextResponse.json({
       success: true,
       message: `¡Bienvenido de vuelta, ${user.name}!`,
@@ -86,6 +88,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role || 'SEEKER',
         company: user.company,
+        isDemo,
       },
     });
 

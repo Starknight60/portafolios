@@ -19,6 +19,8 @@ interface VacancyDetailModalProps {
   onOpenProfile?: () => void;
   onFocusOnRadar?: (place: PlaceResultItem) => void;
   onApplyJob?: (place: PlaceResultItem, channel: string) => void;
+  isDemoUser?: boolean;
+  onRestrictedAction?: (reason: 'message' | 'contact_info') => void;
 }
 
 export default function VacancyDetailModal({ 
@@ -29,7 +31,9 @@ export default function VacancyDetailModal({
   onOpenCvBuilder, 
   onOpenProfile,
   onFocusOnRadar,
-  onApplyJob 
+  onApplyJob,
+  isDemoUser = false,
+  onRestrictedAction
 }: VacancyDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'requirements' | 'apply' | 'safety'>('info');
   const [copiedMessage, setCopiedMessage] = useState(false);
@@ -171,6 +175,25 @@ export default function VacancyDetailModal({
             </button>
           </div>
         </div>
+
+        {/* Banner de Modo Demostración (Solo Ver) */}
+        {isDemoUser && (
+          <div className="mx-4 sm:mx-6 mt-3 p-3 rounded-2xl bg-amber-950/40 border border-amber-500/50 flex items-center justify-between gap-3 text-amber-200 text-xs shadow-md">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🔒</span>
+              <span className="text-[11px] leading-tight">
+                <strong>Modo Demostración (Solo Ver):</strong> Para enviar mensajes a RRHH o ver información de contacto debes iniciar sesión o crear una cuenta.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onRestrictedAction && onRestrictedAction('message')}
+              className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[10px] uppercase shrink-0 transition cursor-pointer shadow"
+            >
+              Iniciar Sesión
+            </button>
+          </div>
+        )}
 
         {/* Banner de Aviso de Postulación en Proceso (Ciclo 24h) */}
         {isClaimed && (
@@ -499,7 +522,13 @@ export default function VacancyDetailModal({
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(rawWhatsAppText, 'message')}
+                    onClick={() => {
+                      if (isDemoUser && onRestrictedAction) {
+                        onRestrictedAction('message');
+                        return;
+                      }
+                      copyToClipboard(rawWhatsAppText, 'message');
+                    }}
                     className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                   >
                     {copiedMessage ? (
@@ -526,16 +555,27 @@ export default function VacancyDetailModal({
                     </button>
                   ) : (
                     whatsappUrl && (
-                      <a
-                        href={whatsappUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => handleApplyClick('WHATSAPP')}
-                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        <span>Abrir Chat en WhatsApp</span>
-                      </a>
+                      isDemoUser ? (
+                        <button
+                          type="button"
+                          onClick={() => onRestrictedAction && onRestrictedAction('message')}
+                          className="px-4 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          <span>Abrir Chat en WhatsApp (🔒 Solo Ver)</span>
+                        </button>
+                      ) : (
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleApplyClick('WHATSAPP')}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          <span>Abrir Chat en WhatsApp</span>
+                        </a>
+                      )
                     )
                   )}
                 </div>
@@ -609,16 +649,30 @@ export default function VacancyDetailModal({
                   )}
 
                   {place.contactEmail && (
-                    <a
-                      href={`mailto:${place.contactEmail}?subject=Postulaci%C3%B3n%20-%20${encodeURIComponent(place.title || 'Vacante')}&body=${encodeURIComponent(rawWhatsAppText)}`}
-                      className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-200 flex items-center justify-between transition"
-                    >
-                      <span className="font-semibold flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-emerald-400" />
-                        <span>Enviar CV por Correo</span>
-                      </span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    isDemoUser ? (
+                      <button
+                        type="button"
+                        onClick={() => onRestrictedAction && onRestrictedAction('message')}
+                        className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-200 flex items-center justify-between transition cursor-pointer"
+                      >
+                        <span className="font-semibold flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-emerald-400" />
+                          <span>Enviar CV por Correo (🔒 Solo Ver)</span>
+                        </span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <a
+                        href={`mailto:${place.contactEmail}?subject=Postulaci%C3%B3n%20-%20${encodeURIComponent(place.title || 'Vacante')}&body=${encodeURIComponent(rawWhatsAppText)}`}
+                        className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-200 flex items-center justify-between transition"
+                      >
+                        <span className="font-semibold flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-emerald-400" />
+                          <span>Enviar CV por Correo</span>
+                        </span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )
                   )}
                 </div>
               </div>
@@ -788,21 +842,32 @@ export default function VacancyDetailModal({
               </button>
             ) : (
               whatsappUrl && (
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => handleApplyClick('WHATSAPP')}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
-                >
-                  <MessageCircle className="w-4 h-4 fill-current" />
-                  <span>WhatsApp Directo</span>
-                  {typeof place.availableSlots === 'number' && (
-                    <span className="text-[10px] bg-emerald-900/90 px-1.5 py-0.5 rounded font-mono text-emerald-200 ml-1">
-                      {place.availableSlots} {place.availableSlots === 1 ? 'cupo' : 'cupos'}
-                    </span>
-                  )}
-                </a>
+                isDemoUser ? (
+                  <button
+                    type="button"
+                    onClick={() => onRestrictedAction && onRestrictedAction('message')}
+                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-current" />
+                    <span>WhatsApp Directo (🔒 Solo Ver)</span>
+                  </button>
+                ) : (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => handleApplyClick('WHATSAPP')}
+                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950 cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-current" />
+                    <span>WhatsApp Directo</span>
+                    {typeof place.availableSlots === 'number' && (
+                      <span className="text-[10px] bg-emerald-900/90 px-1.5 py-0.5 rounded font-mono text-emerald-200 ml-1">
+                        {place.availableSlots} {place.availableSlots === 1 ? 'cupo' : 'cupos'}
+                      </span>
+                    )}
+                  </a>
+                )
               )
             )}
 
@@ -819,13 +884,24 @@ export default function VacancyDetailModal({
             )}
 
             {place.contactPhone && !whatsappUrl && (
-              <a
-                href={`tel:${place.contactPhone}`}
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
-              >
-                <Phone className="w-4 h-4" />
-                <span>Llamar a RRHH</span>
-              </a>
+              isDemoUser ? (
+                <button
+                  type="button"
+                  onClick={() => onRestrictedAction && onRestrictedAction('contact_info')}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer border border-slate-700"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>Llamar a RRHH (🔒 Solo Ver)</span>
+                </button>
+              ) : (
+                <a
+                  href={`tel:${place.contactPhone}`}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>Llamar a RRHH</span>
+                </a>
+              )
             )}
           </div>
         </div>
