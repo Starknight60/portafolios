@@ -698,26 +698,26 @@ export default function HomePage() {
         }} 
       />
 
-      {/* Header Principal Compacto y Elegante con Adaptabilidad a Notch y Punch-Hole de Android */}
+      {/* Header Principal Compacto y Elegante con Centrado Perfecto y Balance Simétrico */}
       <header className="sticky top-0 z-[100] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 py-2 safe-area-header">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          {/* Logo & Marca Compacta con Compás Animado */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-md shadow-emerald-950/60 flex items-center justify-center relative">
-              <div className="w-full h-full bg-[#080D15] rounded-[9px] flex items-center justify-center overflow-hidden relative">
+        <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-2 lg:gap-4">
+          {/* Columna Izquierda: Logo & Marca (flex-1 para balance simétrico) */}
+          <div className="flex-1 flex items-center justify-start gap-2 sm:gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-md shadow-emerald-950/60 flex items-center justify-center shrink-0">
+              <div className="w-full h-full bg-[#080D15] rounded-[9px] flex items-center justify-center overflow-hidden">
                 <Compass className="w-4 h-4 text-emerald-400" />
               </div>
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="font-extrabold text-base sm:text-lg tracking-tight text-white flex items-center gap-0.5">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h1 className="font-extrabold text-base sm:text-lg tracking-tight text-white flex items-center gap-0.5 whitespace-nowrap">
                   Chamba<span className="text-emerald-400">Cerca</span>
                 </h1>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+                <span className="hidden sm:inline-flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 whitespace-nowrap">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                   Venezuela
                 </span>
-                <span className="hidden md:inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400/90 px-1.5 py-0.5 rounded-full bg-emerald-950/40 border border-emerald-800/40">
+                <span className="hidden xl:inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400/90 px-1.5 py-0.5 rounded-full bg-emerald-950/40 border border-emerald-800/40 whitespace-nowrap">
                   <ShieldCheck className="w-2.5 h-2.5 text-emerald-400" />
                   100% Verificado
                 </span>
@@ -725,30 +725,32 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Ticker de Señal de Radar Central (Esbelto en 1 sola línea) */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-emerald-500/30 text-xs font-semibold text-emerald-300 shadow-inner shrink-0">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
-            </span>
-            <span className="font-mono text-[11px] tracking-tight whitespace-nowrap">
-              RADAR: <strong className="text-white font-bold">{displayedPlaces.length} OFERTAS</strong> EN RADIO
-            </span>
-            <span className="text-slate-700">|</span>
-            {isOfflineMode ? (
-              <span className="text-amber-400 font-bold text-[11px] flex items-center gap-1 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/40 animate-pulse">
-                <WifiOff className="w-3 h-3 text-amber-400" />
-                <span>Modo Callejero Offline</span>
+          {/* Columna Central: Ticker de Señal de Radar (flex-none, Centrado Milimétrico) */}
+          <div className="hidden lg:flex flex-none items-center justify-center">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-emerald-500/30 text-xs font-semibold text-emerald-300 shadow-inner">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
               </span>
-            ) : (
-              <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
-                <span>📅 Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || '5 de Noviembre'})</span>
+              <span className="font-mono text-[11px] tracking-tight whitespace-nowrap">
+                RADAR: <strong className="text-white font-bold">{displayedPlaces.length} OFERTAS</strong> EN RADIO
               </span>
-            )}
+              <span className="text-slate-700">|</span>
+              {isOfflineMode ? (
+                <span className="text-amber-400 font-bold text-[11px] flex items-center gap-1 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/40 animate-pulse whitespace-nowrap">
+                  <WifiOff className="w-3 h-3 text-amber-400" />
+                  <span>Modo Callejero Offline</span>
+                </span>
+              ) : (
+                <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1 whitespace-nowrap">
+                  <span>📅 Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || '5 de Noviembre'})</span>
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Acciones de Cabecera: Botones Primarios y Herramientas */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Columna Derecha: Acciones y Usuario (flex-1, Alineado a la Derecha con Balance) */}
+          <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
             {/* Botón Primario: Publicar Empleo */}
             <button
               onClick={() => {
@@ -775,7 +777,7 @@ export default function HomePage() {
               title="Calcular ahorro de pasaje en camionetica vs sueldo neto"
             >
               <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Calculadora</span>
+              <span className="hidden xl:inline">Calculadora</span>
             </button>
 
             {/* Botón Creador de CV en 1 Página */}
@@ -788,10 +790,10 @@ export default function HomePage() {
               title="Crear currículum vitae en 1 página para imprimir"
             >
               <FileText className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Crear CV</span>
+              <span className="hidden xl:inline">Crear CV</span>
             </button>
 
-            {/* Botón Acceso Rápido: Mi Perfil de Postulante (Visible en pantallas sm+) */}
+            {/* Botón Acceso Rápido: Mi Perfil de Postulante */}
             <button
               onClick={() => {
                 setIsProfileModalOpen(true);
@@ -805,7 +807,7 @@ export default function HomePage() {
               title="Configurar tus datos de postulante para auto-llenar WhatsApp y CV"
             >
               <User className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Mi Perfil</span>
+              <span className="hidden xl:inline">Mi Perfil</span>
               {applicantProfile?.fullName && (
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               )}
@@ -834,7 +836,7 @@ export default function HomePage() {
                 >
                   {currentUser.role === 'ADMIN' ? '👑' : currentUser.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="hidden md:block text-left pr-1 max-w-[125px]">
+                <div className="hidden lg:block text-left pr-1 max-w-[95px] xl:max-w-[125px]">
                   <p className={`text-xs font-bold truncate leading-tight ${currentUser.role === 'ADMIN' ? 'text-amber-200' : 'text-slate-100'}`}>
                     {currentUser.role === 'ADMIN' ? 'Admin Master' : currentUser.name}
                   </p>
@@ -941,7 +943,7 @@ export default function HomePage() {
 
       {/* 3. Barra de Control Geográfico & Selector de Ciudades de Venezuela (Optimizada y Esbelta) */}
       <section className="bg-[#0B131F] border-b border-slate-800/80 px-3 sm:px-6 py-2">
-        <div className="max-w-7xl mx-auto space-y-2">
+        <div className="w-full max-w-7xl mx-auto space-y-2">
           {/* Fila 1: Botón GPS, Selector de Ciudad Nacional y Selector de Radio */}
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 flex-wrap">
