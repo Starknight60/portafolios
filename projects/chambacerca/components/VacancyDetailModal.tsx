@@ -21,6 +21,7 @@ interface VacancyDetailModalProps {
   onFocusOnRadar?: (place: PlaceResultItem) => void;
   onApplyJob?: (place: PlaceResultItem, channel: string) => void;
   onRemoveApplication?: (place: PlaceResultItem) => void;
+  onOpenWhatsAppModal?: (place: PlaceResultItem) => void;
   isDemoUser?: boolean;
   onRestrictedAction?: (reason: 'message' | 'contact_info') => void;
 }
@@ -35,6 +36,7 @@ export default function VacancyDetailModal({
   onFocusOnRadar,
   onApplyJob,
   onRemoveApplication,
+  onOpenWhatsAppModal,
   isDemoUser = false,
   onRestrictedAction
 }: VacancyDetailModalProps) {
@@ -537,15 +539,21 @@ export default function VacancyDetailModal({
                       <span>Caminar ({place.walkTimeMinutes} min) (🔒)</span>
                     </button>
                   ) : (
-                    <a
-                      href={googleMapsWalkingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 text-xs font-medium flex items-center gap-1 transition"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onFocusOnRadar) {
+                          onFocusOnRadar(place);
+                          onClose();
+                        } else {
+                          window.open(googleMapsWalkingUrl, '_blank');
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 text-xs font-medium flex items-center gap-1 transition cursor-pointer"
                     >
                       <Navigation className="w-3 h-3 text-emerald-400" />
-                      <span>Caminar ({place.walkTimeMinutes} min)</span>
-                    </a>
+                      <span>Ruta a pie ({place.walkTimeMinutes} min)</span>
+                    </button>
                   )}
                 </div>
               </div>
@@ -706,8 +714,12 @@ export default function VacancyDetailModal({
                             if (onRestrictedAction) onRestrictedAction('message');
                             return;
                           }
-                          handleApplyClick('WHATSAPP');
-                          window.open(whatsappUrl, '_blank');
+                          if (onOpenWhatsAppModal) {
+                            onOpenWhatsAppModal(place);
+                          } else {
+                            handleApplyClick('WHATSAPP');
+                            window.open(whatsappUrl, '_blank');
+                          }
                         }}
                         className={
                           isDemoUser
@@ -1013,15 +1025,21 @@ export default function VacancyDetailModal({
                 <span>Caminar ({place.walkTimeMinutes} min) (🔒)</span>
               </button>
             ) : (
-              <a
-                href={googleMapsWalkingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => {
+                  if (onFocusOnRadar) {
+                    onFocusOnRadar(place);
+                    onClose();
+                  } else {
+                    window.open(googleMapsWalkingUrl, '_blank');
+                  }
+                }}
                 className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Navigation className="w-4 h-4 text-emerald-400" />
-                <span>Caminar ({place.walkTimeMinutes} min)</span>
-              </a>
+                <span>Ruta a pie ({place.walkTimeMinutes} min)</span>
+              </button>
             )}
 
             {place.userHasApplied ? (
@@ -1062,8 +1080,12 @@ export default function VacancyDetailModal({
                       if (onRestrictedAction) onRestrictedAction('message');
                       return;
                     }
-                    handleApplyClick('WHATSAPP');
-                    window.open(whatsappUrl, '_blank');
+                    if (onOpenWhatsAppModal) {
+                      onOpenWhatsAppModal(place);
+                    } else {
+                      handleApplyClick('WHATSAPP');
+                      window.open(whatsappUrl, '_blank');
+                    }
                   }}
                   className={
                     isDemoUser

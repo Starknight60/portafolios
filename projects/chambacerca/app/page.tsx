@@ -14,6 +14,7 @@ import WebLogin from '@/components/WebLogin';
 import SavingsCalculatorModal from '@/components/SavingsCalculatorModal';
 import CurriculumBuilderModal from '@/components/CurriculumBuilderModal';
 import ApplicantProfileModal, { ApplicantProfile } from '@/components/ApplicantProfileModal';
+import WhatsAppQuickModal from '@/components/WhatsAppQuickModal';
 import { parseSalaryBreakdown } from '@/lib/currencies';
 import { COMMERCIAL_HUBS, CommercialHub } from '@/lib/commercialHubs';
 import { playSonarPing, playSuccessChime, playTacticalClick } from '@/lib/audio';
@@ -182,6 +183,9 @@ export default function HomePage() {
 
   // Selector de simulación de rotación de 24 horas (0 = Hoy, 1 = Mañana, 2 = Pasado Mañana)
   const [dayOffset, setDayOffset] = useState<number>(0);
+
+  // Mini ventana de WhatsApp interactiva in-app
+  const [whatsAppModalPlace, setWhatsAppModalPlace] = useState<PlaceResultItem | null>(null);
 
   // Estados de Nuevas Funcionalidades: Perfil de Postulante & Modo Callejero Offline
   const [applicantProfile, setApplicantProfile] = useState<ApplicantProfile | null>(null);
@@ -448,9 +452,24 @@ export default function HomePage() {
     const address = place.address || '';
     const salary = place.salaryRange ? `Pagan *${place.salaryRange}*` : 'Excelente paquete en $ USD';
     const walk = place.walkTimeMinutes ? `Queda a *${place.walkTimeMinutes} min a pie* (~${place.distanceFormatted})` : `Distancia: ${place.distanceFormatted}`;
-    const message = `¡Epa chamo! 👋 En ChambaCerca vi esta oportunidad de trabajo cerca:\n\n💼 *${title}*\n🏬 *${name}* (${address})\n💰 ${salary}\n🚶‍♂️ ${walk}\n\nRevisa los detalles aquí 👇\nhttps://portafolios-rho.vercel.app`;
-    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    const message = `¡Epa chamo! 👋 En ChambaCerca vi esta oportunidad de trabajo cerca:\n\n💼 *${title}*\n🏬 *${name}* (${address})\n💰 ${salary}\n🚶‍♂️ ${walk}\n\nRevisa los detalles aquí 👇\nhttps://chambacerca-nine.vercel.app`;
+    
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(message);
+        showSuccessToast('📋 ¡Oferta copiada! Pégala en tu chat de WhatsApp con tu pana.');
+      }
+    } catch {}
+
+    try {
+      const a = document.createElement('a');
+      a.href = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {}
   };
 
   // Función para calcular salario neto aproximado restando camionetica
@@ -2225,17 +2244,18 @@ export default function HomePage() {
                             <span>Mapa (🔒)</span>
                           </button>
                         ) : (
-                          <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFocusOnRadar(place);
+                            }}
                             className="px-2 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-blue-300 border border-blue-500/40 hover:border-blue-400 font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
-                            title="Abrir ruta a pie en Google Maps"
+                            title="Centrar y trazar en el Radar GPS en vivo"
                           >
                             <Navigation className="w-3 h-3 text-blue-400" />
-                            <span>Mapa</span>
-                          </a>
+                            <span>En Radar</span>
+                          </button>
                         )}
 
                         <button
@@ -2300,19 +2320,14 @@ export default function HomePage() {
                                   triggerDemoNotice('message');
                                   return;
                                 }
-                                handleApplyJob(place, 'WHATSAPP');
-                                const msg = applicantProfile?.fullName
-                                  ? `Hola, cordial saludo. Mi nombre es ${applicantProfile.fullName}${applicantProfile.idNumber ? ` (C.I. ${applicantProfile.idNumber})` : ''}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto'}". Cuento con experiencia como ${applicantProfile.targetRole || 'postulante'} y disponibilidad inmediata. ¿En qué horario podría consignar mi síntesis curricular? Gracias.`
-                                  : `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante para "${place.title || 'el puesto'}". Quisiera postularme formalmente. Gracias.`;
-                                const phone = place.contactWhatsapp ? place.contactWhatsapp.replace(/\D/g, '') : '';
-                                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                                setWhatsAppModalPlace(place);
                               }}
                               className={
                                 isDemoUser
                                   ? "px-2.5 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
                                   : "px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
                               }
-                              title={isDemoUser ? "Modo Prueba: Inicia sesión para postularte por WhatsApp" : "Postularte por WhatsApp (Registra tu postulación y asegura tu cupo en Mi Ruta)"}
+                              title={isDemoUser ? "Modo Prueba: Inicia sesión para postularte por WhatsApp" : "Abrir contacto de WhatsApp (Ver número verificado, mensaje listo y postularte)"}
                             >
                               <MessageCircle className="w-3.5 h-3.5 fill-current" />
                               <span>{isDemoUser ? "WhatsApp (🔒 Solo Ver)" : "WhatsApp"}</span>
@@ -2579,8 +2594,18 @@ export default function HomePage() {
         onFocusOnRadar={handleFocusOnRadar}
         onApplyJob={handleApplyJob}
         onRemoveApplication={(p) => handleRemoveApplication(p.id, p.placeName)}
+        onOpenWhatsAppModal={(p) => setWhatsAppModalPlace(p)}
         isDemoUser={isDemoUser}
         onRestrictedAction={(reason) => triggerDemoNotice(reason)}
+      />
+
+      <WhatsAppQuickModal
+        place={whatsAppModalPlace}
+        isOpen={Boolean(whatsAppModalPlace)}
+        onClose={() => setWhatsAppModalPlace(null)}
+        applicantProfile={applicantProfile}
+        onApplied={(p) => handleApplyJob(p, 'WHATSAPP')}
+        isDemoUser={isDemoUser}
       />
 
       <ApplicantProfileModal
