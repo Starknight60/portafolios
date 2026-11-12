@@ -356,6 +356,11 @@ function MapViewer({
   const [mapType, setMapType] = useState<'tactical' | 'streets' | 'satellite'>('tactical');
   const [showRadarHud, setShowRadarHud] = useState(false);
 
+  // Reglas de Hooks: useMemo SIEMPRE antes de cualquier retorno condicional
+  const validPlaces = useMemo(() => {
+    return (places || []).filter(p => p && isValidLatLng(p.latitude, p.longitude));
+  }, [places]);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -381,10 +386,6 @@ function MapViewer({
     : null;
 
   const safeRadius = (Number.isFinite(radiusMeters) && radiusMeters > 0) ? radiusMeters : 2500;
-
-  const validPlaces = useMemo(() => {
-    return (places || []).filter(p => p && isValidLatLng(p.latitude, p.longitude));
-  }, [places]);
 
   const zoom = safeRadius <= 600 ? 16 : safeRadius <= 1500 ? 15 : safeRadius <= 3500 ? 14 : 13;
   const currentLayer = MAP_LAYERS[mapType];
