@@ -178,6 +178,7 @@ export default function HomePage() {
     [id: string]: 'pending_visit' | 'cv_delivered' | 'interview_called';
   }>({});
   const [filterRouteOnly, setFilterRouteOnly] = useState<boolean>(false);
+  const [isClearRouteConfirmOpen, setIsClearRouteConfirmOpen] = useState<boolean>(false);
 
   // Selector de simulación de rotación de 24 horas (0 = Hoy, 1 = Mañana, 2 = Pasado Mañana)
   const [dayOffset, setDayOffset] = useState<number>(0);
@@ -347,11 +348,12 @@ export default function HomePage() {
   };
 
   // Limpiar todas las postulaciones de "Mi Ruta"
-  const handleClearAllApplications = async () => {
-    if (typeof window !== 'undefined' && !window.confirm('¿Seguro que deseas borrar todas las postulaciones de tu lista?')) {
-      return;
-    }
+  const handleClearAllApplications = () => {
+    setIsClearRouteConfirmOpen(true);
+  };
 
+  const executeClearAllApplications = async () => {
+    setIsClearRouteConfirmOpen(false);
     try {
       playTacticalClick();
 
@@ -1701,11 +1703,11 @@ export default function HomePage() {
                   ? 'Guarda oportunidades haciendo clic en la estrella (★) para tenerlas a mano cuando salgas a postularte.'
                   : 'Amplía el radio a 3 km o 5 km, o selecciona una de las ciudades principales en la barra superior.'}
               </p>
-              <div className="pt-2 flex justify-center gap-3">
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
                 {filterRouteOnly ? (
                   <button
                     onClick={() => setFilterRouteOnly(false)}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer"
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer shadow-lg shadow-emerald-950/50"
                   >
                     Explorar ofertas en el Radar
                   </button>
@@ -2639,6 +2641,42 @@ export default function HomePage() {
         userEmail={currentUser?.email}
         reason={demoRestrictionReason}
       />
+
+      {/* Modal Confirmación de Vaciado de Mi Ruta */}
+      {isClearRouteConfirmOpen && (
+        <div className="fixed inset-0 z-[1600] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-2xl bg-[#0E1726] border border-red-500/40 p-5 space-y-4 shadow-2xl shadow-red-950/50">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-red-950/80 border border-red-500/50 text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="font-black text-sm text-white">¿Vaciar lista de solicitudes?</h3>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  Se borrarán todas las postulaciones de tu ruta y se liberarán los cupos en el radar para que puedas postularte de nuevo.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsClearRouteConfirmOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={executeClearAllApplications}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition cursor-pointer shadow-lg shadow-red-950/60 flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Sí, vaciar lista</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Animado de Confirmación Táctica de Postulación */}
       {toastMessage && (
