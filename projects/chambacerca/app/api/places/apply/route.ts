@@ -142,3 +142,68 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const { searchParams } = new URL(request.url);
+    const placeId = body.placeId || searchParams.get('placeId') || null;
+    const clearAll = body.clearAll === true || searchParams.get('clearAll') === 'true';
+    const effectiveDeviceHash = body.deviceHash || searchParams.get('deviceHash') || request.headers.get('x-device-hash') || null;
+
+    if (!placeId && !clearAll) {
+      return NextResponse.json(
+        { error: 'Debes indicar un placeId o clearAll: true para eliminar la solicitud.' },
+        { status: 400 }
+      );
+    }
+
+    if (clearAll) {
+      if (effectiveDeviceHash) {
+        await (sql as any).query(
+          `
+          DELETE FROM chambacerca."JobApplication"
+          WHERE "deviceHash" = $1;
+          `,
+          [effectiveDeviceHash]
+        );
+      } else {
+        return NextResponse.json(
+          { error: 'Se requiere deviceHash para limpiar todas las postulaciones del dispositivo.' },
+          { status: 400 }
+        );
+      }
+    } else if (placeId) {
+      if (effectiveDeviceHash) {
+        await (sql as any).query(
+          `
+          DELETE FROM chambacerca."JobApplication"
+          WHERE "placeId" = $1 AND "deviceHash" = $2;
+          `,
+          [placeId, effectiveDeviceHash]
+        );
+      } else {
+        await (sql as any).query(
+          `
+          DELETE FROM chambacerca."JobApplication"
+          WHERE "placeId" = $1;
+          `,
+          [placeId]
+        );
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: clearAll
+        ? 'Todas las solicitudes han sido eliminadas de tu lista.'
+        : 'Solicitud eliminada de tu lista exitosamente.',
+    });
+  } catch (err: any) {
+    console.error('Error in DELETE /api/places/apply:', err);
+    return NextResponse.json(
+      { error: 'Error al eliminar la postulación de trabajo.', details: err.message },
+      { status: 500 }
+    );
+  }
+}

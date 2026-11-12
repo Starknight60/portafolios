@@ -23,7 +23,8 @@ import {
   ExternalLink, ChevronRight, ChevronDown, Layers, ShieldCheck, HeartHandshake,
   AlertTriangle, Globe, Mail, Sparkles, User, LogOut, Star, Bookmark, LogIn,
   Radio, Zap, X, SlidersHorizontal, FileText, Utensils, Bus, GraduationCap, Lock,
-  Maximize2, Minimize2, Share2, CheckCircle2, ClipboardList, TrendingUp, WifiOff
+  Maximize2, Minimize2, Share2, CheckCircle2, ClipboardList, TrendingUp, WifiOff,
+  Trash2
 } from 'lucide-react';
 
 // Carga dinámica del mapa de Radar táctico sin SSR para evitar errores de hidratación
@@ -275,19 +276,157 @@ export default function HomePage() {
     }
   };
 
+  // Eliminar postulación individual de "Mi Ruta"
+  const handleRemoveApplication = async (placeId: string, placeName?: string) => {
+    try {
+      playTacticalClick();
+
+      // 1. Quitar de applicationStatuses en estado local y localStorage
+      setApplicationStatuses((prev) => {
+        const next = { ...prev };
+        delete next[placeId];
+        try {
+          localStorage.setItem('chambacerca_application_statuses', JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+
+      // 2. Actualizar estado optimista en places para volver a habilitar postulación
+      setPlaces((prev) =>
+        prev.map((p) => {
+          if (p.id === placeId) {
+            const newCount = Math.max(0, (p.applicantCount || 1) - 1);
+            const maxSlots = p.maxSlots || 3;
+            const newAvailable = Math.min(maxSlots, (p.availableSlots || 0) + 1);
+            return {
+              ...p,
+              userHasApplied: false,
+              applicantCount: newCount,
+              availableSlots: newAvailable,
+              isClaimed: false,
+            };
+          }
+          return p;
+        })
+      );
+
+      // 3. Actualizar selectedPlace si coincide
+      if (selectedPlace?.id === placeId) {
+        setSelectedPlace((prev) =>
+          prev
+            ? {
+                ...prev,
+                userHasApplied: false,
+                applicantCount: Math.max(0, (prev.applicantCount || 1) - 1),
+                availableSlots: Math.min(prev.maxSlots || 3, (prev.availableSlots || 0) + 1),
+                isClaimed: false,
+              }
+            : null
+        );
+      }
+
+      // 4. Feedback
+      showSuccessToast(`🗑️ Postulación ${placeName ? `de ${placeName}` : ''} removida de tu lista.`);
+
+      // 5. Notificar al backend para liberar cupo y borrar el registro en PostgreSQL
+      const currentHash = deviceHash || (typeof window !== 'undefined' ? localStorage.getItem('chambacerca_device_hash') || '' : '');
+      await fetch('/api/places/apply', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(currentHash ? { 'x-device-hash': currentHash } : {}),
+        },
+        body: JSON.stringify({
+          placeId,
+          deviceHash: currentHash || undefined,
+        }),
+      });
+    } catch (err) {
+      console.error('Error removing application:', err);
+    }
+  };
+
+  // Limpiar todas las postulaciones de "Mi Ruta"
+  const handleClearAllApplications = async () => {
+    if (typeof window !== 'undefined' && !window.confirm('¿Seguro que deseas borrar todas las postulaciones de tu lista?')) {
+      return;
+    }
+
+    try {
+      playTacticalClick();
+
+      // 1. Limpiar applicationStatuses
+      setApplicationStatuses({});
+      try {
+        localStorage.removeItem('chambacerca_application_statuses');
+      } catch {}
+
+      // 2. Resetear userHasApplied en todos los places
+      setPlaces((prev) =>
+        prev.map((p) => {
+          if (p.userHasApplied) {
+            return {
+              ...p,
+              userHasApplied: false,
+              applicantCount: Math.max(0, (p.applicantCount || 1) - 1),
+              availableSlots: Math.min(p.maxSlots || 3, (p.availableSlots || 0) + 1),
+              isClaimed: false,
+            };
+          }
+          return p;
+        })
+      );
+
+      if (selectedPlace && selectedPlace.userHasApplied) {
+        setSelectedPlace((prev) =>
+          prev
+            ? {
+                ...prev,
+                userHasApplied: false,
+                applicantCount: Math.max(0, (prev.applicantCount || 1) - 1),
+                availableSlots: Math.min(prev.maxSlots || 3, (prev.availableSlots || 0) + 1),
+                isClaimed: false,
+              }
+            : null
+        );
+      }
+
+      // 3. Feedback
+      showSuccessToast('🗑️ Lista de postulaciones vaciada exitosamente.');
+
+      // 4. Backend
+      const currentHash = deviceHash || (typeof window !== 'undefined' ? localStorage.getItem('chambacerca_device_hash') || '' : '');
+      if (currentHash) {
+        await fetch('/api/places/apply', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-device-hash': currentHash,
+          },
+          body: JSON.stringify({
+            clearAll: true,
+            deviceHash: currentHash,
+          }),
+        });
+      }
+    } catch (err) {
+      console.error('Error clearing applications:', err);
+    }
+  };
+
   // Función para actualizar el estado de postulación de una vacante
   const updateApplicationStatus = (
     placeId: string,
     status: 'pending_visit' | 'cv_delivered' | 'interview_called' | 'none'
   ) => {
+    if (status === 'none') {
+      handleRemoveApplication(placeId);
+      return;
+    }
     playTacticalClick();
     setApplicationStatuses((prev) => {
       const next = { ...prev };
-      if (status === 'none') {
-        delete next[placeId];
-      } else {
-        next[placeId] = status;
-      }
+      next[placeId] = status;
       try {
         localStorage.setItem('chambacerca_application_statuses', JSON.stringify(next));
       } catch {}
@@ -685,7 +824,7 @@ export default function HomePage() {
       if (filterSavedOnly && !savedIds.includes(p.id)) return false;
 
       // 1.1 Filtro de Mi Ruta de Postulaciones activa
-      if (filterRouteOnly && !applicationStatuses[p.id]) return false;
+      if (filterRouteOnly && !(applicationStatuses[p.id] || p.userHasApplied)) return false;
 
       // 2. Filtro de búsqueda en vivo (con deferredSearchQuery para que el teclado responda a 120 FPS sin trabarse)
       if (deferredSearchQuery.trim()) {
@@ -778,7 +917,13 @@ export default function HomePage() {
     };
   }, []);
 
-  const routeCount = Object.keys(applicationStatuses).length;
+  const routeCount = useMemo(() => {
+    const ids = new Set([
+      ...Object.keys(applicationStatuses),
+      ...places.filter((p) => p.userHasApplied).map((p) => p.id),
+    ]);
+    return ids.size;
+  }, [applicationStatuses, places]);
 
   // Pantalla de carga mientras se verifica la sesión
   if (sessionLoading) {
@@ -1541,17 +1686,30 @@ export default function HomePage() {
           ) : displayedPlaces.length === 0 ? (
             /* Estado Vacío */
             <div className="p-10 text-center space-y-4 bg-[#0E1726] rounded-2xl border border-slate-800">
-              <span className="text-4xl">🔍</span>
+              <span className="text-4xl">{filterRouteOnly ? '📋' : filterSavedOnly ? '⭐' : '🔍'}</span>
               <h4 className="font-bold text-base text-slate-200">
-                {filterSavedOnly ? 'No tienes oportunidades guardadas todavía' : 'No encontramos registros en este radio inmediato'}
+                {filterRouteOnly
+                  ? 'No tienes solicitudes activas en tu lista'
+                  : filterSavedOnly
+                  ? 'No tienes oportunidades guardadas todavía'
+                  : 'No encontramos registros en este radio inmediato'}
               </h4>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                {filterSavedOnly
+                {filterRouteOnly
+                  ? 'Postúlate a una vacante por WhatsApp o márcala en el radar para agregarla automáticamente a tu lista "Mi Ruta".'
+                  : filterSavedOnly
                   ? 'Guarda oportunidades haciendo clic en la estrella (★) para tenerlas a mano cuando salgas a postularte.'
                   : 'Amplía el radio a 3 km o 5 km, o selecciona una de las ciudades principales en la barra superior.'}
               </p>
               <div className="pt-2 flex justify-center gap-3">
-                {filterSavedOnly ? (
+                {filterRouteOnly ? (
+                  <button
+                    onClick={() => setFilterRouteOnly(false)}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer"
+                  >
+                    Explorar ofertas en el Radar
+                  </button>
+                ) : filterSavedOnly ? (
                   <button
                     onClick={() => setFilterSavedOnly(false)}
                     className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition"
@@ -1660,6 +1818,39 @@ export default function HomePage() {
                 </div>
               )}
 
+              {/* Banner Interactivo de Mi Ruta con opción de Limpiar Toda la Lista */}
+              {filterRouteOnly && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900/90 to-slate-900 border border-amber-500/40 shadow-lg flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-amber-950/90 border border-amber-600/60 text-amber-400 shrink-0 shadow-sm">
+                      <ClipboardList className="w-4 h-4 text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5">
+                        <span>Mi Ruta de Solicitudes</span>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50">
+                          {displayedPlaces.length} {displayedPlaces.length === 1 ? 'postulación' : 'postulaciones'}
+                        </span>
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        Gestiona las vacantes a las que te has postulado hoy o elimina las que ya no requieras.
+                      </p>
+                    </div>
+                  </div>
+                  {displayedPlaces.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearAllApplications}
+                      className="px-3 py-1.5 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-500/50 hover:border-red-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm active:scale-95"
+                      title="Borrar todas las solicitudes de tu lista"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                      <span>Limpiar lista completa</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {displayedPlaces.slice(0, visibleCount).map((place) => {
                 const isSelected = selectedPlace?.id === place.id;
@@ -1692,10 +1883,24 @@ export default function HomePage() {
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {place.userHasApplied || applicationStatuses[place.id] ? (
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-950/90 text-blue-300 border border-blue-500/70 flex items-center gap-1 shadow-sm shadow-blue-950/60">
-                            <CheckCircle2 className="w-3 h-3 text-blue-400" />
-                            Ya te postulaste hoy
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-950/90 text-blue-300 border border-blue-500/70 flex items-center gap-1 shadow-sm shadow-blue-950/60">
+                              <CheckCircle2 className="w-3 h-3 text-blue-400" />
+                              Ya te postulaste hoy
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveApplication(place.id, place.placeName);
+                              }}
+                              className="px-1.5 py-0.5 rounded-md bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-500/40 text-[10px] font-bold flex items-center gap-1 transition cursor-pointer shadow-sm hover:border-red-400 active:scale-95"
+                              title="Borrar de mi lista de postulaciones"
+                            >
+                              <Trash2 className="w-3 h-3 text-red-400" />
+                              <span>Quitar</span>
+                            </button>
+                          </div>
                         ) : place.isClaimed ? (
                           <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-950/90 text-amber-300 border border-amber-500/70 flex items-center gap-1 shadow-sm shadow-amber-950/60">
                             <Clock className="w-3 h-3 text-amber-400" />
@@ -2045,19 +2250,33 @@ export default function HomePage() {
                         </button>
 
                         {place.userHasApplied || applicationStatuses[place.id] ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setFilterRouteOnly(true);
-                              setMobileTab('feed');
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-blue-950/80 hover:bg-blue-900/60 text-blue-300 border border-blue-500/50 font-bold text-xs flex items-center gap-1 transition shadow-sm cursor-pointer"
-                            title="Ya te postulaste hoy. Toca para ver tus vacantes en Mi Ruta."
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
-                            <span>En Mi Ruta</span>
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFilterRouteOnly(true);
+                                setMobileTab('feed');
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-blue-950/80 hover:bg-blue-900/60 text-blue-300 border border-blue-500/50 font-bold text-xs flex items-center gap-1 transition shadow-sm cursor-pointer"
+                              title="Ya te postulaste hoy. Toca para ver tus vacantes en Mi Ruta."
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                              <span>En Mi Ruta</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveApplication(place.id, place.placeName);
+                              }}
+                              className="px-2 py-1 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-500/50 hover:border-red-400 text-xs font-bold flex items-center gap-1 transition cursor-pointer shadow-sm active:scale-95"
+                              title="Borrar esta postulación de tu lista y volver a habilitar el botón"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                              <span className="hidden sm:inline">Borrar</span>
+                            </button>
+                          </div>
                         ) : place.isClaimed ? (
                           <button
                             disabled
@@ -2357,6 +2576,7 @@ export default function HomePage() {
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onFocusOnRadar={handleFocusOnRadar}
         onApplyJob={handleApplyJob}
+        onRemoveApplication={(p) => handleRemoveApplication(p.id, p.placeName)}
         isDemoUser={isDemoUser}
         onRestrictedAction={(reason) => triggerDemoNotice(reason)}
       />
