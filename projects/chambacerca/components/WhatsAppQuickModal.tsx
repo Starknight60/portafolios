@@ -111,12 +111,10 @@ export default function WhatsAppQuickModal({
     }
   };
 
-  // Abrir en la app de WhatsApp sin salir abruptamente de ChambaCerca
+  // Abrir en la app de WhatsApp solo si el usuario lo desea expresamente
   const handleLaunchWhatsApp = () => {
-    // 1. Siempre asegurar copia del mensaje en el portapapeles por seguridad
+    // 1. Siempre asegurar copia del mensaje en el portapapeles
     navigator.clipboard.writeText(messageToDisplay);
-    
-    // 2. Registrar la postulación en Mi Ruta automáticamente
     handleRegisterRoute();
     setOpenAttempted(true);
 
@@ -125,22 +123,27 @@ export default function WhatsAppQuickModal({
       return;
     }
 
-    // 3. Crear enlace de WhatsApp y despacharlo de forma segura
-    const encodedText = encodeURIComponent(messageToDisplay);
-    const whatsappWebUrl = `https://wa.me/${phoneForWhatsApp}?text=${encodedText}`;
-    
+    // 2. Intentar lanzar directamente el protocolo de la app nativa de WhatsApp
+    // sin redirigir a páginas web externas ni abrir Google Chrome
     try {
-      const a = document.createElement('a');
-      a.href = whatsappWebUrl;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const intentUrl = `whatsapp://send?phone=${phoneForWhatsApp}&text=${encodeURIComponent(messageToDisplay)}`;
+      const link = document.createElement('a');
+      link.href = intentUrl;
+      // No usar target _blank para no abrir pestañas en navegadores web
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (e) {
-      console.warn('Fallback de apertura WhatsApp', e);
-      window.open(whatsappWebUrl, '_blank');
+      console.warn('No se pudo invocar protocolo nativo whatsapp://', e);
     }
+  };
+
+  const handleCopyAndApply = () => {
+    navigator.clipboard.writeText(messageToDisplay);
+    setCopiedMessage(true);
+    handleRegisterRoute();
+    setOpenAttempted(true);
+    setTimeout(() => setCopiedMessage(false), 2500);
   };
 
   return (
@@ -337,15 +340,15 @@ export default function WhatsAppQuickModal({
           </div>
 
           {/* Aviso informativo de navegación segura */}
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-[11px] text-slate-300 flex items-start gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <p className="leading-relaxed">
-              Al tocar <strong className="text-emerald-300">Abrir en WhatsApp</strong> tu mensaje se copia automáticamente y la postulación queda anotada en <strong className="text-amber-300">Mi Ruta</strong>. Si tu teléfono no abre WhatsApp directo, puedes usar el botón <strong className="text-slate-200">Copiar Mensaje</strong> y pegarlo en cualquier momento.
+              <strong className="text-emerald-300">Mini Ventana In-App:</strong> Tu mensaje está listo y personalizado. Puedes copiarlo y registrarlo en <strong className="text-amber-300">Mi Ruta</strong> directamente sin salir de la app, o abrir tu app de WhatsApp.
             </p>
           </div>
 
           {openAttempted && (
-            <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+            <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-400/50 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
               <Check className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>
                 ¡Listo! Mensaje copiado al portapapeles y vacante registrada en tu lista <strong>Mi Ruta</strong>.
@@ -356,31 +359,34 @@ export default function WhatsAppQuickModal({
 
         {/* Acciones principales fijas al pie de la mini ventana */}
         <div className="p-4 border-t border-emerald-500/20 bg-[#0B141A] flex flex-col sm:flex-row items-center gap-2.5 shrink-0">
-          {/* Botón 1: Abrir en WhatsApp App */}
+          {/* Botón 1: Copiar y Guardar en Mi Ruta (Sin salir de la app) */}
+          <button
+            type="button"
+            onClick={handleCopyAndApply}
+            className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/80 transition cursor-pointer active:scale-[0.98]"
+          >
+            {copiedMessage ? (
+              <>
+                <Check className="w-4 h-4 text-white" />
+                <span>¡Mensaje Copiado y Guardado!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                <span>Copiar Mensaje y Anotar en Mi Ruta</span>
+              </>
+            )}
+          </button>
+
+          {/* Botón 2: Abrir App WhatsApp */}
           <button
             type="button"
             onClick={handleLaunchWhatsApp}
-            className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/80 transition cursor-pointer active:scale-[0.98]"
+            className="w-full sm:w-auto py-3 px-3.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/40 transition cursor-pointer"
+            title="Intentar abrir la app nativa de WhatsApp"
           >
-            <MessageCircle className="w-4 h-4 fill-current" />
+            <MessageCircle className="w-3.5 h-3.5 fill-current" />
             <span>Abrir en WhatsApp</span>
-          </button>
-
-          {/* Botón 2: Copiar Todo y Anotar en Mi Ruta */}
-          <button
-            type="button"
-            onClick={() => {
-              handleCopyMessage();
-              handleRegisterRoute();
-            }}
-            className={`w-full sm:w-auto py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer border ${
-              hasAppliedRoute
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
-            }`}
-          >
-            <BookmarkCheck className="w-4 h-4 text-amber-400" />
-            <span>{hasAppliedRoute ? 'Anotado en Mi Ruta ✓' : 'Anotar en Mi Ruta'}</span>
           </button>
 
           {/* Botón 3: Cerrar */}
