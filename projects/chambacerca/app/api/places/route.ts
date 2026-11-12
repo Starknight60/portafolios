@@ -3,7 +3,12 @@ import { sql } from '@/lib/db';
 import { calculateDistanceMeters, getBoundingBox, formatDistance } from '@/lib/geo';
 import { CATEGORIES } from '@/lib/categories';
 import { findVerifiedChannel, VerifiedChannel } from '@/lib/corporateChannels';
-import { getVenezuelaDayInfo, generateDailyJobForEstablishment } from '@/lib/dailyJobEngine';
+import { 
+  getVenezuelaDayInfo, 
+  generateDailyJobForEstablishment,
+  calculateDynamicApplicants,
+  generateLiveActivityFeed
+} from '@/lib/dailyJobEngine';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -59,6 +64,17 @@ export interface PlaceResultItem {
   publishedTime?: string | null;
   dayFormatted?: string | null;
   dateKey?: string | null;
+  isBrandNew?: boolean;
+  publishedRelative?: string | null;
+  publishMinutesOfDay?: number;
+  urgencyLevel?: 'HIGH_AVAILABILITY' | 'FILLING_FAST' | 'LAST_SLOT' | 'CLAIMED_FULL';
+  urgencyLabel?: string;
+  recentApplicants?: {
+    name: string;
+    channel: 'WHATSAPP' | 'IN_PERSON';
+    timeAgo: string;
+    minutesAgo: number;
+  }[];
 }
 
 export async function GET(request: NextRequest) {
@@ -353,6 +369,8 @@ export async function GET(request: NextRequest) {
 
           // Si el comercio coincide con una cadena nacional con proceso de selección abierto
           if (verifiedChannel) {
+            const corpMinutesAgo = Math.min(240, Math.max(15, (dayInfo.nowVenezuelaTotalMinutes - 465))); // Publicado ~7:45 AM (465 min)
+            const corpRelative = corpMinutesAgo < 60 ? `Hace ${corpMinutesAgo} min` : `Hace ${Math.floor(corpMinutesAgo / 60)}h`;
             results.push({
               id: `corp_${c.id}`,
               source: 'VACANCY',
@@ -385,7 +403,10 @@ export async function GET(request: NextRequest) {
               benefits: verifiedChannel.benefits,
               isOfficiallyVerified: true,
               isDailyCycleJob: true,
+              isBrandNew: corpMinutesAgo <= 45,
               publishedTime: '7:45 AM',
+              publishedRelative: corpRelative,
+              publishMinutesOfDay: 465,
               dayFormatted: `${dayInfo.relativeLabel}, ${dayInfo.formattedShort}`,
               dateKey: dayInfo.dateKey,
               updatedAt: `${dayInfo.dateKey}T07:45:00-04:00`,
@@ -420,7 +441,10 @@ export async function GET(request: NextRequest) {
                 benefits: dailyJob.benefits,
                 isOfficiallyVerified: true,
                 isDailyCycleJob: true,
+                isBrandNew: dailyJob.isBrandNew,
                 publishedTime: dailyJob.publishedTime,
+                publishedRelative: dailyJob.publishedRelative,
+                publishMinutesOfDay: dailyJob.publishMinutesOfDay,
                 dayFormatted: dailyJob.dayFormatted,
                 dateKey: dailyJob.dateKey,
                 updatedAt: dailyJob.publishedAt,
@@ -458,7 +482,9 @@ export async function GET(request: NextRequest) {
     // Asociar estado de postulación de 24 horas y cupos inteligentes a cada lugar
     for (const item of results) {
       const app = applicationMap.get(item.id);
-      const applicantCount = app ? Number(app.applicantCount) : 0;
+      const realDbApplicantCount = app ? Number(app.applicantCount) : 0;
+      const userHasApplied = Boolean(app?.userHasApplied);
+
       // Cadenas grandes, supermercados o comercios verificados soportan hasta 5 postulantes diarios; comercios pequeños 3.
       const isLargeChain = Boolean(
         item.isOfficiallyVerified ||
@@ -473,15 +499,45 @@ export async function GET(request: NextRequest) {
         ))
       );
       const maxSlots = isLargeChain ? 5 : 3;
-      const availableSlots = Math.max(0, maxSlots - applicantCount);
-      const isClaimed = availableSlots <= 0;
-      const userHasApplied = Boolean(app?.userHasApplied);
 
-      item.applicantCount = applicantCount;
+      // Calcular dinámica realista de postulantes según la hora de publicación
+      const publishMin = item.publishMinutesOfDay || 480;
+      const dynamicInfo = calculateDynamicApplicants(
+        item.id,
+        dayInfo.dateKey,
+        publishMin,
+        dayInfo.nowVenezuelaTotalMinutes,
+        maxSlots
+      );
+
+      // Combinar postulaciones reales de base de datos con actividad de candidatos vecinos
+      const totalApplicantCount = Math.min(
+        maxSlots,
+        Math.max(realDbApplicantCount, dynamicInfo.applicantCount + (userHasApplied ? 1 : 0))
+      );
+      const availableSlots = Math.max(0, maxSlots - totalApplicantCount);
+      const isClaimed = availableSlots <= 0;
+
+      item.applicantCount = totalApplicantCount;
       item.maxSlots = maxSlots;
       item.availableSlots = availableSlots;
       item.isClaimed = isClaimed;
       item.userHasApplied = userHasApplied;
+      item.urgencyLevel = isClaimed
+        ? 'CLAIMED_FULL'
+        : availableSlots === 1
+          ? 'LAST_SLOT'
+          : totalApplicantCount > 0
+            ? 'FILLING_FAST'
+            : 'HIGH_AVAILABILITY';
+      item.urgencyLabel = isClaimed
+        ? '🔒 Cupos completos de hoy (en revisión de RRHH)'
+        : availableSlots === 1
+          ? '⚠️ ¡Último cupo disponible hoy!'
+          : totalApplicantCount > 0
+            ? `${totalApplicantCount} postulantes registrados (Quedan ${availableSlots} cupos)`
+            : `¡Oferta abierta! ${availableSlots} cupos libres`;
+      item.recentApplicants = dynamicInfo.recentApplicants;
       item.claimAppliedAt = app?.lastAppliedAt ? new Date(app.lastAppliedAt).toISOString() : null;
       item.claimChannel = app?.channel || null;
     }
@@ -507,13 +563,14 @@ export async function GET(request: NextRequest) {
       totalFound: results.length,
       availableVacancies: results.filter(r => !r.isClaimed && (r.status === 'VERIFIED_VACANCY' || r.status === 'COMMUNITY_HIRING')).length,
       claimedCount: results.filter(r => r.isClaimed).length,
-      totalApplicantsToday: Array.from(applicationMap.values()).reduce((acc: number, cur: any) => acc + (Number(cur.applicantCount) || 0), 0),
+      totalApplicantsToday: results.reduce((acc, cur) => acc + (cur.applicantCount || 0), 0),
       verifiedVacancies: results.filter(r => r.status === 'VERIFIED_VACANCY').length,
       communityReports: results.filter(r => r.status === 'COMMUNITY_HIRING' || r.status === 'COMMUNITY_NOT_HIRING').length,
       potentialPlaces: results.filter(r => r.status === 'POTENTIAL_PLACE').length,
       center: { lat: userLat, lng: userLng },
       radiusMeters,
       detectedLocation,
+      liveActivityFeed: generateLiveActivityFeed(results, dayInfo),
       dailyCycle: {
         dateKey: dayInfo.dateKey,
         formattedDate: dayInfo.formattedLong,

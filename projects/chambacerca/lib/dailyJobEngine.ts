@@ -18,6 +18,10 @@ export interface DailyDayInfo {
   hoursRemaining: number;
   minutesRemaining: number;
   nextMidnightIso: string;
+  currentVenezuelaHour: number;
+  currentVenezuelaMinute: number;
+  nowVenezuelaTotalMinutes: number;
+  isToday: boolean;
 }
 
 const SPANISH_DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -86,6 +90,14 @@ export function getVenezuelaDayInfo(referenceInput?: Date | string): DailyDayInf
   const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
   const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
 
+  const isToday = diffDays === 0;
+  // Hora local exacta de Venezuela
+  const liveUtc = new Date().getTime() + (new Date().getTimezoneOffset() * 60000);
+  const liveVzla = new Date(liveUtc - (4 * 3600000));
+  const currentVenezuelaHour = isToday ? liveVzla.getUTCHours() : 23;
+  const currentVenezuelaMinute = isToday ? liveVzla.getUTCMinutes() : 59;
+  const nowVenezuelaTotalMinutes = currentVenezuelaHour * 60 + currentVenezuelaMinute;
+
   return {
     dateKey,
     year,
@@ -100,6 +112,10 @@ export function getVenezuelaDayInfo(referenceInput?: Date | string): DailyDayInf
     hoursRemaining,
     minutesRemaining,
     nextMidnightIso: nextMidnight.toISOString(),
+    currentVenezuelaHour,
+    currentVenezuelaMinute,
+    nowVenezuelaTotalMinutes,
+    isToday,
   };
 }
 
@@ -402,9 +418,152 @@ const ROLE_TEMPLATES_BY_CATEGORY: Record<string, CategoryRoleTemplate[]> = {
   ]
 };
 
+export const VENEZUELAN_APPLICANTS = [
+  'Mariana C.', 'Carlos R.', 'José Gregorio L.', 'Yusmary B.', 'Luis M.',
+  'Génesis P.', 'Alejandro V.', 'Daniela S.', 'Johan K.', 'Valentina T.',
+  'Franklin B.', 'Andreína M.', 'Yeison G.', 'Dayana F.', 'Brayan O.',
+  'Oriana V.', 'Jesús A.', 'Stefany R.', 'Eduardo M.', 'Nathaly G.',
+  'Ricardo D.', 'Camila H.', 'Wilmer Z.', 'Paola M.', 'Javier E.'
+];
+
+export interface DynamicApplicantInfo {
+  applicantCount: number;
+  availableSlots: number;
+  isClaimed: boolean;
+  urgencyLevel: 'HIGH_AVAILABILITY' | 'FILLING_FAST' | 'LAST_SLOT' | 'CLAIMED_FULL';
+  urgencyLabel: string;
+  recentApplicants: {
+    name: string;
+    channel: 'WHATSAPP' | 'IN_PERSON';
+    timeAgo: string;
+    minutesAgo: number;
+  }[];
+}
+
+/**
+ * Calcula de forma determinista y realista las postulaciones dinámicas según la hora de publicación
+ */
+export function calculateDynamicApplicants(
+  jobId: string,
+  dateKey: string,
+  publishMinutesOfDay: number,
+  nowMinutes: number,
+  maxSlots: number = 3
+): DynamicApplicantInfo {
+  const seed = hashString(`${jobId}_${dateKey}_applicants`);
+  const prng = createPRNG(seed);
+
+  const minutesPassed = Math.max(1, nowMinutes - publishMinutesOfDay);
+
+  // Progresión natural según el tiempo transcurrido desde la publicación
+  let dynamicCount = 0;
+  if (minutesPassed < 25) {
+    dynamicCount = 0;
+  } else if (minutesPassed < 75) {
+    dynamicCount = 1;
+  } else if (minutesPassed < 210) {
+    dynamicCount = Math.min(maxSlots - 1, 2);
+  } else {
+    // Si pasaron más de 3.5 horas, se llena o queda en el último cupo
+    dynamicCount = (prng() > 0.3) ? maxSlots : Math.max(1, maxSlots - 1);
+  }
+
+  const availableSlots = Math.max(0, maxSlots - dynamicCount);
+  const isClaimed = availableSlots <= 0;
+
+  let urgencyLevel: DynamicApplicantInfo['urgencyLevel'] = 'HIGH_AVAILABILITY';
+  let urgencyLabel = `¡Oferta abierta! ${availableSlots} cupos libres`;
+
+  if (isClaimed) {
+    urgencyLevel = 'CLAIMED_FULL';
+    urgencyLabel = '🔒 Cupos completos de hoy (en revisión de RRHH)';
+  } else if (availableSlots === 1) {
+    urgencyLevel = 'LAST_SLOT';
+    urgencyLabel = '⚠️ ¡Último cupo disponible de hoy!';
+  } else if (dynamicCount > 0) {
+    urgencyLevel = 'FILLING_FAST';
+    urgencyLabel = `${dynamicCount} ${dynamicCount === 1 ? 'postulante registrado' : 'postulantes registrados'} (Quedan ${availableSlots} cupos)`;
+  }
+
+  // Generar lista de postulantes recientes con tiempos creíbles
+  const recentApplicants: DynamicApplicantInfo['recentApplicants'] = [];
+  const nameCount = VENEZUELAN_APPLICANTS.length;
+
+  for (let i = 0; i < dynamicCount; i++) {
+    const nameIndex = Math.floor((seed + (i * 7)) % nameCount);
+    const applicantName = VENEZUELAN_APPLICANTS[nameIndex];
+    const isWhatsapp = ((seed + i) % 3) !== 0;
+    
+    // Minutos atrás relativo a la publicación
+    const applicantMinutesAgo = Math.max(3, Math.min(minutesPassed - 2, Math.floor(minutesPassed * (0.2 + (i * 0.35)))));
+    const timeAgoStr = applicantMinutesAgo < 60
+      ? `Hace ${applicantMinutesAgo} min`
+      : `Hace ${Math.floor(applicantMinutesAgo / 60)}h`;
+
+    recentApplicants.push({
+      name: applicantName,
+      channel: isWhatsapp ? 'WHATSAPP' : 'IN_PERSON',
+      timeAgo: timeAgoStr,
+      minutesAgo: applicantMinutesAgo,
+    });
+  }
+
+  // Ordenar los más recientes primero
+  recentApplicants.sort((a, b) => a.minutesAgo - b.minutesAgo);
+
+  return {
+    applicantCount: dynamicCount,
+    availableSlots,
+    isClaimed,
+    urgencyLevel,
+    urgencyLabel,
+    recentApplicants,
+  };
+}
+
+/**
+ * Genera eventos en vivo para el ticker del header y el radar
+ */
+export function generateLiveActivityFeed(
+  places: Array<{ placeName: string; title?: string }>,
+  dayInfo: DailyDayInfo
+) {
+  const events: Array<{ id: string; text: string; timeAgo: string; type: 'APPLICATION' | 'NEW_VACANCY'; placeName: string }> = [];
+  const nowMin = dayInfo.nowVenezuelaTotalMinutes;
+
+  const samplePlaces = places.slice(0, 10);
+  samplePlaces.forEach((p, idx) => {
+    const seed = hashString(`live_feed_${dayInfo.dateKey}_${idx}_${p.placeName}`);
+    const name = VENEZUELAN_APPLICANTS[(seed + idx) % VENEZUELAN_APPLICANTS.length];
+    const isApp = idx % 2 === 0;
+    const minAgo = 3 + (idx * 6);
+
+    if (isApp) {
+      events.push({
+        id: `feed_app_${idx}`,
+        text: `⚡ ${name} se postuló a "${p.title || 'Vacante'}" en ${p.placeName}`,
+        timeAgo: `Hace ${minAgo} min`,
+        type: 'APPLICATION',
+        placeName: p.placeName,
+      });
+    } else {
+      events.push({
+        id: `feed_vac_${idx}`,
+        text: `✨ Nueva vacante abierta en ${p.placeName}: ${p.title || 'Atención al Cliente'}`,
+        timeAgo: `Hace ${minAgo} min`,
+        type: 'NEW_VACANCY',
+        placeName: p.placeName,
+      });
+    }
+  });
+
+  return events;
+}
+
 /**
  * Genera una oferta de empleo para el día actual basada en el establecimiento y la fecha.
  * Garantiza que cada día (30 oct, 31 oct, 1 nov...) rote y tenga nuevas ofertas.
+ * Además, las ofertas se distribuyen a lo largo del día para que se vayan agregando automáticamente.
  */
 export function generateDailyJobForEstablishment(
   place: {
@@ -422,8 +581,8 @@ export function generateDailyJobForEstablishment(
   const seed = hashString(seedString);
   const prng = createPRNG(seed);
 
-  // Determinar si este comercio tiene convocatoria activa hoy (75% de probabilidad)
-  const isHiringToday = prng() < 0.75;
+  // Determinar si este comercio tiene convocatoria activa hoy (80% de probabilidad)
+  const isHiringToday = prng() < 0.80;
   if (!isHiringToday) {
     return null;
   }
@@ -433,12 +592,49 @@ export function generateDailyJobForEstablishment(
   const roleIndex = Math.floor(prng() * rolePool.length);
   const template = rolePool[roleIndex];
 
-  // Horas matutinas creíbles para publicación hoy (entre 7:15 AM y 10:45 AM)
-  const hour = 7 + Math.floor(prng() * 4);
-  const minute = Math.floor(prng() * 12) * 5;
+  // Horario escalonado de publicación a lo largo del día (7:15 AM a 5:45 PM)
+  // Distribución realista:
+  // 60% Mañana (7:15 AM - 10:45 AM)
+  // 25% Mediodía (11:00 AM - 1:45 PM)
+  // 15% Tarde (2:00 PM - 5:30 PM)
+  const roll = prng();
+  let hour = 8;
+  let minute = 0;
+
+  if (roll < 0.60) {
+    hour = 7 + Math.floor(prng() * 4); // 7, 8, 9, 10
+  } else if (roll < 0.85) {
+    hour = 11 + Math.floor(prng() * 3); // 11, 12, 13
+  } else {
+    hour = 14 + Math.floor(prng() * 4); // 14, 15, 16, 17
+  }
+  minute = Math.floor(prng() * 12) * 5; // En intervalos de 5 min (0, 5, 10...)
+
+  const publishMinutesOfDay = hour * 60 + minute;
+
+  // Si estamos consultando para "Hoy", solo mostrar ofertas cuya hora ya llegó
+  // Esto hace que a medida que avanza el reloj, APAREZCAN NUEVAS OFERTAS AUTOMÁTICAMENTE
+  if (dayInfo.isToday && publishMinutesOfDay > dayInfo.nowVenezuelaTotalMinutes) {
+    // Si aún no es la hora de publicación, no la mostramos aún (se agregará sola cuando llegue la hora)
+    return null;
+  }
+
   const pad = (n: number) => n.toString().padStart(2, '0');
-  const publishTime = `${pad(hour)}:${pad(minute)} AM`;
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+  const publishTime = `${pad(displayHour)}:${pad(minute)} ${period}`;
   const publishedAtIso = `${dayInfo.dateKey}T${pad(hour)}:${pad(minute)}:00-04:00`;
+
+  // Calcular tiempo transcurrido desde la publicación
+  const minutesPassed = Math.max(1, dayInfo.nowVenezuelaTotalMinutes - publishMinutesOfDay);
+  const isBrandNew = minutesPassed <= 45;
+  const publishedRelative = minutesPassed <= 1
+    ? 'Hace un instante'
+    : minutesPassed < 60
+      ? `Hace ${minutesPassed} min`
+      : minutesPassed < 120
+        ? 'Hace 1 hora'
+        : `Hace ${Math.floor(minutesPassed / 60)} horas`;
 
   // ID único determinista para el puesto de este día específico
   const dailyJobId = `job_${dayInfo.dateKey.replace(/-/g, '')}_${place.id.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20)}`;
@@ -458,14 +654,17 @@ export function generateDailyJobForEstablishment(
     howToApply: 'IN_PERSON_OR_WHATSAPP',
     contactWhatsapp: place.phone ? place.phone : null,
     contactPhone: place.phone ? place.phone : null,
-    applyInstructions: `Convocatoria (${dayInfo.relativeLabel}, ${dayInfo.formattedShort}): Acércate al comercio con tu síntesis curricular en físico, copia de cédula laminada y RIF vigente en horario de mañana (8:30 AM a 11:30 AM) y pregunta en caja por el encargado o administrador.`,
+    applyInstructions: `Convocatoria (${dayInfo.relativeLabel}, ${dayInfo.formattedShort}): Acércate al comercio con tu síntesis curricular en físico, copia de cédula laminada y RIF vigente en horario de mañana (8:30 AM a 11:30 AM) o postúlate directamente por WhatsApp.`,
     description: `${template.description} Publicada para la jornada del ${dayInfo.formattedLong}.`,
     requirements: template.requirements,
     benefits: template.benefits,
     isOfficiallyVerified: true,
     isDailyCycleJob: true,
+    isBrandNew,
     publishedAt: publishedAtIso,
     publishedTime: publishTime,
+    publishedRelative,
+    publishMinutesOfDay,
     dayFormatted: `${dayInfo.relativeLabel}, ${dayInfo.formattedShort}`,
     relativeLabel: dayInfo.relativeLabel,
     dateKey: dayInfo.dateKey,

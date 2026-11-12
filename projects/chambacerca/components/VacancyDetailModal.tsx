@@ -176,6 +176,17 @@ export default function VacancyDetailModal({
                 <span className="text-[11px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
                   {place.categoryLabel}
                 </span>
+                {place.isBrandNew && (
+                  <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 flex items-center gap-1 shadow-sm animate-pulse">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    ¡Nueva! ({place.publishedRelative || 'Reciente'})
+                  </span>
+                )}
+                {place.urgencyLevel === 'LAST_SLOT' && !isClaimed && (
+                  <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/25 text-amber-300 border border-amber-500/60 flex items-center gap-1 shadow-sm animate-pulse">
+                    🔥 ¡Último cupo de hoy!
+                  </span>
+                )}
                 {place.dayFormatted && (
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 flex items-center gap-1 shadow-sm">
                     <Sparkles className="w-3.5 h-3.5 text-teal-400" />
@@ -254,6 +265,24 @@ export default function VacancyDetailModal({
                 Un candidato ya envió su síntesis curricular a este comercio hoy. Para no saturar al empleador ni hacerte perder el tiempo, la vacante queda reservada en evaluación durante 24 horas. Si el empleador no concreta la contratación, volverá a habilitarse automáticamente al renovarse el ciclo diario.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Barra de Actividad de Postulantes en Vivo */}
+        {place.recentApplicants && place.recentApplicants.length > 0 && !isClaimed && (
+          <div className="mx-4 sm:mx-6 mt-3 p-3 rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-850 to-slate-900/90 border border-emerald-500/40 flex items-center justify-between gap-3 text-xs shadow-md">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              </span>
+              <p className="text-slate-300 font-medium truncate text-[11px] sm:text-xs">
+                Última postulación: <strong className="text-white font-bold">{place.recentApplicants[0].name}</strong> ({place.recentApplicants[0].timeAgo} por {place.recentApplicants[0].channel === 'WHATSAPP' ? 'WhatsApp' : 'CV físico'})
+              </p>
+            </div>
+            <span className="text-emerald-300 font-mono font-bold text-[11px] bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-800/60 shrink-0">
+              {place.availableSlots} {place.availableSlots === 1 ? 'cupo libre' : 'cupos libres'}
+            </span>
           </div>
         )}
 

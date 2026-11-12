@@ -123,6 +123,14 @@ export default function HomePage() {
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
   const [deviceHash, setDeviceHash] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [activeTickerIndex, setActiveTickerIndex] = useState<number>(0);
+
+  useEffect(() => {
+    const tickerTimer = setInterval(() => {
+      setActiveTickerIndex((prev) => prev + 1);
+    }, 4500);
+    return () => clearInterval(tickerTimer);
+  }, []);
 
   const showSuccessToast = (msg: string) => {
     setToastMessage(msg);
@@ -422,9 +430,11 @@ export default function HomePage() {
     }
   }
 
-  // Consulta de lugares a la API (con soporte de rotación diaria y caché offline callejera)
-  async function fetchPlaces(forcedOffset?: number, overrideDeviceHash?: string) {
-    setLoading(true);
+  // Consulta de lugares a la API (con soporte de rotación diaria, auto-sync silencioso y caché offline)
+  async function fetchPlaces(forcedOffset?: number, overrideDeviceHash?: string, isSilent: boolean = false) {
+    if (!isSilent) {
+      setLoading(true);
+    }
     try {
       const activeOffset = typeof forcedOffset === 'number' ? forcedOffset : dayOffset;
       let dateQuery = '';
@@ -443,9 +453,31 @@ export default function HomePage() {
       if (!res.ok) throw new Error('Network error or server unavailable');
       const data = await res.json();
       if (data.success && Array.isArray(data.places)) {
+        // En auto-sincronización silenciosa, notificar si entraron vacantes nuevas al radar
+        if (isSilent && places.length > 0) {
+          const newVacancies = data.places.filter((np: PlaceResultItem) =>
+            !places.some(op => op.id === np.id) && np.source === 'VACANCY'
+          );
+          if (newVacancies.length > 0) {
+            showSuccessToast(`✨ ¡${newVacancies.length} nueva${newVacancies.length > 1 ? 's' : ''} vacante${newVacancies.length > 1 ? 's' : ''} en el radar! (${newVacancies[0].placeName})`);
+            playSonarPing();
+          }
+        } else if (!isSilent) {
+          playSonarPing();
+        }
+
         setPlaces(data.places);
         setSummary(data.summary);
         setIsOfflineMode(false);
+
+        // Si el usuario tiene una vacante abierta en modal, actualizar sus cupos y postulantes en vivo
+        if (selectedPlace) {
+          const updatedCurrent = data.places.find((p: PlaceResultItem) => p.id === selectedPlace.id);
+          if (updatedCurrent) {
+            setSelectedPlace(updatedCurrent);
+          }
+        }
+
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem(
@@ -458,27 +490,42 @@ export default function HomePage() {
             );
           }
         } catch {}
-        playSonarPing();
       }
     } catch (err) {
-      console.warn('Falla de red consultando lugares, recurriendo a caché callejera:', err);
-      try {
-        if (typeof window !== 'undefined') {
-          const cached = localStorage.getItem('chambacerca_offline_cache');
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed.places) && parsed.places.length > 0) {
-              setPlaces(parsed.places);
-              if (parsed.summary) setSummary(parsed.summary);
-              setIsOfflineMode(true);
+      if (!isSilent) {
+        console.warn('Falla de red consultando lugares, recurriendo a caché callejera:', err);
+        try {
+          if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem('chambacerca_offline_cache');
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed.places) && parsed.places.length > 0) {
+                setPlaces(parsed.places);
+                if (parsed.summary) setSummary(parsed.summary);
+                setIsOfflineMode(true);
+              }
             }
           }
-        }
-      } catch {}
+        } catch {}
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }
+
+  // Auto-sincronización en segundo plano cada 30 segundos (agrega nuevas ofertas y solicitudes en tiempo real)
+  useEffect(() => {
+    const liveSyncInterval = setInterval(() => {
+      // Solo sincronizar si la pestaña está visible y no estamos en offline forzado
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible' && !isOfflineMode) {
+        fetchPlaces(dayOffset, deviceHash, true /* isSilent */);
+      }
+    }, 30000);
+
+    return () => clearInterval(liveSyncInterval);
+  }, [dayOffset, deviceHash, isOfflineMode, coords.lat, coords.lng, radius, selectedCategory]);
 
   function handleSelectDayOffset(offset: number) {
     playTacticalClick();
@@ -725,26 +772,41 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Columna Central: Ticker de Señal de Radar (flex-none, Centrado Milimétrico) */}
+          {/* Columna Central: Ticker Dinámico en Vivo (Centrado Milimétrico) */}
           <div className="hidden lg:flex flex-none items-center justify-center">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-emerald-500/30 text-xs font-semibold text-emerald-300 shadow-inner">
-              <span className="relative flex h-2 w-2">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-emerald-500/30 text-xs font-semibold text-emerald-300 shadow-inner max-w-md overflow-hidden">
+              <span className="relative flex h-2 w-2 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
               </span>
-              <span className="font-mono text-[11px] tracking-tight whitespace-nowrap">
-                RADAR: <strong className="text-white font-bold">{displayedPlaces.length} OFERTAS</strong> EN RADIO
-              </span>
-              <span className="text-slate-700">|</span>
-              {isOfflineMode ? (
-                <span className="text-amber-400 font-bold text-[11px] flex items-center gap-1 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/40 animate-pulse whitespace-nowrap">
-                  <WifiOff className="w-3 h-3 text-amber-400" />
-                  <span>Modo Callejero Offline</span>
-                </span>
+              
+              {summary?.liveActivityFeed && summary.liveActivityFeed.length > 0 && (activeTickerIndex % 2 === 1) ? (
+                (() => {
+                  const item = summary.liveActivityFeed[(Math.floor(activeTickerIndex / 2)) % summary.liveActivityFeed.length];
+                  return (
+                    <span className="font-mono text-[11px] text-cyan-300 font-bold tracking-tight truncate flex items-center gap-1.5 animate-in fade-in duration-300">
+                      <span className="truncate">{item.text}</span>
+                      <span className="text-slate-400 font-normal shrink-0 text-[10px]">({item.timeAgo})</span>
+                    </span>
+                  );
+                })()
               ) : (
-                <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1 whitespace-nowrap">
-                  <span>📅 Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || '5 de Noviembre'})</span>
-                </span>
+                <>
+                  <span className="font-mono text-[11px] tracking-tight whitespace-nowrap animate-in fade-in duration-300">
+                    RADAR: <strong className="text-white font-bold">{displayedPlaces.length} OFERTAS</strong> EN RADIO
+                  </span>
+                  <span className="text-slate-700">|</span>
+                  {isOfflineMode ? (
+                    <span className="text-amber-400 font-bold text-[11px] flex items-center gap-1 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/40 animate-pulse whitespace-nowrap">
+                      <WifiOff className="w-3 h-3 text-amber-400" />
+                      <span>Modo Callejero Offline</span>
+                    </span>
+                  ) : (
+                    <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1 whitespace-nowrap">
+                      <span>📅 Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || 'Hoy'})</span>
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1611,6 +1673,17 @@ export default function HomePage() {
                             Nueva de Hoy
                           </span>
                         )}
+                        {place.isBrandNew && (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/60 flex items-center gap-1 shadow-sm shadow-emerald-950/60 animate-pulse">
+                            <Sparkles className="w-3 h-3 text-emerald-400" />
+                            ¡Nueva! ({place.publishedRelative || 'Reciente'})
+                          </span>
+                        )}
+                        {place.urgencyLevel === 'LAST_SLOT' && !place.isClaimed && (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-300 border border-amber-500/60 flex items-center gap-1 shadow-sm animate-pulse">
+                            🔥 ¡Último cupo de hoy!
+                          </span>
+                        )}
                         {isVerified && (
                           <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-500/70 flex items-center gap-1 shadow-sm shadow-emerald-950/60 animate-liquid-shimmer">
                             <ShieldCheck className="w-3 h-3 text-emerald-400" />
@@ -1674,10 +1747,18 @@ export default function HomePage() {
                       <span className="line-clamp-1">{place.placeName} — {place.address}</span>
                     </p>
                     {place.dayFormatted && (
-                      <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
-                        <span className="text-emerald-300 font-medium">Publicada hoy: {place.dayFormatted}{place.publishedTime ? ` (${place.publishedTime})` : ''}</span>
-                      </p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap text-[11px]">
+                        <span className="text-slate-400 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <span className="text-emerald-300 font-medium">Publicada: {place.dayFormatted}{place.publishedTime ? ` (${place.publishedTime})` : ''}</span>
+                        </span>
+                        {place.recentApplicants && place.recentApplicants.length > 0 && !place.isClaimed && (
+                          <span className="text-cyan-300 font-medium flex items-center gap-1 bg-cyan-950/70 px-2 py-0.5 rounded-full border border-cyan-800/40 text-[10px]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                            <span>{place.recentApplicants[0].name} ({place.recentApplicants[0].timeAgo})</span>
+                          </span>
+                        )}
+                      </div>
                     )}
 
                     {/* Fila de Salario / Horario con Textura Metálica Esmeralda y Conversión a Bolívares */}
