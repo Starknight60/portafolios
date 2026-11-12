@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useDeferredValue } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue, memo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { PlaceResultItem } from '@/app/api/places/route';
 import { CATEGORIES, BASE_CATEGORIES } from '@/lib/categories';
@@ -44,6 +44,70 @@ const RADIUS_OPTIONS = [
   { label: '3 km • En transporte', value: 3000 },
   { label: '5 km • Toda la zona', value: 5000 },
 ];
+
+interface HeaderLiveTickerProps {
+  displayedPlacesCount: number;
+  isOfflineMode: boolean;
+  liveActivityFeed?: Array<{ id: string; text: string; timeAgo: string; type: string }>;
+  dayShort?: string;
+}
+
+// Componente Ticker aislado y memoizado: evita re-renderizar toda la página cada 4.5 segundos (60 FPS estables)
+const HeaderLiveTicker = memo(function HeaderLiveTicker({
+  displayedPlacesCount,
+  isOfflineMode,
+  liveActivityFeed,
+  dayShort,
+}: HeaderLiveTickerProps) {
+  const [activeTickerIndex, setActiveTickerIndex] = useState<number>(0);
+
+  useEffect(() => {
+    const tickerTimer = setInterval(() => {
+      setActiveTickerIndex((prev) => prev + 1);
+    }, 4500);
+    return () => clearInterval(tickerTimer);
+  }, []);
+
+  return (
+    <div className="hidden lg:flex flex-none items-center justify-center">
+      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-emerald-500/30 text-xs font-semibold text-emerald-300 shadow-inner max-w-md overflow-hidden">
+        <span className="relative flex h-2 w-2 shrink-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
+        </span>
+
+        {liveActivityFeed && liveActivityFeed.length > 0 && (activeTickerIndex % 2 === 1) ? (
+          (() => {
+            const item = liveActivityFeed[(Math.floor(activeTickerIndex / 2)) % liveActivityFeed.length];
+            return (
+              <span className="font-mono text-[11px] text-cyan-300 font-bold tracking-tight truncate flex items-center gap-1.5 animate-in fade-in duration-300">
+                <span className="truncate">{item.text}</span>
+                <span className="text-slate-400 font-normal shrink-0 text-[10px]">({item.timeAgo})</span>
+              </span>
+            );
+          })()
+        ) : (
+          <>
+            <span className="font-mono text-[11px] tracking-tight whitespace-nowrap animate-in fade-in duration-300">
+              RADAR: <strong className="text-white font-bold">{displayedPlacesCount} OFERTAS</strong> EN RADIO
+            </span>
+            <span className="text-slate-700">|</span>
+            {isOfflineMode ? (
+              <span className="text-amber-400 font-bold text-[11px] flex items-center gap-1 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/40 animate-pulse whitespace-nowrap">
+                <WifiOff className="w-3 h-3 text-amber-400" />
+                <span>Modo Callejero Offline</span>
+              </span>
+            ) : (
+              <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1 whitespace-nowrap">
+                <span>📅 Convocatorias de Hoy ({dayShort || 'Hoy'})</span>
+              </span>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+});
 
 export default function HomePage() {
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: 10.4960, lng: -66.8520 });
@@ -123,14 +187,6 @@ export default function HomePage() {
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
   const [deviceHash, setDeviceHash] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [activeTickerIndex, setActiveTickerIndex] = useState<number>(0);
-
-  useEffect(() => {
-    const tickerTimer = setInterval(() => {
-      setActiveTickerIndex((prev) => prev + 1);
-    }, 4500);
-    return () => clearInterval(tickerTimer);
-  }, []);
 
   const showSuccessToast = (msg: string) => {
     setToastMessage(msg);
@@ -453,7 +509,25 @@ export default function HomePage() {
       if (!res.ok) throw new Error('Network error or server unavailable');
       const data = await res.json();
       if (data.success && Array.isArray(data.places)) {
-        // En auto-sincronización silenciosa, notificar si entraron vacantes nuevas al radar
+        // En auto-sincronización silenciosa, verificar si cambiaron antes de forzar re-render de la lista
+        let placesChanged = true;
+        if (isSilent && places.length > 0 && places.length === data.places.length) {
+          placesChanged = false;
+          for (let i = 0; i < places.length; i++) {
+            if (
+              places[i].id !== data.places[i].id ||
+              places[i].applicantCount !== data.places[i].applicantCount ||
+              places[i].availableSlots !== data.places[i].availableSlots ||
+              places[i].isClaimed !== data.places[i].isClaimed ||
+              places[i].userHasApplied !== data.places[i].userHasApplied
+            ) {
+              placesChanged = true;
+              break;
+            }
+          }
+        }
+
+        // Notificar si entraron vacantes nuevas al radar
         if (isSilent && places.length > 0) {
           const newVacancies = data.places.filter((np: PlaceResultItem) =>
             !places.some(op => op.id === np.id) && np.source === 'VACANCY'
@@ -466,7 +540,9 @@ export default function HomePage() {
           playSonarPing();
         }
 
-        setPlaces(data.places);
+        if (placesChanged) {
+          setPlaces(data.places);
+        }
         setSummary(data.summary);
         setIsOfflineMode(false);
 
@@ -772,44 +848,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Columna Central: Ticker Dinámico en Vivo (Centrado Milimétrico) */}
-          <div className="hidden lg:flex flex-none items-center justify-center">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-emerald-500/30 text-xs font-semibold text-emerald-300 shadow-inner max-w-md overflow-hidden">
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
-              </span>
-              
-              {summary?.liveActivityFeed && summary.liveActivityFeed.length > 0 && (activeTickerIndex % 2 === 1) ? (
-                (() => {
-                  const item = summary.liveActivityFeed[(Math.floor(activeTickerIndex / 2)) % summary.liveActivityFeed.length];
-                  return (
-                    <span className="font-mono text-[11px] text-cyan-300 font-bold tracking-tight truncate flex items-center gap-1.5 animate-in fade-in duration-300">
-                      <span className="truncate">{item.text}</span>
-                      <span className="text-slate-400 font-normal shrink-0 text-[10px]">({item.timeAgo})</span>
-                    </span>
-                  );
-                })()
-              ) : (
-                <>
-                  <span className="font-mono text-[11px] tracking-tight whitespace-nowrap animate-in fade-in duration-300">
-                    RADAR: <strong className="text-white font-bold">{displayedPlaces.length} OFERTAS</strong> EN RADIO
-                  </span>
-                  <span className="text-slate-700">|</span>
-                  {isOfflineMode ? (
-                    <span className="text-amber-400 font-bold text-[11px] flex items-center gap-1 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/40 animate-pulse whitespace-nowrap">
-                      <WifiOff className="w-3 h-3 text-amber-400" />
-                      <span>Modo Callejero Offline</span>
-                    </span>
-                  ) : (
-                    <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1 whitespace-nowrap">
-                      <span>📅 Convocatorias de Hoy ({summary?.dailyCycle?.dayShort || 'Hoy'})</span>
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+          {/* Columna Central: Ticker Dinámico en Vivo (Aislado para máximo rendimiento) */}
+          <HeaderLiveTicker
+            displayedPlacesCount={displayedPlaces.length}
+            isOfflineMode={isOfflineMode}
+            liveActivityFeed={summary?.liveActivityFeed}
+            dayShort={summary?.dailyCycle?.dayShort}
+          />
 
           {/* Columna Derecha: Acciones y Usuario (flex-1, Alineado a la Derecha con Balance) */}
           <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">

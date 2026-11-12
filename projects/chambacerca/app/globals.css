@@ -54,7 +54,16 @@
 .virtual-gpu-card {
   content-visibility: auto;
   contain-intrinsic-size: 0 200px;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* Aceleración por GPU para capas críticas en móvil */
+.gpu-layer {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
 }
 
 /* Animación Shimmer para Skeletons ultrarrápidos (cero parpadeo y cero Cumulative Layout Shift) */

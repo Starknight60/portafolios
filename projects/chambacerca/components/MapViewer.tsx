@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, memo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { PlaceResultItem } from '@/app/api/places/route';
@@ -342,7 +342,7 @@ function createUserLocationPin() {
   });
 }
 
-export default function MapViewer({
+function MapViewer({
   center,
   radiusMeters,
   places,
@@ -382,7 +382,9 @@ export default function MapViewer({
 
   const safeRadius = (Number.isFinite(radiusMeters) && radiusMeters > 0) ? radiusMeters : 2500;
 
-  const validPlaces = (places || []).filter(p => p && isValidLatLng(p.latitude, p.longitude));
+  const validPlaces = useMemo(() => {
+    return (places || []).filter(p => p && isValidLatLng(p.latitude, p.longitude));
+  }, [places]);
 
   const zoom = safeRadius <= 600 ? 16 : safeRadius <= 1500 ? 15 : safeRadius <= 3500 ? 14 : 13;
   const currentLayer = MAP_LAYERS[mapType];
@@ -697,3 +699,5 @@ export default function MapViewer({
     </div>
   );
 }
+
+export default memo(MapViewer);
