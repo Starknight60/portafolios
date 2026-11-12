@@ -31,27 +31,38 @@ export default function WhatsAppQuickModal({
   const [customMessage, setCustomMessage] = useState('');
   const [hasAppliedRoute, setHasAppliedRoute] = useState(false);
   const [openAttempted, setOpenAttempted] = useState(false);
+  const [storedProfile, setStoredProfile] = useState<ApplicantProfile | null>(null);
 
-  // Generar mensaje predeterminado con los datos del postulante
+  // Cargar perfil local como respaldo
   useEffect(() => {
-    if (!place) return;
-    
-    let defaultMsg = '';
-    if (applicantProfile?.fullName) {
-      const ciPart = applicantProfile.idNumber ? ` (C.I. ${applicantProfile.idNumber})` : '';
-      const rolePart = applicantProfile.targetRole ? ` como ${applicantProfile.targetRole}` : '';
-      defaultMsg = `Hola, cordial saludo. Mi nombre es ${applicantProfile.fullName}${ciPart}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto publicado'}". Cuento con experiencia${rolePart} y disponibilidad inmediata. ¿En qué horario o por qué vía podría consignar mi síntesis curricular? Muchas gracias.`;
-    } else {
-      defaultMsg = `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante activa para "${place.title || 'el puesto publicado'}". Cumplo con los requisitos y quisiera postularme formalmente. ¿En qué horario podría presentarme o enviar mi síntesis curricular? Muchas gracias.`;
-    }
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('chambacerca_applicant_profile');
+        if (saved) setStoredProfile(JSON.parse(saved));
+      }
+    } catch {}
+  }, []);
 
-    setCustomMessage(defaultMsg);
-    setIsEditing(false);
-    setCopiedNumber(false);
-    setCopiedMessage(false);
-    setHasAppliedRoute(Boolean(place.isClaimed));
-    setOpenAttempted(false);
-  }, [place, applicantProfile]);
+  const effectiveProfile = applicantProfile || storedProfile;
+
+  // Generar mensaje reactivo síncrono para que nunca esté vacío
+  const defaultMsg = place ? (
+    effectiveProfile?.fullName
+      ? `Hola, cordial saludo. Mi nombre es ${effectiveProfile.fullName}${effectiveProfile.idNumber ? ` (C.I. ${effectiveProfile.idNumber})` : ''}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto publicado'}". Cuento con experiencia${effectiveProfile.targetRole ? ` como ${effectiveProfile.targetRole}` : ''} y disponibilidad inmediata. ¿En qué horario o por qué vía podría consignar mi síntesis curricular? Muchas gracias.`
+      : `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante activa para "${place.title || 'el puesto publicado'}". Cumplo con los requisitos y quisiera consignar mi síntesis curricular. ¿Con quién o en qué horario podría presentarme? Muchas gracias.`
+  ) : '';
+
+  const messageToDisplay = customMessage || defaultMsg;
+
+  useEffect(() => {
+    if (place) {
+      setHasAppliedRoute(Boolean(place.isClaimed));
+      setOpenAttempted(false);
+      setCopiedNumber(false);
+      setCopiedMessage(false);
+      setIsEditing(false);
+    }
+  }, [place]);
 
   if (!isOpen || !place) return null;
 
@@ -87,7 +98,7 @@ export default function WhatsAppQuickModal({
 
   // Copiar mensaje al portapapeles
   const handleCopyMessage = () => {
-    navigator.clipboard.writeText(customMessage);
+    navigator.clipboard.writeText(messageToDisplay);
     setCopiedMessage(true);
     setTimeout(() => setCopiedMessage(false), 2200);
   };
@@ -103,7 +114,7 @@ export default function WhatsAppQuickModal({
   // Abrir en la app de WhatsApp sin salir abruptamente de ChambaCerca
   const handleLaunchWhatsApp = () => {
     // 1. Siempre asegurar copia del mensaje en el portapapeles por seguridad
-    navigator.clipboard.writeText(customMessage);
+    navigator.clipboard.writeText(messageToDisplay);
     
     // 2. Registrar la postulación en Mi Ruta automáticamente
     handleRegisterRoute();
@@ -114,14 +125,11 @@ export default function WhatsAppQuickModal({
       return;
     }
 
-    // 3. Crear enlace nativo de WhatsApp
-    // Para no romper el WebView ni provocar net::ERR_UNKNOWN_URL_SCHEME:
-    // Creamos un link temporal con target="_blank" o intentamos window.open de forma segura
-    const encodedText = encodeURIComponent(customMessage);
+    // 3. Crear enlace de WhatsApp y despacharlo de forma segura
+    const encodedText = encodeURIComponent(messageToDisplay);
     const whatsappWebUrl = `https://wa.me/${phoneForWhatsApp}?text=${encodedText}`;
     
     try {
-      // Intentar abrir mediante enlace seguro externo
       const a = document.createElement('a');
       a.href = whatsappWebUrl;
       a.target = '_blank';
@@ -130,7 +138,7 @@ export default function WhatsAppQuickModal({
       a.click();
       document.body.removeChild(a);
     } catch (e) {
-      console.warn('Fallback a window.open', e);
+      console.warn('Fallback de apertura WhatsApp', e);
       window.open(whatsappWebUrl, '_blank');
     }
   };
@@ -249,7 +257,12 @@ export default function WhatsAppQuickModal({
               </span>
               <button
                 type="button"
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={() => {
+                  if (!isEditing && !customMessage) {
+                    setCustomMessage(defaultMsg);
+                  }
+                  setIsEditing(!isEditing);
+                }}
                 className="text-emerald-400 hover:text-emerald-300 flex items-center gap-1 text-[11px] font-bold underline-offset-2 hover:underline"
               >
                 <Edit3 className="w-3 h-3" />
@@ -262,7 +275,7 @@ export default function WhatsAppQuickModal({
               {isEditing ? (
                 <div className="space-y-2">
                   <textarea
-                    value={customMessage}
+                    value={messageToDisplay}
                     onChange={(e) => setCustomMessage(e.target.value)}
                     rows={4}
                     className="w-full bg-[#0B141A] border border-emerald-500/40 rounded-xl p-3 text-xs text-white leading-relaxed focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-none font-sans"
@@ -282,7 +295,7 @@ export default function WhatsAppQuickModal({
                 <div className="relative">
                   {/* Globo de mensaje verde WhatsApp (#005C4B) */}
                   <div className="bg-[#005C4B] text-slate-100 p-3.5 rounded-2xl rounded-tr-none shadow-md border border-emerald-400/20 text-xs sm:text-[13px] leading-relaxed relative font-sans">
-                    {customMessage}
+                    <p className="whitespace-pre-wrap text-white font-medium">{messageToDisplay}</p>
                     <div className="mt-2 flex items-center justify-end gap-1 text-[10px] text-emerald-200/80 font-mono">
                       <span>Ahora</span>
                       <span className="text-emerald-300 font-bold">✓✓</span>
@@ -294,8 +307,8 @@ export default function WhatsAppQuickModal({
               {/* Botón rápido de copiar dentro del chat */}
               <div className="mt-2.5 flex items-center justify-between gap-2">
                 <span className="text-[11px] text-slate-400">
-                  {applicantProfile?.fullName 
-                    ? `Personalizado con tu perfil (${applicantProfile.fullName})` 
+                  {effectiveProfile?.fullName 
+                    ? `Personalizado con tu perfil (${effectiveProfile.fullName})` 
                     : 'Personalizado para esta vacante'}
                 </span>
                 <button
