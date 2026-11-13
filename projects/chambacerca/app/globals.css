@@ -63,10 +63,15 @@
   perspective: 1000px;
 }
 
-/* Animación Shimmer para Skeletons ultrarrápidos (cero parpadeo y cero Cumulative Layout Shift) */
+/* Animación Shimmer para Skeletons y Logo Sheen */
 @keyframes shimmerPulse {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-150%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
 }
 
 .skeleton-shimmer {

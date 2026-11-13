@@ -15,6 +15,7 @@ import SavingsCalculatorModal from '@/components/SavingsCalculatorModal';
 import CurriculumBuilderModal from '@/components/CurriculumBuilderModal';
 import ApplicantProfileModal, { ApplicantProfile } from '@/components/ApplicantProfileModal';
 import WhatsAppQuickModal from '@/components/WhatsAppQuickModal';
+import AppSplashScreen from '@/components/AppSplashScreen';
 import { parseSalaryBreakdown } from '@/lib/currencies';
 import { COMMERCIAL_HUBS, CommercialHub } from '@/lib/commercialHubs';
 import { playSonarPing, playSuccessChime, playTacticalClick } from '@/lib/audio';
@@ -129,6 +130,7 @@ export default function HomePage() {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [sessionLoading, setSessionLoading] = useState<boolean>(true);
   const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
+  const [isSplashDone, setIsSplashDone] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [savedIds, setSavedIds] = useState<string[]>([]);
@@ -946,15 +948,14 @@ export default function HomePage() {
     return ids.size;
   }, [applicationStatuses, places]);
 
-  // Pantalla de carga mientras se verifica la sesión
-  if (sessionLoading) {
+  // Animación de Entrada Fluida estilo YouTube (Splash Screen con Sonar, Sheen y Dissolve)
+  if (!isSplashDone) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#070A13] text-slate-100">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-slate-400 font-semibold tracking-wide">Iniciando ChambaCerca Radar...</p>
-        </div>
-      </div>
+      <AppSplashScreen
+        isReady={!sessionLoading}
+        onFinish={() => setIsSplashDone(true)}
+        minDuration={1400}
+      />
     );
   }
 
