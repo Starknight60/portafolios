@@ -76,12 +76,12 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
     gradient: "from-emerald-500 via-teal-500 to-cyan-600",
     description:
       "Radar web geoespacial de empleo por proximidad para ayudar a personas en búsqueda activa de trabajo a descubrir comercios, talleres, farmacias y empresas cercanas que solicitan personal a pie (500m a 5km). 100% libre de registro para postulantes, con mapa interactivo en vivo (Leaflet), reportes comunitarios colaborativos y base de datos Neon PostgreSQL en la nube.",
-    tech: ["Next.js 16", "PostgreSQL (Neon Cloud)", "Leaflet / OSM", "Zod", "Bcryptjs & JWT"],
+    tech: ["Next.js 16", "PostgreSQL (Neon Cloud)", "Leaflet / OSM", "Capacitor Mobile", "Tailwind CSS"],
     features: [
-      "Radar de proximidad por GPS y radio a pie (500m, 1km, 3km, 5km)",
-      "Reportes comunitarios 'Fui a preguntar' anónimos y verificados",
-      "Guía de postulación presencial y plantilla directa a WhatsApp",
-      "Portal para empleadores con publicación inmediata en la nube",
+      "Radar de proximidad por GPS y radio a pie (500m a 5km) con sincronización en vivo",
+      "Mi Ruta de Postulaciones: tracker táctico en 3 etapas con persistencia y borrado en nube",
+      "Mini Ventana In-App de WhatsApp oficial con auto-personalización de síntesis curricular",
+      "Calculadora de pasaje en camionetica y Creador de CV en 1 página para imprimir",
     ],
     githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/chambacerca",
     demoUrl: "https://chambacerca-nine.vercel.app/",

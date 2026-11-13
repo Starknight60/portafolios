@@ -1066,6 +1066,54 @@ export default function HomePage() {
               <span className="hidden xl:inline">Crear CV</span>
             </button>
 
+            {/* Botón Mi Ruta de Postulaciones (Desktop & Tablet) */}
+            <button
+              onClick={() => {
+                const next = !filterRouteOnly;
+                setFilterRouteOnly(next);
+                setFilterSavedOnly(false);
+                playTacticalClick();
+              }}
+              className={`hidden sm:flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-bold rounded-lg border transition cursor-pointer whitespace-nowrap ${
+                filterRouteOnly
+                  ? 'bg-amber-950/90 text-amber-300 border-amber-500/80 shadow-[0_0_12px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/50'
+                  : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:bg-slate-800 hover:text-amber-300'
+              }`}
+              title="Ver tu lista de solicitudes y ruta de entrega de CV"
+            >
+              <ClipboardList className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden lg:inline">Mi Ruta</span>
+              {routeCount > 0 && (
+                <span className="px-1.5 py-0.2 text-[10px] font-mono font-bold rounded-full bg-amber-500 text-slate-950 leading-tight">
+                  {routeCount}
+                </span>
+              )}
+            </button>
+
+            {/* Botón Guardadas (Desktop & Tablet) */}
+            <button
+              onClick={() => {
+                const next = !filterSavedOnly;
+                setFilterSavedOnly(next);
+                setFilterRouteOnly(false);
+                playTacticalClick();
+              }}
+              className={`hidden sm:flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-bold rounded-lg border transition cursor-pointer whitespace-nowrap ${
+                filterSavedOnly
+                  ? 'bg-amber-950/90 text-amber-300 border-amber-500/80 shadow-[0_0_12px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/50'
+                  : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:bg-slate-800 hover:text-amber-300'
+              }`}
+              title="Ver oportunidades guardadas en favoritos"
+            >
+              <Star className={`w-3.5 h-3.5 ${filterSavedOnly ? 'fill-amber-400 text-amber-400' : 'text-amber-400'}`} />
+              <span className="hidden lg:inline">Guardadas</span>
+              {savedIds.length > 0 && (
+                <span className="px-1.5 py-0.2 text-[10px] font-mono font-bold rounded-full bg-amber-500 text-slate-950 leading-tight">
+                  {savedIds.length}
+                </span>
+              )}
+            </button>
+
             {/* Botón Acceso Rápido: Mi Perfil de Postulante */}
             <button
               onClick={() => {

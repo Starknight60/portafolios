@@ -111,7 +111,7 @@ export default function WhatsAppQuickModal({
     }
   };
 
-  // Abrir en la app de WhatsApp solo si el usuario lo desea expresamente
+  // Abrir en la app o web de WhatsApp de forma inteligente según el dispositivo
   const handleLaunchWhatsApp = () => {
     // 1. Siempre asegurar copia del mensaje en el portapapeles
     navigator.clipboard.writeText(messageToDisplay);
@@ -123,18 +123,24 @@ export default function WhatsAppQuickModal({
       return;
     }
 
-    // 2. Intentar lanzar directamente el protocolo de la app nativa de WhatsApp
-    // sin redirigir a páginas web externas ni abrir Google Chrome
-    try {
-      const intentUrl = `whatsapp://send?phone=${phoneForWhatsApp}&text=${encodeURIComponent(messageToDisplay)}`;
-      const link = document.createElement('a');
-      link.href = intentUrl;
-      // No usar target _blank para no abrir pestañas en navegadores web
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (e) {
-      console.warn('No se pudo invocar protocolo nativo whatsapp://', e);
+    const encodedText = encodeURIComponent(messageToDisplay);
+    const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // En móvil intentar esquema nativo de la app instalada
+      try {
+        const intentUrl = `whatsapp://send?phone=${phoneForWhatsApp}&text=${encodedText}`;
+        const link = document.createElement('a');
+        link.href = intentUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (e) {
+        console.warn('No se pudo invocar protocolo nativo whatsapp://', e);
+      }
+    } else {
+      // En navegador web de escritorio (PC/Laptop), abrir WhatsApp Web en nueva pestaña
+      window.open(`https://web.whatsapp.com/send?phone=${phoneForWhatsApp}&text=${encodedText}`, '_blank');
     }
   };
 
@@ -378,15 +384,19 @@ export default function WhatsAppQuickModal({
             )}
           </button>
 
-          {/* Botón 2: Abrir App WhatsApp */}
+          {/* Botón 2: Abrir App o Web WhatsApp */}
           <button
             type="button"
             onClick={handleLaunchWhatsApp}
             className="w-full sm:w-auto py-3 px-3.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/40 transition cursor-pointer"
-            title="Intentar abrir la app nativa de WhatsApp"
+            title="Abrir WhatsApp en tu navegador o app instalada"
           >
             <MessageCircle className="w-3.5 h-3.5 fill-current" />
-            <span>Abrir en WhatsApp</span>
+            <span>
+              {typeof navigator !== 'undefined' && !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+                ? 'Abrir WhatsApp Web'
+                : 'Abrir en WhatsApp'}
+            </span>
           </button>
 
           {/* Botón 3: Cerrar */}
