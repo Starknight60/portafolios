@@ -141,7 +141,7 @@ export default function HomePage() {
   >('general');
 
   const isDemoUser = useMemo(() => {
-    if (!currentUser) return true; // Modo invitado es solo para ver
+    if (!currentUser) return false; // Modo libre sin registro: los visitantes pueden postularse y usar Mi Ruta
     if (currentUser.role === 'ADMIN') return false; // Administrador tiene acceso total
     const email = String(currentUser.email || '').toLowerCase().trim();
     if (
@@ -2358,34 +2358,26 @@ export default function HomePage() {
                             <span>Cupos Llenos (24h)</span>
                           </button>
                         ) : (
-                          place.contactWhatsapp && (
+                          (place.contactWhatsapp || place.contactPhone) ? (
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
-                                if (isDemoUser) {
-                                  triggerDemoNotice('message');
-                                  return;
-                                }
                                 setWhatsAppModalPlace(place);
                               }}
-                              className={
-                                isDemoUser
-                                  ? "px-2.5 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
-                                  : "px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
-                              }
-                              title={isDemoUser ? "Modo Prueba: Inicia sesión para postularte por WhatsApp" : "Abrir contacto de WhatsApp (Ver número verificado, mensaje listo y postularte)"}
+                              className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center gap-1 transition shadow-md shadow-emerald-950/80 cursor-pointer"
+                              title="Abrir contacto de WhatsApp (Ver número verificado, mensaje listo y postularte)"
                             >
                               <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                              <span>{isDemoUser ? "WhatsApp (🔒 Solo Ver)" : "WhatsApp"}</span>
-                              {!isDemoUser && typeof place.availableSlots === 'number' && (
+                              <span>WhatsApp</span>
+                              {typeof place.availableSlots === 'number' && (
                                 <span className="text-[10px] bg-emerald-900/80 px-1 py-0.2 rounded text-emerald-200 font-mono ml-0.5">
                                   {place.availableSlots}
                                 </span>
                               )}
                             </button>
-                          )
+                          ) : null
                         )}
 
                         {place.computrabajoUrl && !place.contactWhatsapp && (
