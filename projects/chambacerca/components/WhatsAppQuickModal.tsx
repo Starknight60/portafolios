@@ -47,9 +47,13 @@ export default function WhatsAppQuickModal({
 
   // Generar mensaje reactivo síncrono para que nunca esté vacío
   const defaultMsg = place ? (
-    effectiveProfile?.fullName
-      ? `Hola, cordial saludo. Mi nombre es ${effectiveProfile.fullName}${effectiveProfile.idNumber ? ` (C.I. ${effectiveProfile.idNumber})` : ''}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto publicado'}". Cuento con experiencia${effectiveProfile.targetRole ? ` como ${effectiveProfile.targetRole}` : ''} y disponibilidad inmediata. ¿En qué horario o por qué vía podría consignar mi síntesis curricular? Muchas gracias.`
-      : `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante activa para "${place.title || 'el puesto publicado'}". Cumplo con los requisitos y quisiera consignar mi síntesis curricular. ¿Con quién o en qué horario podría presentarme? Muchas gracias.`
+    effectiveProfile?.customMessage
+      ? effectiveProfile.customMessage
+          .replace(/\[Comercio\]|\*Panadería \/ Comercio\*|\*Comercio\*/gi, place.placeName)
+          .replace(/\[Puesto\]|\*Personal de Tienda\*|\*el puesto publicado\*/gi, place.title || 'el puesto publicado')
+      : effectiveProfile?.fullName
+        ? `Hola, cordial saludo. Mi nombre es ${effectiveProfile.fullName}${effectiveProfile.idNumber ? ` (C.I. ${effectiveProfile.idNumber})` : ''}. Vi en ChambaCerca su vacante para "${place.title || 'el puesto publicado'}". Cuento con experiencia${effectiveProfile.targetRole ? ` como ${effectiveProfile.targetRole}` : ''} y disponibilidad inmediata. ¿En qué horario o por qué vía podría consignar mi síntesis curricular? Muchas gracias.`
+        : `Hola, cordial saludo. Vi en ChambaCerca que en ${place.placeName} tienen vacante activa para "${place.title || 'el puesto publicado'}". Cumplo con los requisitos y quisiera consignar mi síntesis curricular. ¿Con quién o en qué horario podría presentarme? Muchas gracias.`
   ) : '';
 
   const messageToDisplay = customMessage || defaultMsg;
