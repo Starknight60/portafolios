@@ -948,17 +948,6 @@ export default function HomePage() {
     return ids.size;
   }, [applicationStatuses, places]);
 
-  // Animación de Entrada Fluida estilo YouTube (Splash Screen con Sonar, Sheen y Dissolve)
-  if (!isSplashDone) {
-    return (
-      <AppSplashScreen
-        isReady={!sessionLoading}
-        onFinish={() => setIsSplashDone(true)}
-        minDuration={1400}
-      />
-    );
-  }
-
   // =========================================================================
   // PANTALLA DE INICIO WEB: LOGIN ELEGANTE SPLIT-SCREEN
   // La página inicia directamente en el login web si el usuario no ha iniciado sesión
@@ -966,20 +955,38 @@ export default function HomePage() {
   // =========================================================================
   if (!currentUser && !isGuestMode) {
     return (
-      <WebLogin
-        onLoginSuccess={(user) => {
-          setCurrentUser(user);
-          fetchSaved();
-        }}
-        onContinueAsGuest={() => {
-          setIsGuestMode(true);
-        }}
-      />
+      <>
+        {/* Overlay de Animación de Inicio estilo YouTube con Sonar y Dissolve */}
+        {!isSplashDone && (
+          <AppSplashScreen
+            isReady={!sessionLoading}
+            onFinish={() => setIsSplashDone(true)}
+            minDuration={1600}
+          />
+        )}
+        <WebLogin
+          onLoginSuccess={(user) => {
+            setCurrentUser(user);
+            fetchSaved();
+          }}
+          onContinueAsGuest={() => {
+            setIsGuestMode(true);
+          }}
+        />
+      </>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#080D15] text-slate-100 relative overflow-x-clip">
+      {/* Overlay de Animación de Inicio estilo YouTube con Sonar y Dissolve */}
+      {!isSplashDone && (
+        <AppSplashScreen
+          isReady={!sessionLoading}
+          onFinish={() => setIsSplashDone(true)}
+          minDuration={1600}
+        />
+      )}
       {/* Iluminación Ambiental Optimizada por Gradiente Nativo */}
       <div 
         className="fixed inset-0 pointer-events-none z-0" 

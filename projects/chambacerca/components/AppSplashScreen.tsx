@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Compass, ShieldCheck, Sparkles } from 'lucide-react';
+import { Compass, Sparkles } from 'lucide-react';
 
 interface AppSplashScreenProps {
   isReady?: boolean;
   onFinish?: () => void;
-  minDuration?: number; // Duración mínima en ms (por defecto 1500ms como YouTube)
+  minDuration?: number; // Duración de la animación (por defecto 1500ms como YouTube)
 }
 
 export default function AppSplashScreen({
@@ -14,77 +14,82 @@ export default function AppSplashScreen({
   onFinish,
   minDuration = 1500,
 }: AppSplashScreenProps) {
-  // Fases: 'intro' (pop in) -> 'active' (breathing/sheen) -> 'exiting' (dissolve YouTube) -> 'done'
-  const [phase, setPhase] = useState<'intro' | 'active' | 'exiting' | 'done'>('intro');
-  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isUnmounted, setIsUnmounted] = useState(false);
+  const [minTimerDone, setMinTimerDone] = useState(false);
 
   useEffect(() => {
-    // 1. Fase intro: 350ms para el pop-in elástico
-    const introTimer = setTimeout(() => {
-      setPhase((prev) => (prev === 'intro' ? 'active' : prev));
-    }, 350);
+    // Si estamos en entorno Capacitor nativo en Android/iOS, ocultar la pantalla estática nativa
+    // de inmediato para que nuestra animación fluida estilo YouTube tome el control sin demoras
+    try {
+      if (typeof window !== 'undefined' && (window as any).Capacitor?.Plugins?.SplashScreen) {
+        (window as any).Capacitor.Plugins.SplashScreen.hide();
+      }
+    } catch {
+      // Entorno web normal
+    }
 
-    // 2. Tiempo mínimo de animación tipo YouTube
-    const minTimer = setTimeout(() => {
-      setMinTimeElapsed(true);
+    // 1. Temporizador mínimo de la animación estilo YouTube
+    const timer = setTimeout(() => {
+      setMinTimerDone(true);
     }, minDuration);
 
-    return () => {
-      clearTimeout(introTimer);
-      clearTimeout(minTimer);
-    };
+    return () => clearTimeout(timer);
   }, [minDuration]);
 
   // Cuando se cumplió el tiempo mínimo Y el contenido está listo, iniciar el dissolve de YouTube
   useEffect(() => {
-    if (minTimeElapsed && isReady && phase === 'active') {
-      setPhase('exiting');
+    if (minTimerDone && isReady && !isExiting) {
+      setIsExiting(true);
       const exitTimer = setTimeout(() => {
-        setPhase('done');
+        setIsUnmounted(true);
         if (onFinish) onFinish();
-      }, 500); // 500ms de transición fluida de salida
+      }, 450); // 450ms de transición suave de disolución
       return () => clearTimeout(exitTimer);
     }
-  }, [minTimeElapsed, isReady, phase, onFinish]);
+  }, [minTimerDone, isReady, isExiting, onFinish]);
 
-  // Si el usuario toca la pantalla, acelerar la transición inmediatamente
+  // Si el usuario toca la pantalla, acelerar la transición de inmediato
   const handleQuickSkip = () => {
-    if (phase !== 'exiting' && phase !== 'done') {
-      setPhase('exiting');
+    if (!isExiting) {
+      setIsExiting(true);
       setTimeout(() => {
-        setPhase('done');
+        setIsUnmounted(true);
         if (onFinish) onFinish();
-      }, 350);
+      }, 250);
     }
   };
 
-  if (phase === 'done') return null;
-
-  const isExiting = phase === 'exiting';
+  if (isUnmounted) return null;
 
   return (
     <div
       onClick={handleQuickSkip}
-      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070A13] overflow-hidden select-none cursor-pointer transition-all duration-500 ease-out ${
+      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#070A13] overflow-hidden select-none cursor-pointer transition-all duration-500 ease-out ${
         isExiting
-          ? 'opacity-0 scale-105 pointer-events-none'
-          : 'opacity-100 scale-100'
+          ? 'opacity-0 pointer-events-none'
+          : 'opacity-100'
       }`}
+      style={{
+        transform: isExiting ? 'scale(1.08)' : 'scale(1)',
+        transition: 'opacity 450ms cubic-bezier(0.4, 0, 0.2, 1), transform 450ms cubic-bezier(0.4, 0, 0.2, 1)',
+        willChange: 'opacity, transform',
+      }}
       aria-label="Cargando ChambaCerca"
       role="status"
     >
       {/* Resplandor ambiental de fondo (YouTube Dark Mode ambient glow) */}
       <div 
-        className={`absolute w-[360px] h-[360px] sm:w-[480px] sm:h-[480px] rounded-full bg-gradient-to-tr from-emerald-500/15 via-teal-500/10 to-cyan-500/15 blur-3xl transition-transform duration-1000 ${
-          isExiting ? 'scale-150 opacity-0' : 'scale-100 opacity-100'
+        className={`absolute w-[360px] h-[360px] sm:w-[480px] sm:h-[480px] rounded-full bg-gradient-to-tr from-emerald-500/15 via-teal-500/10 to-cyan-500/15 blur-3xl transition-opacity duration-500 ${
+          isExiting ? 'opacity-0' : 'opacity-100'
         }`} 
       />
 
-      {/* Ondas expansivas de Radar tipo Sonar Ping */}
+      {/* Ondas expansivas de Sonar Satelital (Pulsos concéntricos) */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <span className="absolute w-28 h-28 rounded-full border border-emerald-500/30 animate-ping duration-1000" />
-        <span className="absolute w-44 h-44 rounded-full border border-teal-500/20 animate-pulse duration-1500" />
-        <span className="absolute w-64 h-64 rounded-full border border-emerald-500/10" />
+        <span className="absolute w-28 h-28 rounded-full border border-emerald-500/40 animate-yt-sonar" />
+        <span className="absolute w-44 h-44 rounded-full border border-teal-500/25 animate-yt-sonar" style={{ animationDelay: '0.6s' }} />
+        <span className="absolute w-64 h-64 rounded-full border border-emerald-500/15 animate-yt-sonar" style={{ animationDelay: '1.2s' }} />
       </div>
 
       {/* Contenedor Central del Logo y Animación */}
@@ -92,53 +97,36 @@ export default function AppSplashScreen({
         {/* Emblema Principal con Resplandor Táctico */}
         <div className="relative group">
           {/* Anillo de resplandor exterior */}
-          <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 rounded-3xl blur-md opacity-70 animate-pulse group-hover:opacity-100 transition duration-1000" />
+          <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 rounded-3xl blur-md opacity-70 animate-pulse" />
 
           {/* Caja del Emblema Principal (Estilo YouTube Premium Splash) */}
-          <div
-            className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-400 p-[2px] shadow-2xl shadow-emerald-950/80 transition-all duration-500 ${
-              phase === 'intro'
-                ? 'scale-75 opacity-0'
-                : isExiting
-                ? 'scale-115 opacity-90'
-                : 'scale-100 opacity-100'
-            }`}
-          >
+          <div className="relative w-22 h-22 sm:w-26 sm:h-26 rounded-2xl sm:rounded-3xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-400 p-[2.5px] shadow-2xl shadow-emerald-950/90 animate-yt-pop">
             <div className="w-full h-full bg-[#080D15] rounded-[14px] sm:rounded-[22px] flex items-center justify-center relative overflow-hidden">
               {/* Haz de barrido de radar giratorio */}
               <div 
-                className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,rgba(16,185,129,0)_0deg,rgba(16,185,129,0.25)_300deg,rgba(16,185,129,0.5)_360deg)] animate-spin" 
-                style={{ animationDuration: '3s' }}
+                className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,rgba(16,185,129,0)_0deg,rgba(16,185,129,0.25)_300deg,rgba(16,185,129,0.55)_360deg)] animate-yt-radar" 
               />
 
               {/* Destello de brillo diagonal (YouTube Logo Sheen) */}
               <div 
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" 
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent animate-yt-streak pointer-events-none" 
               />
 
               {/* Icono central de Brújula Radar */}
               <div className="relative z-10 flex items-center justify-center">
-                <Compass className="w-10 h-10 sm:w-12 sm:h-12 text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.7)]" />
-                <span className="absolute w-2 h-2 rounded-full bg-emerald-300 animate-ping" />
+                <Compass className="w-11 h-11 sm:w-13 sm:h-13 text-emerald-400 drop-shadow-[0_0_14px_rgba(16,185,129,0.85)]" />
+                <span className="absolute w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Tipografía de Marca (YouTube Style Brand Lockup) */}
-        <div 
-          className={`flex flex-col items-center gap-1.5 transition-all duration-500 delay-100 ${
-            phase === 'intro' 
-              ? 'opacity-0 translate-y-3' 
-              : isExiting 
-              ? 'opacity-0 translate-y-2' 
-              : 'opacity-100 translate-y-0'
-          }`}
-        >
-          <div className="flex items-center gap-1.5">
+        <div className="flex flex-col items-center gap-1.5 animate-yt-text">
+          <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-0.5">
               <span>Chamba</span>
-              <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
                 Cerca
               </span>
             </h1>
@@ -168,7 +156,7 @@ export default function AppSplashScreen({
           <div 
             className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all ease-out"
             style={{ 
-              width: isExiting ? '100%' : minTimeElapsed ? '90%' : '65%',
+              width: isExiting ? '100%' : minTimerDone ? '90%' : '65%',
               transitionDuration: isExiting ? '300ms' : `${minDuration}ms`
             }} 
           />
