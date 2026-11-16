@@ -176,6 +176,27 @@
   backface-visibility: hidden;
 }
 
+@keyframes ytProgressBar {
+  0% {
+    transform: translate3d(0, 0, 0) scaleX(0.06);
+  }
+  50% {
+    transform: translate3d(0, 0, 0) scaleX(0.68);
+  }
+  85% {
+    transform: translate3d(0, 0, 0) scaleX(0.92);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scaleX(1);
+  }
+}
+
+.animate-yt-progress {
+  animation: ytProgressBar 2.8s cubic-bezier(0.12, 0.75, 0.25, 1) forwards;
+  will-change: transform;
+  transform-origin: left;
+}
+
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,

@@ -6,18 +6,17 @@ import { Compass } from 'lucide-react';
 interface AppSplashScreenProps {
   isReady?: boolean;
   onFinish?: () => void;
-  minDuration?: number; // Duración de la animación (por defecto 1800ms para apreciarla con fluidez)
+  minDuration?: number; // Duración completa de la animación (2800ms para apreciarla con fluidez)
 }
 
 export default function AppSplashScreen({
   isReady = true,
   onFinish,
-  minDuration = 1800,
+  minDuration = 2800,
 }: AppSplashScreenProps) {
   const [isExiting, setIsExiting] = useState(false);
   const [isUnmounted, setIsUnmounted] = useState(false);
   const [minTimerDone, setMinTimerDone] = useState(false);
-  const [progressScale, setProgressScale] = useState(0.15);
 
   useEffect(() => {
     // Si estamos en entorno Capacitor nativo en Android/iOS, ocultar la pantalla estática nativa
@@ -30,57 +29,35 @@ export default function AppSplashScreen({
       // Entorno web normal
     }
 
-    // Progreso fluido de la barra inferior con aceleración por GPU (scaleX en vez de width)
-    const animFrame = requestAnimationFrame(() => {
-      setProgressScale(0.92);
-    });
-
-    // 1. Temporizador de apreciación de la animación (1.8s)
+    // Temporizador principal de permanencia de la animación (2.8 segundos)
     const timer = setTimeout(() => {
       setMinTimerDone(true);
     }, minDuration);
 
-    return () => {
-      cancelAnimationFrame(animFrame);
-      clearTimeout(timer);
-    };
+    return () => clearTimeout(timer);
   }, [minDuration]);
 
   // Cuando se cumplió el tiempo mínimo Y el contenido está listo, iniciar el dissolve cinematográfico
   useEffect(() => {
     if (minTimerDone && isReady && !isExiting) {
       setIsExiting(true);
-      setProgressScale(1);
       const exitTimer = setTimeout(() => {
         setIsUnmounted(true);
         if (onFinish) onFinish();
-      }, 380); // 380ms de transición suave de disolución
+      }, 420); // 420ms de transición suave de disolución
       return () => clearTimeout(exitTimer);
     }
   }, [minTimerDone, isReady, isExiting, onFinish]);
-
-  // Si el usuario toca la pantalla, entrar de inmediato (150ms)
-  const handleQuickSkip = () => {
-    if (!isExiting) {
-      setIsExiting(true);
-      setProgressScale(1);
-      setTimeout(() => {
-        setIsUnmounted(true);
-        if (onFinish) onFinish();
-      }, 150);
-    }
-  };
 
   if (isUnmounted) return null;
 
   return (
     <div
-      onClick={handleQuickSkip}
-      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#070A13] overflow-hidden select-none cursor-pointer ${
+      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#070A13] overflow-hidden select-none ${
         isExiting ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
       style={{
-        transition: 'opacity 380ms cubic-bezier(0.25, 1, 0.5, 1)',
+        transition: 'opacity 420ms cubic-bezier(0.25, 1, 0.5, 1)',
         willChange: 'opacity',
         contain: 'strict',
       }}
@@ -160,23 +137,13 @@ export default function AppSplashScreen({
         </div>
       </div>
 
-      {/* Línea de carga sutil inferior (Acelerada 100% por GPU con transform: scaleX) */}
+      {/* Línea de carga sutil inferior (Acelerada 100% por GPU en keyframes CSS, 0 reflows) */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-48 sm:w-64 flex flex-col items-center gap-2 pointer-events-none">
         <div className="w-full h-1 bg-slate-800/80 rounded-full overflow-hidden">
-          <div 
-            className="h-full w-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
-            style={{ 
-              transformOrigin: 'left',
-              transform: `scaleX(${progressScale})`,
-              transition: isExiting
-                ? 'transform 200ms cubic-bezier(0.2, 0, 0, 1)'
-                : `transform ${minDuration}ms cubic-bezier(0.12, 0.75, 0.25, 1)`,
-              willChange: 'transform',
-            }} 
-          />
+          <div className="h-full w-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full animate-yt-progress" />
         </div>
         <p className="text-[9px] text-slate-500 tracking-wider font-mono">
-          Toca la pantalla para entrar
+          Cargando oportunidades...
         </p>
       </div>
     </div>
