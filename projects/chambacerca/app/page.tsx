@@ -961,7 +961,7 @@ export default function HomePage() {
           <AppSplashScreen
             isReady={!sessionLoading}
             onFinish={() => setIsSplashDone(true)}
-            minDuration={2800}
+            minDuration={2400}
           />
         )}
         <WebLogin
@@ -984,7 +984,7 @@ export default function HomePage() {
         <AppSplashScreen
           isReady={!sessionLoading}
           onFinish={() => setIsSplashDone(true)}
-          minDuration={2800}
+          minDuration={2400}
         />
       )}
       {/* Iluminación Ambiental Optimizada por Gradiente Nativo */}
