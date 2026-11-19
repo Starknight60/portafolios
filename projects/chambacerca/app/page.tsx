@@ -996,7 +996,7 @@ export default function HomePage() {
       />
 
       {/* Header Principal Compacto y Elegante con Centrado Perfecto y Balance Simétrico */}
-      <header className="sticky top-0 z-[100] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 py-2 safe-area-header">
+      <header className="sticky top-0 z-[500] bg-[#0E1726]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 py-2 safe-area-header">
         <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-2 lg:gap-4">
           {/* Columna Izquierda: Logo & Marca (flex-1 para balance simétrico) */}
           <div className="flex-1 flex items-center justify-start gap-2 sm:gap-2.5 min-w-0">
@@ -1432,7 +1432,7 @@ export default function HomePage() {
           id="radar-map-section"
           className={`w-full space-y-2.5 ${
             isFullscreenMap 
-              ? 'fixed inset-0 z-[200] bg-[#080D15] p-3 sm:p-4 flex flex-col h-screen' 
+              ? 'fixed inset-0 z-[2000] bg-[#080D15] p-3 sm:p-4 flex flex-col h-screen' 
               : mobileTab === 'feed' 
                 ? 'hidden md:block' 
                 : 'block'
@@ -1482,7 +1482,10 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className={`w-full rounded-2xl overflow-hidden border border-slate-800/90 shadow-2xl relative ${isFullscreenMap ? 'flex-1 h-full' : 'h-[360px] sm:h-[420px] lg:h-[480px]'}`}>
+          <div 
+            className={`w-full rounded-2xl overflow-hidden border border-slate-800/90 shadow-2xl relative isolate z-10 ${isFullscreenMap ? 'flex-1 h-full' : 'h-[360px] sm:h-[420px] lg:h-[480px]'}`}
+            style={{ contain: 'paint', transform: 'translate3d(0, 0, 0)' }}
+          >
             <MapViewer
               center={[coords.lat, coords.lng]}
               radiusMeters={radius}
@@ -2445,7 +2448,7 @@ export default function HomePage() {
       </main>
 
       {/* Botón Flotante Rápido de Alternancia en Móvil (1 Toque entre Radar y Ofertas) */}
-      <div className="md:hidden fixed bottom-20 right-4 z-40">
+      <div className="md:hidden fixed bottom-20 right-4 z-[450]">
         <button
           type="button"
           onClick={() => {
@@ -2469,7 +2472,7 @@ export default function HomePage() {
       </div>
 
       {/* BARRA DE NAVEGACIÓN INFERIOR MÓVIL (Bottom Navigation Bar ergonómica) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[120] bg-[#0A101D]/95 backdrop-blur-xl border-t border-slate-800/90 safe-area-bottom shadow-2xl">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[500] bg-[#0A101D]/95 backdrop-blur-xl border-t border-slate-800/90 safe-area-bottom shadow-2xl">
         <div className="grid grid-cols-5 h-16 items-center px-1">
           {/* Tab 1: Ofertas (Feed) */}
           <button

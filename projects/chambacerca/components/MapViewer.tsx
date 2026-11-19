@@ -398,14 +398,17 @@ function MapViewer({
   const hasSelectedRoute = Boolean(selectedPlace && safeUserLocation && isWalkingDistance);
 
   return (
-    <div className="relative w-full h-full min-h-[360px] sm:min-h-[420px] rounded-2xl overflow-hidden border border-slate-700/80 shadow-[0_0_35px_rgba(0,0,0,0.7)] group">
+    <div 
+      className="relative isolate z-10 w-full h-full min-h-[360px] sm:min-h-[420px] rounded-2xl overflow-hidden border border-slate-700/80 shadow-[0_0_35px_rgba(0,0,0,0.7)] group"
+      style={{ contain: 'paint', transform: 'translate3d(0, 0, 0)' }}
+    >
       
       {/* =========================================================================
           HUD SUPERIOR: TELEMETRÍA EN VIVO Y SELECTORES FLOTANTES
           ========================================================================= */}
       
       {/* Telemetría Militar Táctica en Vivo (Esquina Superior Izquierda) */}
-      <div className="absolute top-2.5 left-2.5 z-[1000] pointer-events-none flex flex-col gap-1 max-w-[48%] sm:max-w-none">
+      <div className="absolute top-2.5 left-2.5 z-30 pointer-events-none flex flex-col gap-1 max-w-[48%] sm:max-w-none">
         <div className="bg-[#0B131F]/95 px-2.5 py-1 rounded-xl border border-emerald-500/40 shadow-2xl flex items-center gap-1.5 backdrop-blur-sm">
           <span className="relative flex h-2 w-2 shrink-0">
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
@@ -436,7 +439,7 @@ function MapViewer({
       </div>
 
       {/* Selector Flotante de Capa & Toggle Sonar (Esquina Superior Derecha) */}
-      <div className="absolute top-2.5 right-2.5 z-[1000] flex items-center gap-1">
+      <div className="absolute top-2.5 right-2.5 z-30 flex items-center gap-1">
         
         {/* Toggle para Activar/Desactivar el Haz de Sonar */}
         <button
@@ -491,7 +494,7 @@ function MapViewer({
           CAPA HUD NOVEDOSA: RETÍCULA TÁCTICA LIGERA (SIN ANIMACIONES PESADAS)
           ========================================================================= */}
       {showRadarHud && (
-        <div className="absolute inset-0 z-[500] pointer-events-none overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden flex items-center justify-center">
           {/* Anillos Concéntricos de Distancia Militares */}
           <div className="relative w-[340px] h-[340px] sm:w-[460px] sm:h-[460px] rounded-full border border-emerald-500/25 flex items-center justify-center">
             
@@ -680,7 +683,7 @@ function MapViewer({
       </MapContainer>
 
       {/* Leyenda Táctica del Radar en la esquina inferior */}
-      <div className="absolute bottom-3 left-3 z-[1000] bg-[#0B131F]/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700/80 text-[11px] text-slate-300 shadow-2xl flex items-center gap-3">
+      <div className="absolute bottom-3 left-3 z-30 bg-[#0B131F]/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700/80 text-[11px] text-slate-300 shadow-2xl flex items-center gap-3">
         <div className="flex items-center gap-1.5 font-bold text-white pr-2 border-r border-slate-700">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
