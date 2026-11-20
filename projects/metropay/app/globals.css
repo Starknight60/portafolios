@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #05070D;
+    color: #F8FAFC;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* =========================================================================
+   ANIMACIONES APPLE WALLET & METROPAY CONTACTLESS
+   ========================================================================= */
+
+@keyframes cardTiltShine {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes nfcRadiate {
+  0% {
+    transform: scale3d(0.9, 0.9, 1);
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale3d(1.8, 1.8, 1);
+    opacity: 0;
+  }
+}
+
+@keyframes holographicSheen {
+  0% {
+    transform: translate3d(-120%, -120%, 0) rotate(25deg);
+  }
+  100% {
+    transform: translate3d(220%, 220%, 0) rotate(25deg);
+  }
+}
+
+@keyframes turnstileBarTurn {
+  0% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(120deg);
+  }
+  100% {
+    transform: rotate(120deg);
+  }
+}
+
+.animate-nfc-wave {
+  animation: nfcRadiate 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  will-change: transform, opacity;
+}
+
+.animate-hologram {
+  animation: holographicSheen 4.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-turnstile-arm {
+  animation: turnstileBarTurn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Apple Wallet Glassmorphism & Metallic Sheen */
+.apple-card-metal {
+  background: linear-gradient(135deg, #111827 0%, #0F172A 40%, #1E1B4B 70%, #0F172A 100%);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 20px 40px -15px rgba(0, 0, 0, 0.8),
+    0 0 30px -5px rgba(225, 29, 72, 0.25),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.8);
+}
+
+.apple-card-border {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Safe areas */
+.safe-area-header {
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+}
+.safe-area-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+}

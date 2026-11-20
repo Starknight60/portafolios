@@ -50,6 +50,25 @@ interface ProjectItem {
 
 const DEFAULT_PROJECTS: ProjectItem[] = [
   {
+    id: "metropay",
+    category: "fullstack",
+    title: "MetroPay Caracas",
+    badge: "FinTech & Apple Wallet Transit",
+    gradient: "from-rose-600 via-red-600 to-amber-500",
+    description:
+      "Boleto digital sin contacto y billetera de transporte tipo Apple Pay para el Metro de Caracas. Permite pagar la entrada al metro directamente desde el teléfono con NFC o código QR dinámico rotativo anti-capturas, recargar saldo al instante mediante Pago Móvil C2P/P2P (BDV, Banesco, Mercantil) y validar torniquetes 100% offline sin necesidad de cobertura celular ni tarjetas plásticas en los andenes subterráneos.",
+    tech: ["Next.js 16", "React 19", "Web Audio API", "QRCode", "Canvas Confetti", "Tailwind CSS"],
+    features: [
+      "Pase de abordo Apple Wallet Transit con inclinación 3D, ondas NFC y holograma de seguridad reflectivo",
+      "Simulador de torniquete táctico interactivo con sonido de bip dual-tone y vibración háptica",
+      "Bóveda de tokens criptográficos offline para validar accesos en andenes sin cobertura celular",
+      "Recarga inmediata por Pago Móvil en Bolívares (Bs.) con planes de viajes y cálculo a tasa BCV",
+      "Planificador de rutas y estado en vivo de las Líneas 1, 2, 3, 4 y MetroCable",
+    ],
+    githubUrl: "https://github.com/Starknight60/portafolios/tree/main/projects/metropay",
+    demoUrl: "https://metropay-caracas.vercel.app/",
+  },
+  {
     id: "zonahogar",
     category: "fullstack",
     title: "ZonaHogar Radar",
